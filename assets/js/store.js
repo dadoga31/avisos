@@ -40,7 +40,7 @@
   var state = {
     avisos: [],
     tecnicos: [],
-    ajustes: { tema: 'auto', prefijoRef: 'AV', contadorRef: 0, verCerrados: false }
+    ajustes: { tema: 'auto', prefijoRef: 'AV', contadorRef: 0, verCerrados: false, recordatorio: 30 }
   };
 
   /* ---------- utilidades ---------- */
@@ -226,6 +226,18 @@
 
   function totalHoras(a) {
     return (a.horas || []).reduce(function (s, h) { return s + (Number(h.horas) || 0); }, 0);
+  }
+
+  /* Al exportar al calendario se sube SEQUENCE de cada aviso: así, al volver
+     a importar, el calendario actualiza el evento en vez de duplicarlo.
+     No toca «actualizado»: exportar no es modificar el aviso. */
+  function marcarExportados(lista) {
+    var tocados = (lista || []).map(function (a) {
+      a.icsSeq = (Number(a.icsSeq) || 0) + 1;
+      return a;
+    });
+    if (!tocados.length) return Promise.resolve(0);
+    return DB.putMany('avisos', tocados).then(function () { return tocados.length; });
   }
 
   /* ---------- fotos ---------- */
@@ -519,6 +531,7 @@
     addMaterial: addMaterial, delMaterial: delMaterial,
     addHoras: addHoras, delHoras: delHoras, totalHoras: totalHoras,
     addFoto: addFoto, fotosDe: fotosDe, delFoto: delFoto,
+    marcarExportados: marcarExportados,
     guardarTecnico: guardarTecnico, borrarTecnico: borrarTecnico, tecnico: tecnico,
     iniciales: iniciales, cargaPorTecnico: cargaPorTecnico,
     abierto: abierto, vencido: vencido, filtrar: filtrar, ordenar: ordenar, resumen: resumen,

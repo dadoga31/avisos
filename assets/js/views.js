@@ -18,7 +18,8 @@
     papelera: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/></svg>',
     copia: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M15 6H5v10"/></svg>',
     compartir: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 14v5h14v-5"/></svg>',
-    filtro: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16l-6 7v6l-4-2v-4z"/></svg>'
+    filtro: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16l-6 7v6l-4-2v-4z"/></svg>',
+    calendario: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="1"/><path d="M3 10h18M8 3v4M16 3v4M12 14v4M10 16h4"/></svg>'
   };
 
   /* =========================================================
@@ -291,7 +292,8 @@
       '</dl>' +
       '<div class="divider"></div>' +
       '<div class="btnrow"><button class="btn btn--sm" data-asignar type="button">Reasignar</button>' +
-      '<button class="btn btn--sm" data-reprogramar type="button">Cambiar fecha</button></div>' +
+      '<button class="btn btn--sm" data-reprogramar type="button">Cambiar fecha</button>' +
+      '<button class="btn btn--sm" data-calendario type="button">' + ICON.calendario + 'Al calendario</button></div>' +
       '</div>');
 
     /* cliente */
@@ -421,6 +423,8 @@
         });
     });
 
+    root.querySelector('[data-calendario]').addEventListener('click', function () { sheetCalendario(a); });
+
     root.querySelector('[data-nota]').addEventListener('click', function () {
       U.pedirTexto('Nueva nota', { label: 'Qué ha pasado', multilinea: true, placeholder: 'Ej.: Sustituida la fuente, pendiente de probar con la CRA' })
         .then(function (txt) {
@@ -519,11 +523,88 @@
     });
   }
 
+  /* =========================================================
+     CALENDARIO DEL MÓVIL (.ics)
+     ========================================================= */
+
+  var RECORDATORIOS = [
+    { id: '0',    label: 'Sin recordatorio' },
+    { id: '15',   label: '15 minutos antes' },
+    { id: '30',   label: '30 minutos antes' },
+    { id: '60',   label: '1 hora antes' },
+    { id: '120',  label: '2 horas antes' },
+    { id: '1440', label: '1 día antes' }
+  ];
+
+  /* En el móvil se comparte el archivo (el sistema ofrece «Calendario»);
+     en el escritorio, o si no hay soporte, se descarga. */
+  function entregarICS(nombre, texto, tituloCompartir) {
+    var blob = new Blob([texto], { type: 'text/calendar;charset=utf-8' });
+    try {
+      var archivo = new File([blob], nombre, { type: 'text/calendar' });
+      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+        navigator.share({ files: [archivo], title: tituloCompartir })
+          .catch(function (e) {
+            if (!e || e.name !== 'AbortError') U.descargar(nombre, blob);
+          });
+        return;
+      }
+    } catch (e) { /* sin API de compartir archivos: se descarga */ }
+    U.descargar(nombre, blob);
+  }
+
+  function opcionesICS() {
+    return { recordatorio: Number(S.state.ajustes.recordatorio) || 0 };
+  }
+
+  function exportarAlCalendario(lista, nombreArchivo, tituloCompartir) {
+    var conFecha = ICS.exportables(lista);
+    if (!conFecha.length) {
+      U.toast('No hay avisos con fecha para exportar');
+      return Promise.resolve(0);
+    }
+    return S.marcarExportados(conFecha).then(function () {
+      entregarICS(nombreArchivo, ICS.calendario(conFecha, opcionesICS()), tituloCompartir);
+      return conFecha.length;
+    });
+  }
+
+  function sheetCalendario(a) {
+    if (!a.fecha) {
+      U.toast('Ponle una fecha al aviso para llevarlo al calendario');
+      return;
+    }
+    var rec = Number(S.state.ajustes.recordatorio) || 0;
+    var cuando = a.hora
+      ? U.fmtFechaLarga(a.fecha) + ' a las ' + a.hora +
+        (a.duracion ? ' (' + esc(a.duracion) + ' h)' : ' (1 h)')
+      : U.fmtFechaLarga(a.fecha) + ', todo el día';
+    var aviso = rec ? S.catalogo(RECORDATORIOS, String(rec)).label.toLowerCase() : 'sin recordatorio';
+
+    U.abrirSheet('Llevar al calendario',
+      '<p class="small muted" style="margin-bottom:14px">' + esc(cuando) + ' · ' + esc(aviso) + '.<br>' +
+        'Si cambias la fecha del aviso, vuelve a exportarlo y el calendario actualizará el mismo evento.</p>' +
+      '<div class="stack">' +
+        '<button class="btn btn--block btn--primary" data-ics type="button">' + ICON.calendario + 'Añadir al calendario</button>' +
+        '<a class="btn btn--block" href="' + esc(ICS.enlaceGoogle(a)) + '" target="_blank" rel="noopener">Abrir en Google Calendar</a>' +
+      '</div>',
+      function (body) {
+        body.querySelector('[data-ics]').addEventListener('click', function () {
+          exportarAlCalendario([a], ICS.nombreArchivo(a), titulo0(a)).then(function (n) {
+            if (n) { U.cerrarSheet(); U.toast('Archivo de calendario listo'); }
+          });
+        });
+      });
+  }
+
+  function titulo0(a) { return (a.ref ? a.ref + ' · ' : '') + (a.titulo || 'Aviso'); }
+
   function menuAviso(a) {
     U.abrirSheet('Aviso ' + (a.ref || ''),
       '<div class="stack">' +
         '<button class="btn btn--block" data-a="editar" type="button">' + ICON.lapiz + 'Editar aviso</button>' +
         '<button class="btn btn--block" data-a="duplicar" type="button">' + ICON.copia + 'Duplicar</button>' +
+        '<button class="btn btn--block" data-a="calendario" type="button">' + ICON.calendario + 'Llevar al calendario</button>' +
         '<button class="btn btn--block" data-a="compartir" type="button">' + ICON.compartir + 'Compartir resumen</button>' +
         '<button class="btn btn--block btn--danger" data-a="borrar" type="button">' + ICON.papelera + 'Eliminar aviso</button>' +
       '</div>',
@@ -534,6 +615,7 @@
             U.cerrarSheet();
             if (acc === 'editar') location.hash = '#/editar/' + a.id;
             else if (acc === 'duplicar') S.duplicarAviso(a.id).then(function (n) { U.toast('Aviso duplicado'); location.hash = '#/aviso/' + n.id; });
+            else if (acc === 'calendario') sheetCalendario(a);
             else if (acc === 'compartir') compartir(a);
             else if (acc === 'borrar') {
               U.confirmar('Eliminar aviso', 'Se borrará ' + (a.ref || 'el aviso') + ' con sus notas y fotos. No se puede deshacer.', { peligro: true, aceptar: 'Eliminar' })
@@ -795,6 +877,22 @@
       '<input class="input" id="prefijo" value="' + esc(S.state.ajustes.prefijoRef || 'AV') + '" maxlength="6">' +
       '<p class="field__hint">El próximo aviso será <b class="mono">' + esc(S.siguienteRef()) + '</b>.</p></div></div>');
 
+    var conFecha = ICS.exportables(S.state.avisos);
+    var abiertosCal = conFecha.filter(S.abierto);
+    var limite30 = S.sumaDias(S.hoyISO(), 30);
+    var proximos = abiertosCal.filter(function (a) { return a.fecha >= S.hoyISO() && a.fecha <= limite30; });
+
+    html += U.seccion('Calendario del móvil', '<div class="card card__pad">' +
+      '<p class="small muted" style="margin-bottom:12px">Genera un archivo <b>.ics</b> y ábrelo: el móvil te ofrecerá añadir los avisos a tu calendario, junto al resto de tu día. Solo entran los avisos que tengan fecha.</p>' +
+      campoSelect('recordatorio', 'Aviso previo en el calendario', RECORDATORIOS, String(Number(S.state.ajustes.recordatorio) || 0)) +
+      '<div class="stack">' +
+        '<button class="btn btn--block" data-cal="proximos" type="button">Próximos 30 días (' + proximos.length + ')</button>' +
+        '<button class="btn btn--block" data-cal="abiertos" type="button">Todos los abiertos (' + abiertosCal.length + ')</button>' +
+        '<button class="btn btn--block" data-cal="todos" type="button">Todos con fecha (' + conFecha.length + ')</button>' +
+      '</div>' +
+      '<p class="field__hint">Al reimportar, los eventos ya añadidos se actualizan en vez de duplicarse.</p>' +
+      '</div>');
+
     html += U.seccion('Copia de seguridad', '<div class="card card__pad">' +
       '<p class="small muted" style="margin-bottom:12px">Los datos viven solo en este móvil. Haz copias de vez en cuando y guárdalas donde quieras (correo, nube, PC).</p>' +
       '<div class="stack">' +
@@ -845,6 +943,36 @@
     pref.addEventListener('change', function () {
       var v = pref.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '') || 'AV';
       S.guardarAjustes({ prefijoRef: v }).then(function () { global.App.render(); });
+    });
+
+    var selRec = root.querySelector('#recordatorio');
+    selRec.addEventListener('change', function () {
+      S.guardarAjustes({ recordatorio: Number(selRec.value) || 0 }).then(function () {
+        U.toast('Recordatorio: ' + S.catalogo(RECORDATORIOS, selRec.value).label.toLowerCase());
+      });
+    });
+
+    U.$$('[data-cal]', root).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var todos = ICS.exportables(S.state.avisos);
+        var lista, nombre;
+        if (b.dataset.cal === 'proximos') {
+          var hasta = S.sumaDias(S.hoyISO(), 30);
+          lista = todos.filter(function (a) {
+            return S.abierto(a) && a.fecha >= S.hoyISO() && a.fecha <= hasta;
+          });
+          nombre = 'avisos-30-dias.ics';
+        } else if (b.dataset.cal === 'abiertos') {
+          lista = todos.filter(S.abierto);
+          nombre = 'avisos-abiertos.ics';
+        } else {
+          lista = todos;
+          nombre = 'avisos-todos.ics';
+        }
+        exportarAlCalendario(S.ordenar(lista, 'fecha'), nombre, 'Avisos').then(function (n) {
+          if (n) U.toast(U.plural(n, 'aviso') + ' en el archivo de calendario');
+        });
+      });
     });
 
     U.$$('[data-exp]', root).forEach(function (b) {

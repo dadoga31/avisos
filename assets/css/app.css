@@ -439,6 +439,10 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
 .empty p{ font-size:13.5px; max-width:34ch; margin:0 auto }
 
 /* ---------- Sheet (hoja inferior) ---------- */
+/* El desenfoque de las barras se compone por encima del velo en algunos
+   navegadores; con la hoja abierta se quita para que el velo cubra todo. */
+.sheet-abierta .topbar, .sheet-abierta .tabbar{ backdrop-filter:none }
+
 .sheet{ position:fixed; inset:0; z-index:60; display:flex; align-items:flex-end; justify-content:center }
 .sheet[hidden]{ display:none }
 .sheet__scrim{ position:absolute; inset:0; background:rgba(0,0,0,.5); animation:fade .16s ease }

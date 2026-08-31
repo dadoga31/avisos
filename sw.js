@@ -1,5 +1,5 @@
 /* sw.js — caché de la aplicación para que funcione sin conexión. */
-var VERSION = 'avisos-v1.0.0';
+var VERSION = 'avisos-v1.1.0';
 var SHELL = [
   './',
   './index.html',
@@ -7,6 +7,7 @@ var SHELL = [
   './assets/css/app.css',
   './assets/js/db.js',
   './assets/js/store.js',
+  './assets/js/ics.js',
   './assets/js/ui.js',
   './assets/js/views.js',
   './assets/js/app.js',

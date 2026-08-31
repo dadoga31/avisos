@@ -187,6 +187,7 @@
     else body.appendChild(contenido);
     s.hidden = false;
     document.body.style.overflow = 'hidden';
+    document.body.classList.add('sheet-abierta');
     if (onMount) onMount(body);
     var primero = body.querySelector('input,textarea,select,button');
     if (primero && !('ontouchstart' in window)) primero.focus();
@@ -199,6 +200,7 @@
     s.hidden = true;
     document.getElementById('sheetBody').innerHTML = '';
     document.body.style.overflow = '';
+    document.body.classList.remove('sheet-abierta');
     if (sheetCierre) { var f = sheetCierre; sheetCierre = null; f(null); }
   }
 

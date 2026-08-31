@@ -65,6 +65,7 @@ funcionen el modo sin conexión y la instalación.
 - Material usado y horas trabajadas (acepta coma decimal: `2,5`).
 - Fotos desde la cámara, comprimidas y guardadas en el móvil.
 - Compartir un resumen del aviso por WhatsApp, correo, etc.
+- **Llevar al calendario del móvil** (ver abajo).
 - Duplicar y eliminar.
 
 **Equipo**
@@ -74,10 +75,39 @@ funcionen el modo sin conexión y la instalación.
 **Ajustes**
 - Tema automático / claro / oscuro.
 - Prefijo de la numeración de referencias.
+- Exportación al calendario del móvil, con recordatorio configurable.
 - **Copias de seguridad**: exportar copia completa (con fotos), solo datos, o
   un CSV para abrir en Excel. Importar añadiendo a lo que ya hay o reemplazando
   todo. Importar dos veces la misma copia no duplica nada.
 - Datos de ejemplo para probar, y borrado total.
+
+---
+
+## Verlos en el calendario del móvil
+
+Los avisos se pueden llevar al calendario nativo (Calendario de iPhone, Google
+Calendar, Samsung Calendar…) en formato **.ics**, el estándar de calendarios.
+
+- **Un aviso suelto:** ábrelo → *Al calendario*. El móvil te ofrece añadirlo, o
+  puedes abrirlo directamente en Google Calendar.
+- **Varios de golpe:** Ajustes → *Calendario del móvil* → próximos 30 días,
+  todos los abiertos, o todos los que tengan fecha.
+
+Qué se lleva cada evento: referencia y título, dirección del cliente como
+ubicación (para poder tocar y navegar), y en la descripción el estado, la
+prioridad, el tipo de trabajo, el sistema, el técnico, el contacto, el teléfono
+y las notas de la descripción. Los avisos con hora ocupan la duración prevista
+(1 h si no la has puesto); los que solo tienen fecha entran como evento de día
+completo. En Ajustes eliges el recordatorio (de 15 minutos a 1 día antes, o
+ninguno).
+
+**Si cambias la fecha de un aviso, vuelve a exportarlo:** cada evento lleva un
+identificador fijo, así que el calendario **actualiza el evento existente en vez
+de duplicarlo**. Los avisos sin fecha no se exportan.
+
+Es una exportación puntual, no una sincronización: el calendario no se entera de
+los cambios por su cuenta. Una suscripción que se actualice sola (webcal)
+necesitaría un servidor publicando el calendario, que hoy la app no tiene.
 
 ---
 
@@ -107,6 +137,7 @@ sw.js                    Service worker (funcionamiento sin conexión)
 assets/css/app.css       Estilos (tema claro y oscuro)
 assets/js/db.js          Capa sobre IndexedDB
 assets/js/store.js       Modelo de datos y reglas de negocio
+assets/js/ics.js         Generación de archivos .ics para el calendario
 assets/js/ui.js          Formato, componentes, hoja inferior, avisos flotantes
 assets/js/views.js       Pantallas: agenda, lista, ficha, formulario, equipo, ajustes
 assets/js/app.js         Arranque y enrutado por hash
