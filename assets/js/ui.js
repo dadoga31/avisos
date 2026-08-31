@@ -90,6 +90,10 @@
 
   /* ---------- componentes ---------- */
 
+  var ICO_CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7"/></svg>';
+  var ICO_CURSO = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>';
+  var ICO_CANCEL = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m8.7 8.7 6.6 6.6"/></svg>';
+
   function pill(estadoId) {
     var e = S.catalogo(S.ESTADOS, estadoId);
     return '<span class="pill pill--' + esc(estadoId) + '">' + esc(e.label) + '</span>';
@@ -107,19 +111,25 @@
       (opts.soloAvatar ? '' : '<span class="who__name">' + esc(t.nombre) + '</span>') + '</span>';
   }
 
-  function avisoRow(a) {
+  function avisoRow(a, opts) {
+    opts = opts || {};
     var tarde = S.vencido(a);
     var cuando = fmtCuando(a);
     var sub = [];
     if (a.cliente && a.cliente.nombre) sub.push(a.cliente.nombre);
     sub.push(S.catalogo(S.TIPOS, a.tipo).label + ' · ' + S.catalogo(S.SISTEMAS, a.sistema).label);
-    return '' +
-      '<button class="avrow avrow--' + esc(a.prioridad) + '" data-aviso="' + esc(a.id) + '" type="button">' +
+
+    var prio = (a.prioridad === 'urgente' || a.prioridad === 'alta')
+      ? '<span class="prio prio--' + esc(a.prioridad) + '">' + esc(S.catalogo(S.PRIORIDADES, a.prioridad).label) + '</span>'
+      : '';
+
+    var fila = '' +
+      '<button class="avrow avrow--e-' + esc(a.estado) + '" data-aviso="' + esc(a.id) + '" type="button">' +
         '<span class="avrow__flag" aria-hidden="true"></span>' +
         '<span class="avrow__main">' +
           '<span class="avrow__top">' +
             '<span class="avrow__ref">' + esc(a.ref || '—') + '</span>' +
-            pill(a.estado) +
+            pill(a.estado) + prio +
           '</span>' +
           '<span class="avrow__title">' + esc(a.titulo || '(sin título)') + '</span>' +
           '<span class="avrow__sub">' + esc(sub.join(' — ')) + '</span>' +
@@ -131,11 +141,28 @@
           who(a.asignadoA, { soloAvatar: true }) +
         '</span>' +
       '</button>';
+
+    if (!opts.swipe) return fila;
+    /* Los avisos ya cerrados no se deslizan: no hay nada que cambiar. */
+    if (!S.abierto(a)) return '<div class="swipe swipe--fija">' + fila + '</div>';
+
+    return '<div class="swipe" data-swipe="' + esc(a.id) + '">' +
+      '<div class="swipe__acciones">' +
+        '<button class="swipe__acc swipe__acc--curso" data-estado="en_curso" type="button">' +
+          ICO_CURSO + '<span>En curso</span></button>' +
+        '<button class="swipe__acc swipe__acc--cancel" data-estado="cancelado" type="button">' +
+          ICO_CANCEL + '<span>Cancelar</span></button>' +
+      '</div>' +
+      '<div class="swipe__hecho">' + ICO_CHECK + '<span>Hecho</span></div>' +
+      '<div class="swipe__front">' + fila + '</div>' +
+    '</div>';
   }
 
-  function lista(avisos, vacio) {
+  function lista(avisos, vacio, opts) {
     if (!avisos.length) return vacioHTML(vacio);
-    return '<div class="avlist">' + avisos.map(avisoRow).join('') + '</div>';
+    return '<div class="avlist">' + avisos.map(function (a) {
+      return avisoRow(a, opts);
+    }).join('') + '</div>';
   }
 
   function vacioHTML(cfg) {
@@ -166,12 +193,31 @@
   /* ---------- avisos flotantes ---------- */
 
   var toastT = null;
-  function toast(msg) {
+  function ocultarToast() {
+    document.getElementById('toast').classList.remove('toast--on');
+  }
+
+  function toast(msg, opts) {
+    opts = opts || {};
     var n = document.getElementById('toast');
-    n.textContent = msg;
+    n.innerHTML = '';
+    n.appendChild(document.createTextNode(msg));
+    n.classList.toggle('toast--accion', !!opts.accion);
+    if (opts.accion) {
+      var b = document.createElement('button');
+      b.className = 'toast__btn';
+      b.type = 'button';
+      b.textContent = opts.accion;
+      b.addEventListener('click', function () {
+        clearTimeout(toastT);
+        ocultarToast();
+        if (opts.alPulsar) opts.alPulsar();
+      });
+      n.appendChild(b);
+    }
     n.classList.add('toast--on');
     clearTimeout(toastT);
-    toastT = setTimeout(function () { n.classList.remove('toast--on'); }, 2600);
+    toastT = setTimeout(ocultarToast, opts.accion ? 5500 : 2600);
   }
 
   /* ---------- hoja inferior ---------- */

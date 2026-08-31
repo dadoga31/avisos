@@ -255,17 +255,21 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
 /* ---------- Fila de aviso ---------- */
 .avlist{ border:1px solid var(--line); border-radius:var(--r); background:var(--surface); overflow:hidden }
 .avrow{
-  display:grid; grid-template-columns:3px 1fr auto; align-items:stretch;
+  display:grid; grid-template-columns:4px 1fr auto; align-items:stretch;
   width:100%; text-align:left; background:none; border:0; border-bottom:1px solid var(--line);
   cursor:pointer; transition:background .12s ease;
 }
 .avrow:last-child{ border-bottom:0 }
 .avrow:hover{ background:var(--surface-2) }
 .avrow:active{ background:var(--bg-sunken) }
-.avrow__flag{ background:var(--line-strong) }
-.avrow--urgente .avrow__flag{ background:var(--pr-urgente) }
-.avrow--alta .avrow__flag{ background:var(--pr-alta) }
-.avrow--baja .avrow__flag{ background:transparent }
+.avrow__flag{ background:var(--line-strong); transition:background .25s ease }
+.avrow--e-pendiente  .avrow__flag{ background:var(--st-pendiente) }
+.avrow--e-programado .avrow__flag{ background:var(--st-programado) }
+.avrow--e-en_curso   .avrow__flag{ background:var(--st-curso) }
+.avrow--e-en_espera  .avrow__flag{ background:var(--st-espera) }
+.avrow--e-resuelto   .avrow__flag{ background:var(--st-resuelto) }
+.avrow--e-cancelado  .avrow__flag{ background:var(--st-cancelado) }
+.avrow--e-resuelto .avrow__title, .avrow--e-cancelado .avrow__title{ color:var(--muted) }
 .avrow__main{ padding:11px 4px 11px 12px; min-width:0 }
 .avrow__top{ display:flex; align-items:center; gap:8px; margin-bottom:2px; flex-wrap:wrap }
 .avrow__ref{ font-family:var(--f-mono); font-size:11px; color:var(--muted); letter-spacing:.02em; white-space:nowrap }
@@ -281,6 +285,59 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
 .avrow__when{ font-family:var(--f-mono); font-size:12px; color:var(--ink-2); white-space:nowrap }
 .avrow__when--late{ color:var(--pr-urgente); font-weight:600 }
 
+/* ---------- Gesto sobre la fila ---------- */
+.swipe{
+  position:relative; overflow:hidden;
+  background:var(--surface);
+  border-bottom:1px solid var(--line);
+  touch-action:pan-y;            /* el navegador sigue haciendo el scroll vertical */
+}
+.avlist > .swipe:last-child{ border-bottom:0 }
+.swipe .avrow{ border-bottom:0 }
+
+.swipe__front{
+  position:relative; z-index:1; background:var(--surface);
+  transition:transform .24s cubic-bezier(.22,.8,.3,1);
+}
+
+.swipe__hecho, .swipe__acciones{
+  position:absolute; inset:0; display:flex; align-items:stretch;
+  opacity:0; pointer-events:none;
+}
+.swipe--izq .swipe__hecho{ opacity:1 }
+.swipe--der .swipe__acciones,
+.swipe--abierta .swipe__acciones{ opacity:1; pointer-events:auto }
+
+/* Colores fijos: son superficies de acción y deben leerse igual en los dos temas */
+.swipe__hecho{
+  justify-content:flex-end; align-items:center; gap:9px;
+  padding-right:22px; background:#15803d; color:#fff;
+  font-size:13px; font-weight:650; letter-spacing:.02em;
+  transition:background .16s ease;
+}
+.swipe__hecho svg{ width:21px; height:21px; stroke-width:2.4; transition:transform .18s cubic-bezier(.3,1.4,.5,1) }
+.swipe--armado .swipe__hecho{ background:#166534 }
+.swipe--armado .swipe__hecho svg{ transform:scale(1.45) }
+
+.swipe__acciones{ justify-content:flex-start }
+.swipe__acc{
+  width:88px; border:0; cursor:pointer; color:#fff;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+  font-size:11.5px; font-weight:600; letter-spacing:.01em;
+  opacity:0; transform:translateX(-12px);
+  transition:opacity .2s ease, transform .2s cubic-bezier(.22,.8,.3,1), filter .12s ease;
+}
+.swipe--der .swipe__acc,
+.swipe--abierta .swipe__acc{ opacity:1; transform:none }
+.swipe--der .swipe__acc:nth-child(2),
+.swipe--abierta .swipe__acc:nth-child(2){ transition-delay:.045s }
+.swipe__acc:active{ filter:brightness(.88) }
+.swipe__acc svg{ width:20px; height:20px }
+.swipe__acc--curso{ background:#b45309 }
+.swipe__acc--cancel{ background:#52525b }
+
+.swipe--saliendo{ transition:height .24s ease, opacity .2s ease }
+
 /* ---------- Píldoras / etiquetas ---------- */
 .pill{
   display:inline-flex; align-items:center; gap:5px;
@@ -289,6 +346,14 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
   border:1px solid currentColor; white-space:nowrap;
 }
 .pill::before{ content:""; width:5px; height:5px; border-radius:50%; background:currentColor }
+.pill{ background:color-mix(in srgb, currentColor 11%, transparent) }
+
+.prio{
+  font-size:10px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+  white-space:nowrap;
+}
+.prio--urgente{ color:var(--pr-urgente) }
+.prio--alta{ color:var(--pr-alta) }
 .pill--pendiente { color:var(--st-pendiente) }
 .pill--programado{ color:var(--st-programado) }
 .pill--en_curso  { color:var(--st-curso) }
@@ -472,6 +537,25 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
   opacity:0; pointer-events:none; transition:opacity .18s ease, transform .18s ease;
 }
 .toast--on{ opacity:1; transform:translate(-50%,0) }
+.toast--accion{ pointer-events:auto; display:flex; align-items:center; gap:14px; padding-right:6px }
+.toast__btn{
+  flex:none; min-height:32px; padding:0 10px;
+  background:none; border:0; border-radius:var(--r-s);
+  color:var(--accent); font-size:13px; font-weight:700; letter-spacing:.03em;
+  text-transform:uppercase; cursor:pointer;
+}
+.toast__btn:active{ background:rgba(255,255,255,.12) }
+
+/* ---------- Pista de gestos ---------- */
+.pista{
+  display:flex; align-items:flex-start; gap:10px;
+  margin:0 0 16px; padding:11px 8px 11px 12px;
+  border:1px dashed var(--line-strong); border-radius:var(--r);
+  font-size:12.5px; color:var(--muted); line-height:1.4;
+}
+.pista b{ color:var(--ink-2); font-weight:600 }
+.pista .iconbtn{ flex:none; width:30px; height:30px; margin:-4px -2px 0 0 }
+.pista .iconbtn svg{ width:16px; height:16px }
 
 /* ---------- Varios ---------- */
 .mono{ font-family:var(--f-mono) }

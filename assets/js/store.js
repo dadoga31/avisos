@@ -40,7 +40,7 @@
   var state = {
     avisos: [],
     tecnicos: [],
-    ajustes: { tema: 'auto', prefijoRef: 'AV', contadorRef: 0, verCerrados: false, recordatorio: 30 }
+    ajustes: { tema: 'auto', prefijoRef: 'AV', contadorRef: 0, verCerrados: false, recordatorio: 30, pistaGestos: true }
   };
 
   /* ---------- utilidades ---------- */

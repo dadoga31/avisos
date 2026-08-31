@@ -43,6 +43,17 @@ funcionen el modo sin conexión y la instalación.
 - Contadores de vencidos, hoy, próximos 7 días y sin asignar; cada uno abre la
   lista ya filtrada.
 - Los avisos agrupados en *Vencidos · Hoy · Mañana · Próximos 7 días · Sin fecha*.
+- **Gestos sobre cada aviso** (también en la lista de Avisos):
+  - Deslizar a la **izquierda** lo marca como hecho: aparece el panel verde, al
+    pasar el umbral vibra y la fila se va deslizándose y encogiendo.
+  - Deslizar a la **derecha** despliega *En curso* y *Cancelar*.
+  - Todo cambio hecho con un gesto sale con un **Deshacer** en el aviso flotante.
+  - La **banda de color** del borde izquierdo y la píldora indican el estado:
+    gris pendiente, azul programado, ámbar en curso, violeta en espera, verde
+    resuelto, gris claro cancelado. La prioridad alta o urgente se marca aparte
+    con su etiqueta.
+  - Los avisos ya cerrados no se deslizan, y el desplazamiento vertical de la
+    lista sigue funcionando con normalidad.
 
 **Avisos**
 - Buscador por cliente, dirección, teléfono, referencia, título o técnico.
@@ -139,6 +150,7 @@ assets/js/db.js          Capa sobre IndexedDB
 assets/js/store.js       Modelo de datos y reglas de negocio
 assets/js/ics.js         Generación de archivos .ics para el calendario
 assets/js/ui.js          Formato, componentes, hoja inferior, avisos flotantes
+assets/js/swipe.js       Gestos de deslizamiento sobre las filas de aviso
 assets/js/views.js       Pantallas: agenda, lista, ficha, formulario, equipo, ajustes
 assets/js/app.js         Arranque y enrutado por hash
 tools/make-icons.js      Genera los iconos PNG (node tools/make-icons.js)
@@ -154,7 +166,9 @@ No hay dependencias ni proceso de compilación: son ficheros estáticos.
   si el aviso sigue vivo). Si añades uno nuevo, dale color en `app.css`
   (`.pill--<id>`).
 - **Colores de la app**: variables `--accent`, `--ink`, etc., al principio de
-  `assets/css/app.css`.
+  `assets/css/app.css`. Los colores de estado son las variables `--st-*`.
+- **Sensibilidad de los gestos**: constantes `ANCHO_ACCIONES`, `UMBRAL_MIN` y
+  `UMBRAL_PROP` al principio de `assets/js/swipe.js`.
 
 Después de tocar los ficheros, sube la versión en `sw.js` (`VERSION`) para que
 los móviles ya instalados se actualicen.

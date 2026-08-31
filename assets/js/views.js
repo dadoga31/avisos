@@ -48,6 +48,15 @@
       kpi('sinasignar', r.sinAsignar, 'Sin asignar', r.sinAsignar ? 'kpi--accent' : '') +
       '</div>';
 
+    if (S.state.avisos.length && S.state.ajustes.pistaGestos !== false) {
+      html += '<div class="pista">' +
+        '<span>Desliza un aviso <b>hacia la izquierda</b> para darlo por hecho, o ' +
+        '<b>hacia la derecha</b> para ponerlo en curso o cancelarlo. ' +
+        'La banda de color de cada fila indica su estado.</span>' +
+        '<button class="iconbtn" data-pista type="button" aria-label="Entendido">' + ICON.x + '</button>' +
+        '</div>';
+    }
+
     if (!S.state.avisos.length) {
       html += U.vacioHTML({
         titulo: 'Todavía no hay avisos',
@@ -55,15 +64,17 @@
         accion: 'ejemplo', accionLabel: 'Cargar datos de ejemplo'
       });
     } else {
+      var desliza = { swipe: true };
       if (vencidos.length) {
-        html += U.seccion('<span style="color:var(--pr-urgente)">Vencidos</span>', U.lista(vencidos), U.plural(vencidos.length, 'aviso'));
+        html += U.seccion('<span style="color:var(--pr-urgente)">Vencidos</span>',
+          U.lista(vencidos, null, desliza), U.plural(vencidos.length, 'aviso'));
       }
       html += U.seccion('Hoy · <b>' + esc(U.fmtFechaLarga(hoy)) + '</b>',
-        deHoy.length ? U.lista(deHoy) : '<div class="card card__pad small muted">Nada programado para hoy.</div>',
+        deHoy.length ? U.lista(deHoy, null, desliza) : '<div class="card card__pad small muted">Nada programado para hoy.</div>',
         deHoy.length ? U.plural(deHoy.length, 'aviso') : '');
-      if (manana.length) html += U.seccion('Mañana', U.lista(manana), U.plural(manana.length, 'aviso'));
-      if (proximos.length) html += U.seccion('Próximos 7 días', U.lista(proximos), U.plural(proximos.length, 'aviso'));
-      if (sinFecha.length) html += U.seccion('Sin fecha', U.lista(sinFecha), U.plural(sinFecha.length, 'aviso'));
+      if (manana.length) html += U.seccion('Mañana', U.lista(manana, null, desliza), U.plural(manana.length, 'aviso'));
+      if (proximos.length) html += U.seccion('Próximos 7 días', U.lista(proximos, null, desliza), U.plural(proximos.length, 'aviso'));
+      if (sinFecha.length) html += U.seccion('Sin fecha', U.lista(sinFecha, null, desliza), U.plural(sinFecha.length, 'aviso'));
       if (!vencidos.length && !deHoy.length && !manana.length && !proximos.length && !sinFecha.length) {
         html += U.vacioHTML({ titulo: 'Todo al día', texto: 'No queda ningún aviso abierto. Buen trabajo.' });
       }
@@ -81,8 +92,61 @@
         if (ej) ej.addEventListener('click', function () {
           S.datosDeEjemplo().then(function () { U.toast('Datos de ejemplo cargados'); global.App.render(); });
         });
+        var pista = root.querySelector('[data-pista]');
+        if (pista) pista.addEventListener('click', ocultarPista);
+        conectarGestos(root);
       }
     };
+  }
+
+  /* =========================================================
+     GESTOS SOBRE LAS FILAS
+     ========================================================= */
+
+  function ocultarPista() {
+    S.guardarAjustes({ pistaGestos: false }).then(function () { global.App.render(); });
+  }
+
+  function conectarGestos(root) {
+    if (!global.Swipe) return;
+    Swipe.conectar(root, { onEstado: cambiarEstadoRapido });
+  }
+
+  var MENSAJE = {
+    resuelto:  'Marcado como hecho',
+    en_curso:  'Puesto en curso',
+    cancelado: 'Aviso cancelado'
+  };
+
+  /* Cambio de estado desde el gesto, siempre con opción de deshacer:
+     un deslizamiento se dispara sin querer con facilidad. */
+  function cambiarEstadoRapido(id, estado) {
+    var a = S.byId(S.state.avisos, id);
+    if (!a || a.estado === estado) { global.App.render(); return; }
+
+    var previo = a.estado;
+    var previoCerrado = a.cerrado;
+    a.estado = estado;
+
+    var guardado = S.guardarAviso(a);
+    if (S.state.ajustes.pistaGestos !== false) {
+      guardado = guardado.then(function () { return S.guardarAjustes({ pistaGestos: false }); });
+    }
+
+    guardado.then(function () {
+      global.App.render();
+      U.toast((a.ref ? a.ref + ': ' : '') + (MENSAJE[estado] || 'Estado actualizado'), {
+        accion: 'Deshacer',
+        alPulsar: function () {
+          a.estado = previo;
+          a.cerrado = previoCerrado;
+          S.guardarAviso(a).then(function () {
+            U.toast('Cambio deshecho');
+            global.App.render();
+          });
+        }
+      });
+    });
   }
 
   function kpi(k, n, label, extra) {
@@ -142,7 +206,7 @@
       '<div class="section__head"><h2 class="section__title">' +
         U.plural(res.length, 'resultado') +
       '</h2><button class="btn btn--ghost btn--sm" data-orden type="button">Orden: ' + esc(nombreOrden(filtro.orden)) + '</button></div>' +
-      U.lista(res, vacio);
+      U.lista(res, vacio, { swipe: true });
 
     return {
       titulo: 'Avisos',
@@ -175,6 +239,7 @@
           filtro.orden = ordenes[(ordenes.indexOf(filtro.orden) + 1) % ordenes.length];
           global.App.render();
         });
+        conectarGestos(root);
       }
     };
   }
