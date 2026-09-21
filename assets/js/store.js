@@ -369,6 +369,22 @@
     });
   }
 
+  /* Los avisos de ejemplo o importados de versiones antiguas pueden no
+     tener sello de cierre; en ese caso vale la última modificación. */
+  function fechaCierre(a) {
+    return a.cerrado || a.actualizado || a.creado || '';
+  }
+
+  function diaCierre(a) {
+    var t = fechaCierre(a);
+    return t ? hoyISO(new Date(t)) : '';
+  }
+
+  function cerrados() {
+    return state.avisos.filter(function (a) { return !abierto(a); })
+      .sort(function (x, y) { return String(fechaCierre(y)).localeCompare(String(fechaCierre(x))); });
+  }
+
   function resumen() {
     var hoy = hoyISO();
     var semana = sumaDias(hoy, 7);
@@ -382,6 +398,10 @@
       sinAsignar: abiertos.filter(function (a) { return !a.asignadoA; }).length,
       urgentes: abiertos.filter(function (a) { return a.prioridad === 'urgente'; }).length,
       resueltos: state.avisos.filter(function (a) { return a.estado === 'resuelto'; }).length,
+      cancelados: state.avisos.filter(function (a) { return a.estado === 'cancelado'; }).length,
+      hechosHoy: state.avisos.filter(function (a) {
+        return a.estado === 'resuelto' && diaCierre(a) === hoy;
+      }).length,
       total: state.avisos.length
     };
   }
@@ -535,6 +555,7 @@
     guardarTecnico: guardarTecnico, borrarTecnico: borrarTecnico, tecnico: tecnico,
     iniciales: iniciales, cargaPorTecnico: cargaPorTecnico,
     abierto: abierto, vencido: vencido, filtrar: filtrar, ordenar: ordenar, resumen: resumen,
+    cerrados: cerrados, fechaCierre: fechaCierre, diaCierre: diaCierre,
     exportar: exportar, importar: importar, datosDeEjemplo: datosDeEjemplo
   };
 })(window);

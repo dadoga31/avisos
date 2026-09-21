@@ -78,6 +78,15 @@
       if (!vencidos.length && !deHoy.length && !manana.length && !proximos.length && !sinFecha.length) {
         html += U.vacioHTML({ titulo: 'Todo al día', texto: 'No queda ningún aviso abierto. Buen trabajo.' });
       }
+
+      var cerrados = S.cerrados();
+      if (cerrados.length) {
+        html += '<a class="cierre" href="#/historico">' +
+          '<span>' + (r.hechosHoy
+            ? '<b>' + U.plural(r.hechosHoy, 'aviso') + '</b> que has dado por hecho hoy'
+            : '<b>' + U.plural(cerrados.length, 'aviso cerrado', 'avisos cerrados') + '</b> en el histórico') +
+          '</span><span class="cierre__ir">Ver histórico ›</span></a>';
+      }
     }
 
     return {
@@ -115,7 +124,8 @@
   var MENSAJE = {
     resuelto:  'Marcado como hecho',
     en_curso:  'Puesto en curso',
-    cancelado: 'Aviso cancelado'
+    cancelado: 'Aviso cancelado',
+    pendiente: 'Aviso reabierto'
   };
 
   /* Cambio de estado desde el gesto, siempre con opción de deshacer:
@@ -830,6 +840,141 @@
   }
 
   /* =========================================================
+     HISTÓRICO (avisos cerrados)
+     ========================================================= */
+
+  var filtroHist = { texto: '', estado: '' };
+
+  function historico() {
+    var todos = S.cerrados();
+    var hoy = S.hoyISO();
+
+    var lista = todos.filter(function (a) {
+      if (filtroHist.estado && a.estado !== filtroHist.estado) return false;
+      if (!filtroHist.texto) return true;
+      var q = filtroHist.texto.toLowerCase();
+      var t = S.tecnico(a.asignadoA);
+      return [a.ref, a.titulo, a.cliente && a.cliente.nombre, a.cliente && a.cliente.direccion, t && t.nombre]
+        .join(' ').toLowerCase().indexOf(q) !== -1;
+    });
+
+    var resueltos = todos.filter(function (a) { return a.estado === 'resuelto'; });
+    var desdeSemana = S.sumaDias(hoy, -7);
+    var semana = resueltos.filter(function (a) { return S.diaCierre(a) >= desdeSemana; });
+    var horasSemana = semana.reduce(function (n, a) { return n + S.totalHoras(a); }, 0);
+
+    var html = '';
+
+    if (!todos.length) {
+      return {
+        titulo: 'Hechos',
+        sub: 'Histórico de avisos cerrados',
+        html: U.vacioHTML({
+          titulo: 'Todavía no hay nada cerrado',
+          texto: 'Cuando des un aviso por hecho o lo canceles, se guardará aquí con su fecha de cierre. No se borra nada.'
+        }),
+        mount: function () {}
+      };
+    }
+
+    html += '<div class="kpis">' +
+      kpi('hist_hoy', resueltos.filter(function (a) { return S.diaCierre(a) === hoy; }).length, 'Hoy', '') +
+      kpi('hist_semana', semana.length, '7 días', '') +
+      kpi('hist_horas', U.fmtHoras(horasSemana).replace(' h', ''), 'Horas 7 d', '') +
+      kpi('hist_total', resueltos.length, 'Resueltos', '') +
+      '</div>';
+
+    html += '<div class="searchbar">' +
+        '<span class="searchbar__field">' + ICON.lupa +
+          '<input id="qh" type="search" inputmode="search" placeholder="Buscar en el histórico…" value="' + esc(filtroHist.texto) + '" autocomplete="off">' +
+        '</span>' +
+        (filtroHist.texto ? '<button class="iconbtn searchbar__clear" data-clearh type="button" aria-label="Limpiar búsqueda">' + ICON.x + '</button>' : '') +
+      '</div>';
+
+    html += '<div class="chips">' +
+      '<button class="chip" data-hf="" type="button" aria-pressed="' + (!filtroHist.estado) + '">Todos<span class="chip__n">' + todos.length + '</span></button>' +
+      '<button class="chip" data-hf="resuelto" type="button" aria-pressed="' + (filtroHist.estado === 'resuelto') + '">Resueltos<span class="chip__n">' + resueltos.length + '</span></button>' +
+      '<button class="chip" data-hf="cancelado" type="button" aria-pressed="' + (filtroHist.estado === 'cancelado') + '">Cancelados<span class="chip__n">' + (todos.length - resueltos.length) + '</span></button>' +
+      '</div>';
+
+    if (!lista.length) {
+      html += U.vacioHTML({ titulo: 'Sin resultados', texto: 'Prueba a buscar otra cosa o a quitar el filtro.' });
+    } else {
+      agruparPorCierre(lista).forEach(function (g) {
+        html += U.seccion(g.titulo, U.lista(g.avisos, null, { swipe: true, cierre: true }),
+          U.plural(g.avisos.length, 'aviso') + (g.horas ? ' · ' + U.fmtHoras(g.horas) : ''));
+      });
+    }
+
+    return {
+      titulo: 'Hechos',
+      sub: U.plural(resueltos.length, 'resuelto') + ' · ' + U.plural(todos.length - resueltos.length, 'cancelado'),
+      html: html,
+      mount: function (root) {
+        var q = root.querySelector('#qh');
+        if (q) {
+          var t = null;
+          q.addEventListener('input', function () {
+            clearTimeout(t);
+            t = setTimeout(function () {
+              filtroHist.texto = q.value;
+              global.App.render({ mantenerFoco: '#qh' });
+            }, 220);
+          });
+        }
+        var cl = root.querySelector('[data-clearh]');
+        if (cl) cl.addEventListener('click', function () { filtroHist.texto = ''; global.App.render(); });
+
+        U.$$('[data-hf]', root).forEach(function (b) {
+          b.addEventListener('click', function () {
+            filtroHist.estado = b.dataset.hf;
+            global.App.render();
+          });
+        });
+        conectarGestos(root);
+      }
+    };
+  }
+
+  /* Agrupa por día los últimos siete y por mes lo anterior. */
+  function agruparPorCierre(lista) {
+    var hoy = S.hoyISO();
+    var limiteDia = S.sumaDias(hoy, -6);
+    var grupos = [];
+    var indice = {};
+
+    lista.forEach(function (a) {
+      var dia = S.diaCierre(a);
+      var clave, titulo;
+      if (!dia) {
+        clave = 'sin'; titulo = 'Sin fecha de cierre';
+      } else if (dia >= limiteDia) {
+        clave = dia;
+        titulo = U.fmtFecha(dia);
+        if (dia !== hoy && dia !== S.sumaDias(hoy, -1)) titulo = '<b>' + esc(titulo) + '</b>';
+      } else {
+        clave = dia.slice(0, 7);
+        titulo = '<b>' + esc(nombreMes(clave)) + '</b>';
+      }
+      if (!indice[clave]) {
+        indice[clave] = { titulo: titulo, avisos: [], horas: 0 };
+        grupos.push(indice[clave]);
+      }
+      indice[clave].avisos.push(a);
+      indice[clave].horas += S.totalHoras(a);
+    });
+    return grupos;
+  }
+
+  function nombreMes(ym) {
+    var meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
+      'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    var p = ym.split('-');
+    var txt = meses[Number(p[1]) - 1] + ' de ' + p[0];
+    return txt.charAt(0).toUpperCase() + txt.slice(1);
+  }
+
+  /* =========================================================
      EQUIPO
      ========================================================= */
 
@@ -1134,6 +1279,7 @@
 
   global.Views = {
     agenda: agenda, avisos: avisos, detalle: detalle, formulario: formulario,
-    equipo: equipo, ajustes: ajustes, menuAviso: menuAviso, liberarURLs: liberarURLs
+    historico: historico, equipo: equipo, ajustes: ajustes,
+    menuAviso: menuAviso, liberarURLs: liberarURLs
   };
 })(window);

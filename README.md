@@ -79,6 +79,14 @@ funcionen el modo sin conexión y la instalación.
 - **Llevar al calendario del móvil** (ver abajo).
 - Duplicar y eliminar.
 
+**Hechos (histórico)**
+- Todo aviso resuelto o cancelado se conserva: nada se borra al deslizar.
+- Agrupado por fecha de cierre (día a día la última semana, por meses lo
+  anterior), con el número de avisos y las horas de cada grupo.
+- Contadores de hechos hoy, de los últimos 7 días y horas de esa semana.
+- Buscador y filtros de resueltos / cancelados.
+- Deslizar a la derecha un aviso cerrado lo **reabre** como pendiente.
+
 **Equipo**
 - Alta de técnicos con teléfono y color; se ve cuántos avisos abiertos y
   vencidos lleva cada uno. Al borrar un técnico sus avisos quedan sin asignar.

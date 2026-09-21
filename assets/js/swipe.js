@@ -5,7 +5,6 @@
 (function (global) {
   'use strict';
 
-  var ANCHO_ACCIONES = 176;   // 2 botones de 88 px
   var UMBRAL_MIN = 96;        // px mínimos para dar por hecho el aviso
   var UMBRAL_PROP = 0.38;     // o esta parte del ancho de la fila
   var cfg = {};
@@ -14,6 +13,22 @@
 
   function umbralDe(cont) {
     return Math.max(UMBRAL_MIN, cont.offsetWidth * UMBRAL_PROP);
+  }
+
+  /* Lo que se abre a la derecha es justo lo que ocupan sus botones:
+     dos acciones en un aviso abierto, una sola («Reabrir») si está cerrado. */
+  function anchoAcciones(cont) {
+    /* El contenedor ocupa toda la fila (inset:0): lo que manda es lo que
+       suman los botones. */
+    var total = 0;
+    Array.prototype.forEach.call(cont.querySelectorAll('.swipe__acc'), function (b) {
+      total += b.offsetWidth;
+    });
+    return total;
+  }
+
+  function permiteHecho(cont) {
+    return cont.dataset.hecho !== '0';
   }
 
   function vibrar(ms) {
@@ -33,7 +48,7 @@
 
   function abrir(cont, front) {
     front.style.transition = '';
-    front.style.transform = 'translateX(' + ANCHO_ACCIONES + 'px)';
+    front.style.transform = 'translateX(' + anchoAcciones(cont) + 'px)';
     cont.classList.remove('swipe--izq', 'swipe--armado');
     cont.classList.add('swipe--der', 'swipe--abierta');
     abierta = cont;
@@ -70,7 +85,7 @@
       if (abierta && abierta !== cont) cerrar(abierta);
       x0 = e.clientX; y0 = e.clientY;
       eje = null; d = 0; arrastrado = false; activo = true;
-      base = (abierta === cont) ? ANCHO_ACCIONES : 0;
+      base = (abierta === cont) ? anchoAcciones(cont) : 0;
       front.style.transition = 'none';
     });
 
@@ -91,15 +106,17 @@
       if (eje !== 'h') return;
 
       arrastrado = true;
+      var tope = anchoAcciones(cont);
       d = base + ddx;
-      if (d > ANCHO_ACCIONES) d = ANCHO_ACCIONES + (d - ANCHO_ACCIONES) * 0.25;  // resistencia
+      if (d > tope) d = tope + (d - tope) * 0.25;                 // resistencia
+      if (d < 0 && !permiteHecho(cont)) d = d * 0.12;             // cerrado: no hay «hecho»
       if (d < -cont.offsetWidth) d = -cont.offsetWidth;
 
       front.style.transform = 'translateX(' + d + 'px)';
       cont.classList.toggle('swipe--izq', d < 0);
       cont.classList.toggle('swipe--der', d > 0);
 
-      var armado = d <= -umbralDe(cont);
+      var armado = permiteHecho(cont) && d <= -umbralDe(cont);
       if (armado !== !!cont.__armado) {
         cont.__armado = armado;
         cont.classList.toggle('swipe--armado', armado);
@@ -113,8 +130,8 @@
       front.style.transition = '';
       if (eje !== 'h') return;
 
-      if (d <= -umbralDe(cont)) completar(cont, front);
-      else if (d > 0 && d >= ANCHO_ACCIONES * 0.5) abrir(cont, front);
+      if (permiteHecho(cont) && d <= -umbralDe(cont)) completar(cont, front);
+      else if (d > 0 && d >= anchoAcciones(cont) * 0.5) abrir(cont, front);
       else cerrar(cont);
     }
 

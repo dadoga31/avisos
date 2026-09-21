@@ -2,7 +2,7 @@
 (function (global) {
   'use strict';
 
-  var APP_VERSION = '1.2.0';
+  var APP_VERSION = '1.3.0';
   global.APP_VERSION = APP_VERSION;
 
   var S = global.Store, U = global.UI, V = global.Views;
@@ -40,6 +40,7 @@
       case 'aviso':   return { vista: V.detalle({ id: s[1] }), tab: 'avisos', sinFab: true };
       case 'nuevo':   return { vista: V.formulario(null), tab: null, sinFab: true };
       case 'editar':  return { vista: V.formulario({ id: s[1] }), tab: null, sinFab: true };
+      case 'historico': return { vista: V.historico(), tab: 'historico', sinFab: true };
       case 'equipo':  return { vista: V.equipo(), tab: 'equipo', sinFab: true };
       case 'ajustes': return { vista: V.ajustes(), tab: 'ajustes', sinFab: true };
       default:        return { vista: V.agenda(), tab: 'agenda' };

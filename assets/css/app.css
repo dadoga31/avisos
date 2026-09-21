@@ -135,7 +135,7 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
 
 .view{
   flex:1;
-  padding:14px 14px calc(var(--tabh) + var(--safe-b) + 84px);
+  padding:14px 14px calc(var(--tabh) + var(--safe-b) + 104px);
   max-width:760px; width:100%; margin:0 auto;
 }
 .view:focus{ outline:none }
@@ -143,7 +143,7 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
 /* ---------- Barra inferior ---------- */
 .tabbar{
   position:fixed; left:0; right:0; bottom:0; z-index:40;
-  display:grid; grid-template-columns:repeat(4,1fr);
+  display:grid; grid-template-columns:repeat(5,1fr);
   padding-bottom:var(--safe-b);
   background:color-mix(in srgb, var(--bg) 96%, transparent);
   backdrop-filter:saturate(1.4) blur(12px);
@@ -152,7 +152,7 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
 .tab{
   position:relative;
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
-  height:var(--tabh); color:var(--muted); font-size:10.5px; letter-spacing:.02em;
+  height:var(--tabh); color:var(--muted); font-size:10px; letter-spacing:.01em;
   transition:color .12s ease;
 }
 .tab svg{ width:21px; height:21px }
@@ -163,7 +163,7 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
 }
 .tab:active{ background:var(--bg-sunken) }
 .tab__badge{
-  position:absolute; top:6px; left:calc(50% + 8px);
+  position:absolute; top:6px; left:calc(50% + 6px);
   min-width:16px; height:16px; padding:0 4px;
   display:grid; place-items:center;
   font-family:var(--f-mono); font-size:10px; font-style:normal; font-weight:600;
@@ -335,6 +335,7 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
 .swipe__acc svg{ width:20px; height:20px }
 .swipe__acc--curso{ background:#b45309 }
 .swipe__acc--cancel{ background:#52525b }
+.swipe__acc--reabrir{ background:#0e7490 }
 
 .swipe--saliendo{ transition:height .24s ease, opacity .2s ease }
 
@@ -497,6 +498,19 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
 }
 .statusgrid button[aria-pressed="true"]{ background:var(--ink); color:var(--on-ink); border-color:var(--ink) }
 
+/* ---------- Enlace al histórico ---------- */
+.cierre{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:13px 14px; margin-top:4px;
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
+  font-size:13px; color:var(--muted);
+  transition:border-color .12s ease;
+}
+.cierre b{ color:var(--ink); font-weight:600 }
+.cierre:hover{ border-color:var(--line-strong) }
+.cierre:active{ background:var(--bg-sunken) }
+.cierre__ir{ flex:none; color:var(--accent); font-weight:600; font-size:12.5px }
+
 /* ---------- Estado vacío ---------- */
 .empty{ text-align:center; padding:44px 20px; color:var(--muted) }
 .empty svg{ width:30px; height:30px; margin:0 auto 12px; opacity:.6 }
@@ -537,7 +551,10 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
   opacity:0; pointer-events:none; transition:opacity .18s ease, transform .18s ease;
 }
 .toast--on{ opacity:1; transform:translate(-50%,0) }
-.toast--accion{ pointer-events:auto; display:flex; align-items:center; gap:14px; padding-right:6px }
+/* Solo captura toques mientras se ve: si no, al desvanecerse dejaba una
+   banda invisible que se comía las pulsaciones sobre la lista. */
+.toast--accion{ display:flex; align-items:center; gap:14px; padding-right:6px }
+.toast--accion.toast--on{ pointer-events:auto }
 .toast__btn{
   flex:none; min-height:32px; padding:0 10px;
   background:none; border:0; border-radius:var(--r-s);

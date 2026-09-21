@@ -93,6 +93,7 @@
   var ICO_CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7"/></svg>';
   var ICO_CURSO = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>';
   var ICO_CANCEL = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m8.7 8.7 6.6 6.6"/></svg>';
+  var ICO_REABRIR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4.5V10h5.5"/></svg>';
 
   function pill(estadoId) {
     var e = S.catalogo(S.ESTADOS, estadoId);
@@ -111,10 +112,23 @@
       (opts.soloAvatar ? '' : '<span class="who__name">' + esc(t.nombre) + '</span>') + '</span>';
   }
 
+  function horaDe(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+
   function avisoRow(a, opts) {
     opts = opts || {};
     var tarde = S.vencido(a);
     var cuando = fmtCuando(a);
+    /* En el histórico la fila va agrupada por día de cierre: lo útil es
+       la hora a la que se cerró, no la de la cita. */
+    if (opts.cierre) {
+      tarde = false;
+      var h = horaDe(S.fechaCierre(a));
+      cuando = h ? 'Cerrado ' + h : 'Cerrado';
+    }
     var sub = [];
     if (a.cliente && a.cliente.nombre) sub.push(a.cliente.nombre);
     sub.push(S.catalogo(S.TIPOS, a.tipo).label + ' · ' + S.catalogo(S.SISTEMAS, a.sistema).label);
@@ -143,8 +157,17 @@
       '</button>';
 
     if (!opts.swipe) return fila;
-    /* Los avisos ya cerrados no se deslizan: no hay nada que cambiar. */
-    if (!S.abierto(a)) return '<div class="swipe swipe--fija">' + fila + '</div>';
+
+    /* Un aviso cerrado no se puede «hacer» otra vez: solo se reabre. */
+    if (!S.abierto(a)) {
+      return '<div class="swipe" data-swipe="' + esc(a.id) + '" data-hecho="0">' +
+        '<div class="swipe__acciones">' +
+          '<button class="swipe__acc swipe__acc--reabrir" data-estado="pendiente" type="button">' +
+            ICO_REABRIR + '<span>Reabrir</span></button>' +
+        '</div>' +
+        '<div class="swipe__front">' + fila + '</div>' +
+      '</div>';
+    }
 
     return '<div class="swipe" data-swipe="' + esc(a.id) + '">' +
       '<div class="swipe__acciones">' +
@@ -194,7 +217,9 @@
 
   var toastT = null;
   function ocultarToast() {
-    document.getElementById('toast').classList.remove('toast--on');
+    var n = document.getElementById('toast');
+    n.classList.remove('toast--on');
+    n.classList.remove('toast--accion');
   }
 
   function toast(msg, opts) {
