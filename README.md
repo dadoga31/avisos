@@ -130,6 +130,68 @@ necesitaría un servidor publicando el calendario, que hoy la app no tiene.
 
 ---
 
+## La app de Android (APK) y el widget
+
+Además de la versión web, el repositorio trae una app nativa de Android en
+`android/`. No es un acceso directo al navegador: la web va **dentro del APK**
+y se sirve desde `appassets.androidplatform.net`, un origen seguro local, así
+que funciona sin red y sin servidor ninguno. La app ni siquiera pide el permiso
+de internet.
+
+### Descargar e instalar
+
+1. Ve a la pestaña **Actions** del repositorio → *APK de Android* → **Run
+   workflow** (o espera a que se lance sola al tocar la app).
+2. Cuando termine, la APK queda publicada en
+   **https://github.com/dadoga31/avisos/releases/tag/apk** como `avisos.apk`.
+3. Abre ese enlace **desde el móvil**, descarga el archivo y ábrelo. Android
+   pedirá permitir la instalación de apps de origen desconocido para el
+   navegador; es lo normal al instalar fuera de Play Store.
+
+Para actualizar, repite el proceso: la firma no cambia entre compilaciones, así
+que se instala encima sin perder los datos.
+
+### El widget de la pantalla de inicio
+
+Mantén pulsada la pantalla de inicio → *Widgets* → **Avisos**. El widget tiene:
+
+- Un botón grande **+ Nuevo aviso** que abre la app directamente en el
+  formulario, sin pasar por la agenda.
+- Los contadores del día (para hoy, vencidos, hechos), que la app va dejando
+  cada vez que la usas. Si los contadores son de otro día, el widget lo dice en
+  lugar de enseñar números viejos.
+- Tocar la cabecera abre la agenda.
+
+También hay accesos directos al **mantener pulsado el icono** de la app: *Nuevo
+aviso* y *Agenda*.
+
+### Diferencias con la versión web
+
+- Los archivos (copia de seguridad, CSV, `.ics`) no se «descargan»: la app los
+  entrega al sistema. El `.ics` se abre con el Calendario; las copias salen por
+  la hoja de compartir, para mandarlas al correo o a la nube.
+- **Los datos son independientes de los del navegador.** Si ya usabas la PWA y
+  te pasas a la APK, exporta una copia desde la web e impórtala en la app.
+- Al tener `allowBackup`, la copia automática de Google puede incluir los datos
+  de la app; aun así conviene exportar copias a mano.
+
+### Compilarla tú mismo
+
+```bash
+cd android
+./gradlew assembleRelease     # necesita el SDK de Android y Java 17
+```
+
+El APK sale en `android/app/build/outputs/apk/release/`.
+
+El almacén de claves de `android/keystore/` es el **de depuración**, con la
+contraseña pública de siempre (`android`). No protege nada: está ahí para que
+la firma no cambie entre compilaciones y puedas actualizar sin desinstalar. Si
+algún día quieres publicarla, genera tu propia clave y cambia `signingConfigs`
+en `android/app/build.gradle`.
+
+---
+
 ## Dónde están los datos
 
 En **IndexedDB del navegador del móvil**, nada sale del dispositivo. Eso implica:
@@ -161,7 +223,10 @@ assets/js/ui.js          Formato, componentes, hoja inferior, avisos flotantes
 assets/js/swipe.js       Gestos de deslizamiento sobre las filas de aviso
 assets/js/views.js       Pantallas: agenda, lista, ficha, formulario, equipo, ajustes
 assets/js/app.js         Arranque y enrutado por hash
+assets/js/nativo.js      Puente con la app de Android (archivos y widget)
 tools/make-icons.js      Genera los iconos PNG (node tools/make-icons.js)
+android/                 Proyecto de la app Android (WebView + widget)
+.github/workflows/       Compilación automática del APK
 ```
 
 No hay dependencias ni proceso de compilación: son ficheros estáticos.
