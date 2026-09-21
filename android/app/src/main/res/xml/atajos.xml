@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="nuevo"
+        android:enabled="true"
+        android:icon="@drawable/ic_atajo_nuevo"
+        android:shortcutShortLabel="@string/atajo_nuevo_corto"
+        android:shortcutLongLabel="@string/atajo_nuevo">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="io.github.dadoga31.avisos"
+            android:targetClass="io.github.dadoga31.avisos.MainActivity"
+            android:data="avisos://nuevo" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="agenda"
+        android:enabled="true"
+        android:icon="@drawable/ic_atajo_agenda"
+        android:shortcutShortLabel="@string/atajo_agenda_corto"
+        android:shortcutLongLabel="@string/atajo_agenda">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="io.github.dadoga31.avisos"
+            android:targetClass="io.github.dadoga31.avisos.MainActivity"
+            android:data="avisos://agenda" />
+    </shortcut>
+</shortcuts>

@@ -615,6 +615,12 @@
      en el escritorio, o si no hay soporte, se descarga. */
   function entregarICS(nombre, texto, tituloCompartir) {
     var blob = new Blob([texto], { type: 'text/calendar;charset=utf-8' });
+
+    if (global.Nativo && Nativo.disponible()) {
+      U.descargar(nombre, blob, 'text/calendar', 'abrir');
+      return;
+    }
+
     try {
       var archivo = new File([blob], nombre, { type: 'text/calendar' });
       if (navigator.canShare && navigator.canShare({ files: [archivo] })) {

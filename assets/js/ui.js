@@ -333,8 +333,17 @@
     });
   }
 
-  function descargar(nombre, contenido, mime) {
+  function descargar(nombre, contenido, mime, modo) {
     var blob = contenido instanceof Blob ? contenido : new Blob([contenido], { type: mime || 'application/json' });
+
+    /* Dentro de la app de Android no hay descargas: el archivo se entrega
+       al sistema, que ofrece abrirlo o compartirlo. */
+    if (global.Nativo && Nativo.disponible()) {
+      Nativo.entregarArchivo(nombre, blob.type || mime || 'application/octet-stream', blob, modo)
+        .catch(function (e) { toast('No se pudo guardar el archivo: ' + (e && e.message || e)); });
+      return;
+    }
+
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url; a.download = nombre;

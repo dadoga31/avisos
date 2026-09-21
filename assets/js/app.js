@@ -94,6 +94,20 @@
       if (f) { f.focus(); try { f.setSelectionRange(f.value.length, f.value.length); } catch (e) {} }
     }
     actualizarBadge();
+    publicarResumen();
+  }
+
+  /* Alimenta los contadores del widget de Android. */
+  function publicarResumen() {
+    if (!global.Nativo || !Nativo.disponible()) return;
+    var r = S.resumen();
+    Nativo.publicarResumen({
+      dia: S.hoyISO(),
+      hoy: r.hoy,
+      vencidos: r.vencidos,
+      abiertos: r.abiertos,
+      hechosHoy: r.hechosHoy
+    });
   }
 
   function conectarFilas(root) {
@@ -196,7 +210,10 @@
       });
     });
 
-    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    /* En la app de Android los archivos ya son locales: el service worker
+       solo añadiría una caché que puede quedarse vieja. */
+    var nativo = global.Nativo && Nativo.disponible();
+    if ('serviceWorker' in navigator && location.protocol !== 'file:' && !nativo) {
       global.addEventListener('load', function () {
         navigator.serviceWorker.register('sw.js').catch(function (e) {
           console.warn('Service worker no registrado:', e);

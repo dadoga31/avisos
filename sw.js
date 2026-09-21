@@ -6,6 +6,7 @@ var SHELL = [
   './manifest.webmanifest',
   './assets/css/app.css',
   './assets/js/db.js',
+  './assets/js/nativo.js',
   './assets/js/store.js',
   './assets/js/ics.js',
   './assets/js/ui.js',
