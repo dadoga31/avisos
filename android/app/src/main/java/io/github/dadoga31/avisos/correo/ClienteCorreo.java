@@ -98,7 +98,7 @@ public class ClienteCorreo {
         }
     }
 
-    static String explicar(Exception e) {
+    public static String explicar(Exception e) {
         String m = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
         String bajo = m.toLowerCase();
         if (bajo.contains("unknownhost") || bajo.contains("unable to resolve"))
