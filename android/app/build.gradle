@@ -61,6 +61,25 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
+    /* Los dos jars de JavaMail traen la misma licencia y el mismo pom, y
+       el empaquetado no sabe con cuál quedarse. Se quitan solo esos: los
+       ficheros mailcap, javamail.* y services/ tienen que seguir dentro,
+       porque son los que usa JavaMail para encontrar sus proveedores. */
+    packaging {
+        resources {
+            excludes += [
+                'META-INF/LICENSE',
+                'META-INF/LICENSE.md',
+                'META-INF/LICENSE.txt',
+                'META-INF/NOTICE',
+                'META-INF/NOTICE.md',
+                'META-INF/NOTICE.txt',
+                'META-INF/DEPENDENCIES',
+                'META-INF/maven/**'
+            ]
+        }
+    }
+
     /* assembleRelease ejecuta lintVitalRelease y cualquier aviso suyo tumba
        la compilación. Para una app que se instala a mano no compensa: los
        errores de código los caza el compilador. */
