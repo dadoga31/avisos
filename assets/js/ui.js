@@ -93,6 +93,7 @@
   var ICO_CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7"/></svg>';
   var ICO_CURSO = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>';
   var ICO_CANCEL = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m8.7 8.7 6.6 6.6"/></svg>';
+  var ICO_SOBRE = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></svg>';
   var ICO_REABRIR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4.5V10h5.5"/></svg>';
 
   function pill(estadoId) {
@@ -143,6 +144,7 @@
         '<span class="avrow__main">' +
           '<span class="avrow__top">' +
             '<span class="avrow__ref">' + esc(a.ref || '—') + '</span>' +
+            (a.origen === 'correo' ? '<span class="avrow__origen" title="Llegó por correo">' + ICO_SOBRE + '</span>' : '') +
             pill(a.estado) + prio +
           '</span>' +
           '<span class="avrow__title">' + esc(a.titulo || '(sin título)') + '</span>' +

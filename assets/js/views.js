@@ -19,7 +19,9 @@
     copia: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M15 6H5v10"/></svg>',
     compartir: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M5 14v5h14v-5"/></svg>',
     filtro: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16l-6 7v6l-4-2v-4z"/></svg>',
-    calendario: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="1"/><path d="M3 10h18M8 3v4M16 3v4M12 14v4M10 16h4"/></svg>'
+    calendario: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="1"/><path d="M3 10h18M8 3v4M16 3v4M12 14v4M10 16h4"/></svg>',
+    clip: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5 11.8 19.7a4.6 4.6 0 0 1-6.5-6.5l8.4-8.4a3 3 0 0 1 4.3 4.3l-8.2 8.2a1.5 1.5 0 0 1-2.1-2.1l7.5-7.5"/></svg>',
+    sobre: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></svg>'
   };
 
   /* =========================================================
@@ -386,6 +388,22 @@
       '</div>' : '') +
       '</div>');
 
+    if (a.origen === 'correo' && a.correo) {
+      html += U.seccion('Llegó por correo', '<div class="card card__pad">' +
+        '<dl class="kv">' +
+          '<dt>De</dt><dd>' + esc(a.correo.deNombre || a.correo.de) +
+            (a.correo.deNombre ? '<br><span class="small muted">' + esc(a.correo.de) + '</span>' : '') + '</dd>' +
+          '<dt>Asunto</dt><dd>' + esc(a.correo.asunto || '—') + '</dd>' +
+          '<dt>Recibido</dt><dd>' + esc(U.fmtSello(a.correo.fecha)) + '</dd>' +
+        '</dl>' +
+        '<div class="divider"></div>' +
+        '<div class="btnrow">' +
+          '<button class="btn btn--sm" data-vercorreo type="button">' + ICON.sobre + 'Ver el correo</button>' +
+          '<button class="btn btn--sm" data-ignorar type="button">No crear avisos de este remitente</button>' +
+        '</div>' +
+        '</div>');
+    }
+
     if (a.descripcion) {
       html += U.seccion('Descripción', '<div class="card card__pad"><p style="white-space:pre-wrap">' + esc(a.descripcion) + '</p></div>');
     }
@@ -425,10 +443,11 @@
       '</div>', horasTot ? U.fmtHoras(horasTot) : '');
 
     /* fotos */
-    html += U.seccion('Fotos', '<div class="card card__pad">' +
+    html += U.seccion('Fotos y adjuntos', '<div class="card card__pad">' +
       '<input type="file" id="fotoInput" accept="image/*" capture="environment" multiple hidden>' +
       '<button class="btn btn--sm btn--block" data-foto type="button">' + ICON.camara + 'Añadir foto</button>' +
       '<div id="fotos" class="photos" style="margin-top:10px"></div>' +
+      '<div id="archivos" class="stack stack--tight" style="margin-top:10px"></div>' +
       '</div>');
 
     html += '<p class="small muted center">Creado ' + esc(U.fmtSello(a.creado)) +
@@ -499,6 +518,33 @@
     });
 
     root.querySelector('[data-calendario]').addEventListener('click', function () { sheetCalendario(a); });
+
+    var verCorreo = root.querySelector('[data-vercorreo]');
+    if (verCorreo) verCorreo.addEventListener('click', function () {
+      U.abrirSheet('Correo original',
+        '<dl class="kv" style="margin-bottom:12px">' +
+          '<dt>De</dt><dd>' + esc(a.correo.de) + '</dd>' +
+          '<dt>Asunto</dt><dd>' + esc(a.correo.asunto || '—') + '</dd>' +
+          '<dt>Fecha</dt><dd>' + esc(U.fmtSello(a.correo.fecha)) + '</dd>' +
+        '</dl>' +
+        '<div class="correo__cuerpo">' + esc(a.correo.cuerpo || '(sin texto)') + '</div>');
+    });
+
+    var ignorar = root.querySelector('[data-ignorar]');
+    if (ignorar) ignorar.addEventListener('click', function () {
+      var de = (a.correo && a.correo.de) || '';
+      if (!de) return;
+      U.confirmar('Ignorar remitente',
+        'Los próximos correos de ' + de + ' no crearán avisos. Puedes quitarlo en Ajustes.',
+        { aceptar: 'Ignorar' }).then(function (ok) {
+          if (!ok) return;
+          var lista = (S.state.ajustes.correoIgnorados || []).slice();
+          if (lista.indexOf(de) === -1) lista.push(de);
+          S.guardarAjustes({ correoIgnorados: lista }).then(function () {
+            U.toast('Remitente ignorado');
+          });
+        });
+    });
 
     root.querySelector('[data-nota]').addEventListener('click', function () {
       U.pedirTexto('Nueva nota', { label: 'Qué ha pasado', multilinea: true, placeholder: 'Ej.: Sustituida la fuente, pendiente de probar con la CRA' })
@@ -573,23 +619,49 @@
     urlsVivas = [];
   }
 
+  function tamanoLegible(bytes) {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+    return (bytes / 1048576).toFixed(1).replace('.', ',') + ' MB';
+  }
+
   function pintarFotos(root, avisoId) {
-    var cont = root.querySelector('#fotos');
-    if (!cont) return;
-    S.fotosDe(avisoId).then(function (fotos) {
+    var rejilla = root.querySelector('#fotos');
+    var archivos = root.querySelector('#archivos');
+    if (!rejilla) return;
+
+    S.fotosDe(avisoId).then(function (adjuntos) {
       liberarURLs();
-      if (!fotos.length) { cont.innerHTML = '<p class="small muted">Sin fotos.</p>'; return; }
-      fotos.sort(function (x, y) { return String(x.ts).localeCompare(String(y.ts)); });
-      cont.innerHTML = fotos.map(function (f) {
+      adjuntos.sort(function (x, y) { return String(x.ts).localeCompare(String(y.ts)); });
+
+      var imagenes = adjuntos.filter(function (f) { return S.esImagen(f.mime); });
+      var otros = adjuntos.filter(function (f) { return !S.esImagen(f.mime); });
+
+      rejilla.innerHTML = imagenes.length ? imagenes.map(function (f) {
         var url = URL.createObjectURL(f.blob);
         urlsVivas.push(url);
         return '<figure class="photo"><a href="' + url + '" target="_blank" rel="noopener">' +
-          '<img src="' + url + '" alt="Foto del aviso" loading="lazy"></a>' +
+          '<img src="' + url + '" alt="' + esc(f.nombre) + '" loading="lazy"></a>' +
           '<button class="photo__del" data-delfoto="' + esc(f.id) + '" type="button" aria-label="Borrar foto">' + ICON.x + '</button></figure>';
+      }).join('') : '';
+
+      archivos.innerHTML = otros.map(function (f) {
+        var url = URL.createObjectURL(f.blob);
+        urlsVivas.push(url);
+        return '<div class="archivo">' +
+          ICON.clip +
+          '<a class="archivo__nombre" href="' + url + '" target="_blank" rel="noopener" download="' + esc(f.nombre) + '">' + esc(f.nombre) + '</a>' +
+          '<span class="archivo__tam">' + esc(tamanoLegible(f.blob.size)) + '</span>' +
+          '<button class="iconbtn" data-delfoto="' + esc(f.id) + '" type="button" aria-label="Borrar adjunto">' + ICON.x + '</button>' +
+          '</div>';
       }).join('');
-      U.$$('[data-delfoto]', cont).forEach(function (b) {
+
+      if (!adjuntos.length) rejilla.innerHTML = '<p class="small muted">Sin fotos ni adjuntos.</p>';
+
+      U.$$('[data-delfoto]', root).forEach(function (b) {
         b.addEventListener('click', function () {
-          U.confirmar('Borrar foto', '¿Seguro que quieres borrar esta foto? No se puede deshacer.', { peligro: true, aceptar: 'Borrar' })
+          U.confirmar('Borrar adjunto', 'Se borrará del aviso y no se puede deshacer.', { peligro: true, aceptar: 'Borrar' })
             .then(function (ok) {
               if (ok) S.delFoto(b.dataset.delfoto).then(function () { pintarFotos(root, avisoId); });
             });
@@ -1093,6 +1165,8 @@
       '<input class="input" id="prefijo" value="' + esc(S.state.ajustes.prefijoRef || 'AV') + '" maxlength="6">' +
       '<p class="field__hint">El próximo aviso será <b class="mono">' + esc(S.siguienteRef()) + '</b>.</p></div></div>');
 
+    html += U.seccion('Correo de la empresa', seccionCorreo());
+
     var conFecha = ICS.exportables(S.state.avisos);
     var abiertosCal = conFecha.filter(S.abierto);
     var limite30 = S.sumaDias(S.hoyISO(), 30);
@@ -1141,7 +1215,219 @@
     };
   }
 
+  /* =========================================================
+     CUENTA DE CORREO
+     ========================================================= */
+
+  var PROTOCOLOS = [{ id: 'imap', label: 'IMAP' }, { id: 'pop3', label: 'POP3' }];
+  var SEGURIDADES = [{ id: 'ssl', label: 'SSL/TLS' }, { id: 'starttls', label: 'STARTTLS' }];
+  var PUERTOS = { imap: { ssl: 993, starttls: 143 }, pop3: { ssl: 995, starttls: 110 } };
+
+  function seccionCorreo() {
+    var e = Correo.estado();
+
+    if (!e.soportado) {
+      return '<div class="card card__pad">' +
+        '<p class="small muted">Los correos solo pueden leerse desde la <b>app de Android</b>: un navegador no puede conectarse a un buzón. ' +
+        'Instala la APK y configúralo allí; los avisos creados se ven igual en los dos sitios si importas la copia.</p>' +
+        '</div>';
+    }
+
+    if (!e.usuario) {
+      return '<div class="card card__pad">' +
+        '<p class="small muted" style="margin-bottom:12px">Conecta el buzón de la empresa y cada correo que llegue se convertirá en un aviso automáticamente.</p>' +
+        '<button class="btn btn--primary btn--block" data-correo-config type="button">' + ICON.sobre + 'Conectar una cuenta</button>' +
+        '</div>';
+    }
+
+    var ignorados = S.state.ajustes.correoIgnorados || [];
+
+    return '<div class="card card__pad">' +
+      '<dl class="kv">' +
+        '<dt>Cuenta</dt><dd>' + esc(e.usuario) + '</dd>' +
+        '<dt>Servidor</dt><dd>' + esc(e.servidor || '—') + ' · ' + esc(String(e.protocolo || '').toUpperCase()) + '</dd>' +
+        '<dt>Estado</dt><dd>' + (e.error
+          ? '<span style="color:var(--pr-urgente)">' + esc(e.error) + '</span>'
+          : (e.activo ? 'Escuchando en tiempo real' : 'En pausa')) + '</dd>' +
+        '<dt>Última vez</dt><dd>' + (e.ultimaSync ? esc(U.fmtSello(e.ultimaSync)) : 'nunca') + '</dd>' +
+      '</dl>' +
+      '<div class="divider"></div>' +
+      '<div class="stack">' +
+        '<button class="btn btn--block" data-correo-sync type="button">Sincronizar ahora</button>' +
+        '<button class="btn btn--block" data-correo-config type="button">Cambiar los datos de la cuenta</button>' +
+        '<button class="btn btn--block btn--danger" data-correo-quitar type="button">Desconectar el buzón</button>' +
+      '</div>' +
+      '<div class="divider"></div>' +
+      '<span class="field__label">Remitentes ignorados</span>' +
+      (ignorados.length
+        ? '<div class="stack stack--tight">' + ignorados.map(function (r) {
+            return '<div class="archivo"><span class="archivo__nombre" style="color:var(--ink-2);text-decoration:none">' + esc(r) + '</span>' +
+              '<button class="iconbtn" data-quitar-ignorado="' + esc(r) + '" type="button" aria-label="Quitar">' + ICON.x + '</button></div>';
+          }).join('') + '</div>'
+        : '<p class="small muted">Ninguno. Todo lo que entre creará un aviso.</p>') +
+      '<button class="btn btn--sm btn--block" data-anadir-ignorado type="button" style="margin-top:8px">' + ICON.mas + 'Ignorar un remitente</button>' +
+      '</div>';
+  }
+
+  function sheetCuentaCorreo() {
+    var e = Correo.estado();
+    var proto = e.protocolo || 'imap';
+    var seg = e.seguridad || 'ssl';
+
+    U.abrirSheet('Cuenta de correo',
+      '<div class="field"><label class="field__label" for="c_usuario">Dirección de correo</label>' +
+        '<input class="input" id="c_usuario" type="email" inputmode="email" autocapitalize="off" autocomplete="off" value="' + esc(e.usuario || '') + '" placeholder="tunombre@tuempresa.es"></div>' +
+      '<div class="field"><label class="field__label" for="c_clave">Contraseña</label>' +
+        '<input class="input" id="c_clave" type="password" autocomplete="off" placeholder="' + (e.usuario ? 'sin cambios' : '') + '"></div>' +
+      '<div class="field"><label class="field__label" for="c_servidor">Servidor de entrada</label>' +
+        '<input class="input" id="c_servidor" autocapitalize="off" autocomplete="off" value="' + esc(e.servidor || '') + '" placeholder="mail.tuempresa.es">' +
+        '<p class="field__hint">Lo tienes en los ajustes de la cuenta en Outlook, como «servidor de correo entrante».</p></div>' +
+      '<div class="field"><span class="field__label">Protocolo</span><div class="segmented">' +
+        PROTOCOLOS.map(function (o) {
+          return '<label><input type="radio" name="c_proto" value="' + o.id + '"' + (o.id === proto ? ' checked' : '') + '><span>' + o.label + '</span></label>';
+        }).join('') + '</div>' +
+        '<p class="field__hint">IMAP permite avisos al instante. POP3 solo consulta cada cierto tiempo.</p></div>' +
+      '<div class="grid2">' +
+        '<div class="field"><span class="field__label">Seguridad</span><div class="segmented">' +
+          SEGURIDADES.map(function (o) {
+            return '<label><input type="radio" name="c_seg" value="' + o.id + '"' + (o.id === seg ? ' checked' : '') + '><span>' + o.label + '</span></label>';
+          }).join('') + '</div></div>' +
+        '<div class="field"><label class="field__label" for="c_puerto">Puerto</label>' +
+          '<input class="input" id="c_puerto" type="text" inputmode="numeric" value="' + esc(e.puerto || PUERTOS[proto][seg]) + '"></div>' +
+      '</div>' +
+      '<p class="small muted" id="c_resultado" style="margin-bottom:12px"></p>' +
+      '<div class="btnrow btnrow--split">' +
+        '<button class="btn" data-probar type="button">Probar</button>' +
+        '<button class="btn btn--primary" data-guardar type="button">Guardar y activar</button>' +
+      '</div>',
+      function (body) {
+        var resultado = body.querySelector('#c_resultado');
+        var puerto = body.querySelector('#c_puerto');
+
+        function leer() {
+          return {
+            usuario: body.querySelector('#c_usuario').value.trim(),
+            clave: body.querySelector('#c_clave').value,
+            servidor: body.querySelector('#c_servidor').value.trim(),
+            protocolo: (body.querySelector('input[name="c_proto"]:checked') || {}).value || 'imap',
+            seguridad: (body.querySelector('input[name="c_seg"]:checked') || {}).value || 'ssl',
+            puerto: Number(puerto.value) || 0
+          };
+        }
+
+        /* Al cambiar protocolo o seguridad se ofrece el puerto habitual. */
+        U.$$('input[name="c_proto"], input[name="c_seg"]', body).forEach(function (i) {
+          i.addEventListener('change', function () {
+            var c = leer();
+            puerto.value = PUERTOS[c.protocolo][c.seguridad];
+          });
+        });
+
+        function validar(c) {
+          if (!c.usuario || c.usuario.indexOf('@') === -1) return 'Escribe la dirección de correo completa';
+          if (!c.servidor) return 'Falta el servidor de entrada';
+          if (!c.puerto) return 'Falta el puerto';
+          if (!c.clave && !e.usuario) return 'Falta la contraseña';
+          return '';
+        }
+
+        function probar() {
+          var c = leer();
+          var fallo = validar(c);
+          if (fallo) { resultado.textContent = fallo; return Promise.resolve(null); }
+          resultado.textContent = 'Conectando con ' + c.servidor + '…';
+          return Correo.probar(c).then(function (r) {
+            resultado.innerHTML = r.ok
+              ? '<span style="color:var(--st-resuelto)">Conexión correcta.</span>'
+              : '<span style="color:var(--pr-urgente)">' + esc(r.mensaje || 'No se pudo conectar') + '</span>';
+            return r;
+          });
+        }
+
+        body.querySelector('[data-probar]').addEventListener('click', probar);
+
+        body.querySelector('[data-guardar]').addEventListener('click', function () {
+          probar().then(function (r) {
+            if (!r || !r.ok) return;
+            Correo.guardarCuenta(leer());
+            U.cerrarSheet();
+            U.toast('Buzón conectado');
+            global.App.render();
+            /* Lo que ya estuviera descargado debe aparecer sin esperar a
+               cerrar y abrir la app. */
+            global.App.recogerCorreo();
+          });
+        });
+      });
+  }
+
+  function esperar(ms) {
+    return new Promise(function (r) { setTimeout(r, ms); });
+  }
+
+  function montarCorreo(root) {
+    var cfg = root.querySelector('[data-correo-config]');
+    if (cfg) cfg.addEventListener('click', sheetCuentaCorreo);
+
+    var sync = root.querySelector('[data-correo-sync]');
+    if (sync) sync.addEventListener('click', function () {
+      U.toast('Buscando correo nuevo…');
+      Correo.sincronizarAhora();
+
+      /* Lo ya descargado se convierte al momento; para lo que traiga esta
+         consulta se vuelve a mirar un par de veces, por si el servidor
+         tarda. La parte nativa también avisa por su cuenta al terminar. */
+      var total = 0;
+      function recoger() {
+        return Correo.procesarPendientes().then(function (r) { total += r.creados; });
+      }
+      recoger()
+        .then(function () { return esperar(1500).then(recoger); })
+        .then(function () { return esperar(3000).then(recoger); })
+        .then(function () {
+          U.toast(total ? U.plural(total, 'aviso nuevo', 'avisos nuevos') : 'Sin correo nuevo');
+          global.App.render();
+        });
+    });
+
+    var quitar = root.querySelector('[data-correo-quitar]');
+    if (quitar) quitar.addEventListener('click', function () {
+      U.confirmar('Desconectar el buzón',
+        'Dejarán de entrar avisos por correo. Los avisos ya creados se quedan como están.',
+        { peligro: true, aceptar: 'Desconectar' }).then(function (ok) {
+          if (!ok) return;
+          Correo.borrarCuenta();
+          U.toast('Buzón desconectado');
+          global.App.render();
+        });
+    });
+
+    var anadir = root.querySelector('[data-anadir-ignorado]');
+    if (anadir) anadir.addEventListener('click', function () {
+      U.pedirTexto('Ignorar remitente', {
+        label: 'Correo o dominio',
+        placeholder: 'boletin@ejemplo.com o @publicidad.com'
+      }).then(function (valor) {
+        var v = (valor || '').trim().toLowerCase();
+        if (!v) return;
+        var lista = (S.state.ajustes.correoIgnorados || []).slice();
+        if (lista.indexOf(v) === -1) lista.push(v);
+        S.guardarAjustes({ correoIgnorados: lista }).then(function () { global.App.render(); });
+      });
+    });
+
+    U.$$('[data-quitar-ignorado]', root).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var lista = (S.state.ajustes.correoIgnorados || []).filter(function (r) {
+          return r !== b.dataset.quitarIgnorado;
+        });
+        S.guardarAjustes({ correoIgnorados: lista }).then(function () { global.App.render(); });
+      });
+    });
+  }
+
   function montarAjustes(root) {
+    montarCorreo(root);
     DB.estimate().then(function (e) {
       var n = root.querySelector('#espacio');
       if (!n) return;

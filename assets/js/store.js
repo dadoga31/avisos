@@ -40,7 +40,8 @@
   var state = {
     avisos: [],
     tecnicos: [],
-    ajustes: { tema: 'auto', prefijoRef: 'AV', contadorRef: 0, verCerrados: false, recordatorio: 30, pistaGestos: true }
+    ajustes: { tema: 'auto', prefijoRef: 'AV', contadorRef: 0, verCerrados: false, recordatorio: 30, pistaGestos: true,
+      correoIgnorados: [] }
   };
 
   /* ---------- utilidades ---------- */
@@ -116,6 +117,8 @@
       sistema: 'alarma',
       prioridad: 'normal',
       estado: 'pendiente',
+      origen: 'manual',        // 'manual' o 'correo'
+      correo: null,            // metadatos del mensaje que lo originó
       cliente: { nombre: '', direccion: '', telefono: '', contacto: '' },
       fecha: hoyISO(),
       hora: '',
@@ -263,14 +266,66 @@
     });
   }
 
-  function addFoto(avisoId, file) {
-    return comprimirImagen(file, 1400, 0.72).then(function (blob) {
-      var reg = { id: uid('f'), avisoId: avisoId, blob: blob, ts: new Date().toISOString(), nombre: file.name || 'foto.jpg' };
+  function esImagen(mime) { return /^image\//.test(String(mime || '')); }
+
+  /* Guarda cualquier adjunto. Las imágenes se reducen para no llenar el
+     móvil; un PDF o cualquier otro archivo se guarda tal cual. */
+  var LIMITE_COMPRESION = 500 * 1024;   // por debajo no merece la pena tocar nada
+
+  function addAdjunto(avisoId, datos) {
+    var blob = datos.blob;
+    var mime = datos.mime || blob.type || 'application/octet-stream';
+    var nombre = datos.nombre || (esImagen(mime) ? 'foto.jpg' : 'adjunto');
+
+    /* Solo se recomprimen las imágenes grandes (las fotos de la cámara).
+       Un plano o una captura pequeña en PNG se guardan tal cual: pasarlos
+       a JPEG solo les quitaría nitidez. */
+    var conviene = esImagen(mime) && blob.size > LIMITE_COMPRESION;
+    var preparado = conviene
+      ? comprimirImagen(blob, 1400, 0.72).catch(function () { return blob; })
+      : Promise.resolve(blob);
+
+    return preparado.then(function (final) {
+      var comprimido = final !== blob;
+      var reg = {
+        id: uid('f'),
+        avisoId: avisoId,
+        blob: final,
+        mime: comprimido ? (final.type || 'image/jpeg') : mime,
+        nombre: comprimido ? aJpg(nombre) : nombre,
+        origen: datos.origen || 'dispositivo',
+        ts: new Date().toISOString()
+      };
       return DB.put('fotos', reg).then(function () { return reg; });
     });
   }
 
-  function fotosDe(avisoId) { return DB.getByIndex('fotos', 'avisoId', avisoId); }
+  function aJpg(nombre) {
+    return /\.jpe?g$/i.test(nombre) ? nombre : nombre.replace(/\.[^.]+$/, '') + '.jpg';
+  }
+
+  function addFoto(avisoId, file) {
+    return addAdjunto(avisoId, {
+      blob: file,
+      mime: file.type || 'image/jpeg',
+      nombre: file.name || 'foto.jpg',
+      origen: 'dispositivo'
+    });
+  }
+
+  /* Las copias antiguas no guardaban el tipo: se deduce del propio blob. */
+  function normalizarAdjunto(a) {
+    if (!a.mime) a.mime = (a.blob && a.blob.type) || 'application/octet-stream';
+    if (!a.nombre) a.nombre = esImagen(a.mime) ? 'foto.jpg' : 'adjunto';
+    return a;
+  }
+
+  function fotosDe(avisoId) {
+    return DB.getByIndex('fotos', 'avisoId', avisoId).then(function (lista) {
+      return lista.map(normalizarAdjunto);
+    });
+  }
+
   function delFoto(fotoId) { return DB.del('fotos', fotoId); }
 
   /* ---------- técnicos ---------- */
@@ -361,7 +416,8 @@
         var heno = [a.ref, a.titulo, a.descripcion, a.cliente && a.cliente.nombre,
           a.cliente && a.cliente.direccion, a.cliente && a.cliente.telefono,
           a.cliente && a.cliente.contacto, t && t.nombre,
-          catalogo(TIPOS, a.tipo).label, catalogo(SISTEMAS, a.sistema).label]
+          catalogo(TIPOS, a.tipo).label, catalogo(SISTEMAS, a.sistema).label,
+          a.correo && a.correo.de, a.correo && a.correo.asunto]
           .join(' ').toLowerCase();
         if (heno.indexOf(q) === -1) return false;
       }
@@ -440,7 +496,10 @@
     return DB.getAll('fotos').then(function (fotos) {
       return Promise.all(fotos.map(function (f) {
         return blobADataURL(f.blob).then(function (d) {
-          return { id: f.id, avisoId: f.avisoId, ts: f.ts, nombre: f.nombre, data: d };
+          return {
+            id: f.id, avisoId: f.avisoId, ts: f.ts,
+            nombre: f.nombre, mime: f.mime, origen: f.origen, data: d
+          };
         });
       }));
     }).then(function (fs) { base.fotos = fs; return base; });
@@ -462,7 +521,11 @@
         avisos = avisos.filter(function (a) { return idsA.indexOf(a.id) === -1; });
       }
       var fotos = (datos.fotos || []).map(function (f) {
-        return { id: f.id, avisoId: f.avisoId, ts: f.ts, nombre: f.nombre, blob: dataURLABlob(f.data) };
+        var blob = dataURLABlob(f.data);
+        return normalizarAdjunto({
+          id: f.id, avisoId: f.avisoId, ts: f.ts, nombre: f.nombre,
+          mime: f.mime || blob.type, origen: f.origen || 'dispositivo', blob: blob
+        });
       });
       return Promise.all([
         tecnicos.length ? DB.putMany('tecnicos', tecnicos) : null,
@@ -550,7 +613,8 @@
     addNota: addNota, delNota: delNota,
     addMaterial: addMaterial, delMaterial: delMaterial,
     addHoras: addHoras, delHoras: delHoras, totalHoras: totalHoras,
-    addFoto: addFoto, fotosDe: fotosDe, delFoto: delFoto,
+    addFoto: addFoto, addAdjunto: addAdjunto, fotosDe: fotosDe, delFoto: delFoto,
+    esImagen: esImagen,
     marcarExportados: marcarExportados,
     guardarTecnico: guardarTecnico, borrarTecnico: borrarTecnico, tecnico: tecnico,
     iniciales: iniciales, cargaPorTecnico: cargaPorTecnico,

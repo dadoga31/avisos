@@ -269,10 +269,14 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
 .avrow--e-en_espera  .avrow__flag{ background:var(--st-espera) }
 .avrow--e-resuelto   .avrow__flag{ background:var(--st-resuelto) }
 .avrow--e-cancelado  .avrow__flag{ background:var(--st-cancelado) }
-.avrow--e-resuelto .avrow__title, .avrow--e-cancelado .avrow__title{ color:var(--muted) }
+.avrow--e-resuelto .avrow__title, .avrow--e-cancelado .avrow__origen{ display:inline-flex; color:var(--muted) }
+.avrow__origen svg{ width:14px; height:14px }
+.avrow__title{ color:var(--muted) }
 .avrow__main{ padding:11px 4px 11px 12px; min-width:0 }
 .avrow__top{ display:flex; align-items:center; gap:8px; margin-bottom:2px; flex-wrap:wrap }
 .avrow__ref{ font-family:var(--f-mono); font-size:11px; color:var(--muted); letter-spacing:.02em; white-space:nowrap }
+.avrow__origen{ display:inline-flex; color:var(--muted) }
+.avrow__origen svg{ width:14px; height:14px }
 .avrow__title{
   font-size:15px; font-weight:560; letter-spacing:-.012em; line-height:1.3;
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
@@ -460,6 +464,14 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
 .kv dd{ margin:0; color:var(--ink) }
 .kv a{ color:var(--accent); text-decoration:underline; text-underline-offset:2px }
 
+.correo__cuerpo{
+  white-space:pre-wrap; word-break:break-word;
+  font-size:14px; line-height:1.55; color:var(--ink-2);
+  max-height:50vh; overflow-y:auto;
+  padding:12px; border:1px solid var(--line); border-radius:var(--r);
+  background:var(--surface-2);
+}
+
 .timeline{ list-style:none; margin:0; padding:0 }
 .timeline li{ position:relative; padding:0 0 14px 16px; border-left:1px solid var(--line); margin-left:3px }
 .timeline li:last-child{ padding-bottom:0; border-left-color:transparent }
@@ -488,6 +500,19 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
   background:rgba(0,0,0,.62); color:#fff; cursor:pointer;
 }
 .photo__del svg{ width:15px; height:15px; stroke-width:2 }
+
+.archivo{
+  display:flex; align-items:center; gap:9px;
+  padding:9px 6px 9px 10px;
+  border:1px solid var(--line); border-radius:var(--r); background:var(--surface-2);
+}
+.archivo svg{ flex:none; width:17px; height:17px; color:var(--muted) }
+.archivo__nombre{
+  flex:1; min-width:0; font-size:13.5px; color:var(--accent);
+  text-decoration:underline; text-underline-offset:2px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.archivo__tam{ flex:none; font-family:var(--f-mono); font-size:11.5px; color:var(--muted) }
 
 .statusgrid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(104px,1fr)); gap:6px }
 .statusgrid button{

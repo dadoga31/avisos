@@ -2,7 +2,7 @@
 (function (global) {
   'use strict';
 
-  var APP_VERSION = '1.3.0';
+  var APP_VERSION = '1.4.0';
   global.APP_VERSION = APP_VERSION;
 
   var S = global.Store, U = global.UI, V = global.Views;
@@ -165,6 +165,8 @@
     var diaVisible = S.hoyISO();
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState !== 'visible') return;
+      /* Al volver a la app puede haber entrado correo mientras estaba fuera. */
+      recogerCorreo();
       if (S.hoyISO() === diaVisible) return;
       diaVisible = S.hoyISO();
       render({ restaurar: true });
@@ -193,6 +195,17 @@
     if (b && b.hidden && promptInstalar) mostrarInstalar(b);
   });
 
+  /* Los correos los descarga la parte nativa; el aviso se crea aquí, en
+     cuanto la app está delante. */
+  function recogerCorreo() {
+    if (!global.Correo || !Correo.disponible()) return;
+    Correo.procesarPendientes().then(function (r) {
+      if (!r.creados) return;
+      U.toast(r.creados === 1 ? 'Nuevo aviso desde el correo' : r.creados + ' avisos nuevos desde el correo');
+      render({ restaurar: true });
+    }).catch(function (e) { console.warn('Correo no procesado:', e); });
+  }
+
   /* ---------- arranque ---------- */
 
   function arrancar() {
@@ -202,6 +215,7 @@
       observador.observe(elView, { childList: true });
       if (!location.hash) location.replace('#/agenda');
       render();
+      recogerCorreo();
     }).catch(function (e) {
       console.error(e);
       elView.innerHTML = U.vacioHTML({
@@ -222,7 +236,10 @@
     }
   }
 
-  global.App = { render: render, aplicarTema: aplicarTema, version: APP_VERSION };
+  global.App = {
+    render: render, aplicarTema: aplicarTema, version: APP_VERSION,
+    recogerCorreo: recogerCorreo
+  };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar);
   else arrancar();
