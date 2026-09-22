@@ -19,6 +19,7 @@ permissions:
 jobs:
   compilar:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -29,12 +30,22 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      - name: Compilar el APK
+      # Se compila en dos pasos: primero solo el Java, que es donde suelen
+      # estar los errores y falla en segundos.
+      - name: Compilar el código
         working-directory: android
         shell: bash
         run: |
           set -o pipefail
-          ./gradlew assembleRelease --no-daemon --console=plain 2>&1 | tee ../compilacion.log
+          ./gradlew compileReleaseJavaWithJavac --no-daemon --console=plain \
+            -Dorg.gradle.internal.http.socketTimeout=60000 2>&1 | tee ../compilacion.log
+
+      - name: Empaquetar el APK
+        working-directory: android
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew assembleRelease --no-daemon --console=plain 2>&1 | tee -a ../compilacion.log
 
       # Sin esto, el rastro de Gradle entierra el error de verdad.
       - name: Qué ha fallado
