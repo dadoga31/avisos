@@ -52,8 +52,11 @@ jobs:
         if: failure()
         shell: bash
         run: |
+          echo "===== MOTIVO ====="
+          sed -n '/\* What went wrong:/,/^\* Try:/p' compilacion.log | head -40 || true
           echo "===== ERRORES ====="
-          grep -nE "error:|^e: |What went wrong|Caused by:|Could not (find|resolve)" compilacion.log | head -60 || true
+          grep -nE "error:|^e: |Duplicate class|Could not (find|resolve)|is not compatible|minSdk" \
+            compilacion.log | head -40 || true
 
       - name: Renombrar
         run: cp android/app/build/outputs/apk/release/app-release.apk avisos.apk
