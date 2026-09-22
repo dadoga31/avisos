@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- No se declara INTERNET a propósito: la app es enteramente local. -->
+    <!-- Internet solo para leer el buzón de correo; la app no envía datos
+         a ningún otro sitio. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true"
@@ -25,6 +32,26 @@
                 android:name="android.app.shortcuts"
                 android:resource="@xml/atajos" />
         </activity>
+
+        <!-- specialUse y no dataSync: en Android 14 los servicios de
+             sincronización se cortan a las 6 horas diarias, y la escucha
+             del buzón tiene que aguantar todo el día. -->
+        <service
+            android:name=".correo.ServicioCorreo"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Escucha permanente del buzón de correo para crear avisos de trabajo" />
+        </service>
+
+        <receiver
+            android:name=".correo.ReceptorArranque"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
         <receiver
             android:name=".WidgetAvisos"

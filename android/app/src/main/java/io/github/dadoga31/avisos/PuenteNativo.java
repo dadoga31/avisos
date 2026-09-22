@@ -10,10 +10,18 @@ import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
 
+import io.github.dadoga31.avisos.correo.AlmacenCorreo;
+import io.github.dadoga31.avisos.correo.ClienteCorreo;
+import io.github.dadoga31.avisos.correo.Cuenta;
+import io.github.dadoga31.avisos.correo.ServicioCorreo;
+
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Lo que la web no puede hacer dentro de un WebView: entregar archivos al
@@ -27,6 +35,7 @@ public class PuenteNativo {
     private static final String TAG = "AvisosPuente";
 
     private final Activity actividad;
+    private final AlmacenCorreo almacen;
 
     private File archivo;
     private FileOutputStream salida;
@@ -34,6 +43,7 @@ public class PuenteNativo {
 
     PuenteNativo(Activity actividad) {
         this.actividad = actividad;
+        this.almacen = new AlmacenCorreo(actividad);
     }
 
     // ---------- archivos por trozos ----------
@@ -139,6 +149,110 @@ public class PuenteNativo {
                 f.delete();
             }
         }
+    }
+
+    // ---------- correo ----------
+
+    @JavascriptInterface
+    public String correoEstado() {
+        return almacen.estado(Cuenta.cargar(actividad)).toString();
+    }
+
+    @JavascriptInterface
+    public void correoGuardarCuenta(String json) {
+        try {
+            Cuenta c = Cuenta.deJSON(new JSONObject(json));
+            Cuenta anterior = Cuenta.cargar(actividad);
+            boolean cambiaBuzon = anterior == null
+                    || !anterior.usuario.equals(c.usuario)
+                    || !anterior.servidor.equals(c.servidor)
+                    || !anterior.protocolo.equals(c.protocolo);
+
+            Cuenta.guardar(actividad, c);
+            /* Buzón distinto: se olvida por dónde íbamos, para no mezclar
+               la numeración de mensajes de dos servidores. */
+            if (cambiaBuzon) almacen.limpiarTodo();
+            ServicioCorreo.arrancar(actividad);
+        } catch (Exception e) {
+            Log.e(TAG, "Cuenta no válida", e);
+        }
+    }
+
+    @JavascriptInterface
+    public void correoBorrarCuenta() {
+        ServicioCorreo.parar(actividad);
+        Cuenta.borrar(actividad);
+        almacen.limpiarTodo();
+    }
+
+    @JavascriptInterface
+    public void correoSincronizarAhora() {
+        ServicioCorreo.sincronizar(actividad);
+    }
+
+    /** La prueba tarda, así que se contesta luego llamando a la web. */
+    @JavascriptInterface
+    public void correoProbar(final String json) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                JSONObject respuesta = new JSONObject();
+                try {
+                    Cuenta c = Cuenta.deJSON(new JSONObject(json));
+                    if (c.clave.isEmpty()) {
+                        Cuenta guardada = Cuenta.cargar(actividad);
+                        if (guardada != null) c.clave = guardada.clave;   // «sin cambios»
+                    }
+                    String error = new ClienteCorreo(actividad, almacen).probar(c);
+                    respuesta.put("ok", error == null);
+                    if (error != null) respuesta.put("mensaje", error);
+                } catch (Exception e) {
+                    try {
+                        respuesta.put("ok", false);
+                        respuesta.put("mensaje", ClienteCorreo.explicar(e));
+                    } catch (Exception ignorada) { }
+                }
+                contestarWeb("window.Correo && Correo.alProbar(" + comillas(respuesta.toString()) + ");");
+            }
+        }, "probar-correo").start();
+    }
+
+    @JavascriptInterface
+    public String correoPendientes() {
+        return almacen.leerPendientes().toString();
+    }
+
+    @JavascriptInterface
+    public void correoMarcarProcesados(String jsonUids) {
+        try {
+            JSONArray lista = new JSONArray(jsonUids);
+            Set<String> uids = new HashSet<>();
+            for (int i = 0; i < lista.length(); i++) uids.add(lista.optString(i));
+            almacen.marcarProcesados(uids);
+        } catch (Exception e) {
+            Log.e(TAG, "Lista de procesados no válida", e);
+        }
+    }
+
+    @JavascriptInterface
+    public String correoAdjuntoTrozo(String id, long desde, int longitud) {
+        return almacen.trozoAdjunto(id, desde, longitud);
+    }
+
+    private void contestarWeb(final String javascript) {
+        actividad.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (actividad instanceof io.github.dadoga31.avisos.MainActivity) {
+                    ((io.github.dadoga31.avisos.MainActivity) actividad).ejecutar(javascript);
+                }
+            }
+        });
+    }
+
+    private static String comillas(String texto) {
+        return "'" + texto.replace("\\", "\\\\").replace("'", "\\'")
+                .replace("\n", "\\n").replace("\r", "") + "'";
     }
 
     // ---------- datos del widget ----------

@@ -1,9 +1,12 @@
 package io.github.dadoga31.avisos;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.webkit.ValueCallback;
@@ -19,6 +22,9 @@ import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewAssetLoader;
 import androidx.webkit.WebViewFeature;
 
+import io.github.dadoga31.avisos.correo.Cuenta;
+import io.github.dadoga31.avisos.correo.ServicioCorreo;
+
 import java.io.File;
 
 /**
@@ -32,6 +38,7 @@ public class MainActivity extends Activity {
     private static final String HOST = "appassets.androidplatform.net";
     private static final String BASE = "https://" + HOST + "/assets/www/index.html";
     private static final int PEDIR_ARCHIVO = 1001;
+    private static final int PEDIR_NOTIFICACIONES = 1002;
 
     private WebView web;
     private ValueCallback<Uri[]> callbackArchivos;
@@ -88,6 +95,50 @@ public class MainActivity extends Activity {
 
         web.addJavascriptInterface(new PuenteNativo(this), "AvisosNativo");
         web.loadUrl(BASE + rutaDe(getIntent()));
+
+        pedirNotificaciones();
+        arrancarCorreoSiHayCuenta();
+    }
+
+    /** Ejecuta JavaScript en la página; lo usa el puente para contestar. */
+    public void ejecutar(String javascript) {
+        if (web != null) web.evaluateJavascript(javascript, null);
+    }
+
+    private void arrancarCorreoSiHayCuenta() {
+        Cuenta cuenta = Cuenta.cargar(this);
+        if (cuenta != null && cuenta.valida()) ServicioCorreo.arrancar(this);
+    }
+
+    /* Sin este permiso el servicio sigue funcionando, pero el usuario no ve
+       ni su estado ni los correos nuevos. */
+    private void pedirNotificaciones() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return;
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return;
+        requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, PEDIR_NOTIFICACIONES);
+    }
+
+    private final ServicioCorreo.Oyente oyenteCorreo = new ServicioCorreo.Oyente() {
+        @Override
+        public void nuevoCorreo(int cuantos) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() { ejecutar("window.Correo && Correo.alLlegar();"); }
+            });
+        }
+    };
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        ServicioCorreo.escuchar(oyenteCorreo);
+        ejecutar("window.App && App.recogerCorreo && App.recogerCorreo();");
+    }
+
+    @Override
+    protected void onPause() {
+        ServicioCorreo.dejarDeEscuchar(oyenteCorreo);
+        super.onPause();
     }
 
     /**

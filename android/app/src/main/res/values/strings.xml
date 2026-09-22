@@ -11,4 +11,14 @@
     <string name="atajo_nuevo_corto">Nuevo</string>
     <string name="atajo_agenda">Agenda de hoy</string>
     <string name="atajo_agenda_corto">Agenda</string>
+    <string name="canal_estado">Estado del buzón</string>
+    <string name="canal_estado_desc">Aviso fijo mientras la app vigila el correo.</string>
+    <string name="canal_nuevos">Correos nuevos</string>
+    <string name="canal_nuevos_desc">Cuando un correo se convierte en aviso.</string>
+    <string name="correo_conectando">Conectando con el buzón…</string>
+    <string name="correo_escuchando">Escuchando %1$s</string>
+    <string name="correo_vigilando">Vigilando %1$s cada 5 minutos</string>
+    <string name="correo_error">Sin conexión con el buzón: %1$s</string>
+    <string name="correo_uno">1 aviso nuevo desde el correo</string>
+    <string name="correo_varios">%1$d avisos nuevos desde el correo</string>
 </resources>
