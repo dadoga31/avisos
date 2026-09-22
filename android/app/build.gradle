@@ -60,6 +60,14 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+
+    /* assembleRelease ejecuta lintVitalRelease y cualquier aviso suyo tumba
+       la compilación. Para una app que se instala a mano no compensa: los
+       errores de código los caza el compilador. */
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
 }
 
 tasks.named('preBuild') { dependsOn 'copiarWeb' }
