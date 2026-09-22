@@ -102,6 +102,62 @@ funcionen el modo sin conexión y la instalación.
 
 ---
 
+## Avisos que llegan solos desde el correo
+
+La app puede leer el buzón de la empresa y convertir en aviso cada correo
+que entra. **Solo funciona en la APK de Android**: un navegador no tiene
+sockets, así que no puede hablar ni IMAP ni POP3. La conexión la hace el
+código nativo; nada pasa por ningún servidor intermedio.
+
+### Configurarlo
+
+Ajustes → *Correo de la empresa* → **Conectar una cuenta**. Necesitas:
+
+- La dirección y la contraseña del correo.
+- El **servidor de entrada** (algo como `mail.tuempresa.es`). Lo tienes en
+  Outlook, en los ajustes de la cuenta, como «servidor de correo entrante».
+- El protocolo: **IMAP** si el servidor lo admite (avisos al instante), o
+  **POP3** (consulta cada 5 minutos). Los puertos se rellenan solos.
+
+El botón *Probar* comprueba la conexión antes de guardar nada.
+
+### Qué hace con cada correo
+
+| Del correo | Al aviso |
+|---|---|
+| Asunto | Título |
+| Cuerpo, sin la cadena de respuestas | Descripción |
+| Remitente | Cliente y contacto |
+| Teléfono que aparezca en el texto | Teléfono del cliente |
+| Adjuntos | Fotos y archivos del aviso |
+| Palabras del asunto y el cuerpo | Tipo de trabajo, sistema y prioridad |
+
+Un asunto con «urgente» sale con prioridad urgente; si habla de cámaras, el
+sistema queda como CCTV; si dice «no funciona», el tipo es avería. Todo eso
+lo puedes corregir a mano en la ficha, como cualquier otro aviso.
+
+### Lo que conviene saber
+
+- **El pasado no se convierte.** Al conectar la cuenta se toma nota de por
+  dónde va el buzón y solo entran los correos a partir de ese momento. Si no,
+  un buzón con años de correo generaría miles de avisos.
+- **Nada se borra del servidor**, y con IMAP los mensajes ni se marcan como
+  leídos: Outlook sigue viéndolo todo igual.
+- **Entra todo.** Cada correo genera un aviso, también la publicidad. Para
+  cortarlo, en la ficha del aviso tienes *No crear avisos de este remitente*,
+  y en Ajustes la lista de ignorados (vale un correo suelto o un dominio
+  entero, como `@publicidad.com`).
+- **El aviso aparece al abrir la app.** El correo se descarga al instante y
+  te salta la notificación, pero el aviso se crea cuando la app está delante,
+  que es inmediato al abrirla.
+- La app mantiene una **notificación fija** mientras vigila el buzón: es lo
+  que Android exige para no cortar la conexión. Gasta algo más de batería que
+  tenerla apagada.
+- La contraseña se guarda en el **almacén cifrado de Android**, solo en tu
+  móvil.
+
+---
+
 ## Verlos en el calendario del móvil
 
 Los avisos se pueden llevar al calendario nativo (Calendario de iPhone, Google
@@ -135,8 +191,8 @@ necesitaría un servidor publicando el calendario, que hoy la app no tiene.
 Además de la versión web, el repositorio trae una app nativa de Android en
 `android/`. No es un acceso directo al navegador: la web va **dentro del APK**
 y se sirve desde `appassets.androidplatform.net`, un origen seguro local, así
-que funciona sin red y sin servidor ninguno. La app ni siquiera pide el permiso
-de internet.
+que funciona sin red y sin servidor ninguno. El único permiso de red que pide
+es para leer el buzón de correo, y solo lo usa si configuras una cuenta.
 
 ### Descargar e instalar
 
@@ -224,6 +280,7 @@ assets/js/swipe.js       Gestos de deslizamiento sobre las filas de aviso
 assets/js/views.js       Pantallas: agenda, lista, ficha, formulario, equipo, ajustes
 assets/js/app.js         Arranque y enrutado por hash
 assets/js/nativo.js      Puente con la app de Android (archivos y widget)
+assets/js/correo.js      Conversión de correo entrante en avisos
 tools/make-icons.js      Genera los iconos PNG (node tools/make-icons.js)
 android/                 Proyecto de la app Android (WebView + widget)
 .github/workflows/       Compilación automática del APK

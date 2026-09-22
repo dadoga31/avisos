@@ -249,7 +249,7 @@ public class ClienteCorreo {
             Date fecha = original.getSentDate();
             if (fecha == null) fecha = original.getReceivedDate();
             if (fecha == null) fecha = new Date();
-            m.fecha = fecha.toInstant().toString();
+            m.fecha = Fechas.iso(fecha);
 
             recorrer(original, m, new int[]{0});
             return m;

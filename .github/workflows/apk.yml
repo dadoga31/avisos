@@ -31,7 +31,18 @@ jobs:
 
       - name: Compilar el APK
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew assembleRelease --no-daemon --console=plain 2>&1 | tee ../compilacion.log
+
+      # Sin esto, el rastro de Gradle entierra el error de verdad.
+      - name: Qué ha fallado
+        if: failure()
+        shell: bash
+        run: |
+          echo "===== ERRORES ====="
+          grep -nE "error:|^e: |What went wrong|Caused by:|Could not (find|resolve)" compilacion.log | head -60 || true
 
       - name: Renombrar
         run: cp android/app/build/outputs/apk/release/app-release.apk avisos.apk

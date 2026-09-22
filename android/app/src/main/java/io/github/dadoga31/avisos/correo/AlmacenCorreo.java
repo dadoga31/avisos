@@ -192,7 +192,7 @@ public class AlmacenCorreo {
                 o.put("puerto", cuenta.puerto);
             }
             long sync = prefs().getLong("ultimaSync", 0);
-            if (sync > 0) o.put("ultimaSync", new java.util.Date(sync).toInstant().toString());
+            if (sync > 0) o.put("ultimaSync", Fechas.iso(sync));
             o.put("error", prefs().getString("error", ""));
             o.put("activo", prefs().getBoolean("activo", false));
             o.put("pendientes", cuantosPendientes());
