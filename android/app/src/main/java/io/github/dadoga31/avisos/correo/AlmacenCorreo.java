@@ -62,8 +62,34 @@ public class AlmacenCorreo {
     public synchronized void anadirPendientes(List<Mensaje> nuevos) {
         if (nuevos.isEmpty()) return;
         JSONArray lista = leerPendientes();
-        for (Mensaje m : nuevos) lista.put(m.aJSON());
-        escribirPendientes(lista);
+
+        /* Segunda línea de defensa contra avisos repetidos: lo que ya está
+           esperando no se vuelve a encolar. */
+        Set<String> yaEstan = new HashSet<>();
+        for (int i = 0; i < lista.length(); i++) {
+            JSONObject o = lista.optJSONObject(i);
+            if (o == null) continue;
+            String uid = o.optString("uid", "");
+            String id = o.optString("messageId", "");
+            if (!uid.isEmpty()) yaEstan.add("u:" + uid);
+            if (!id.isEmpty()) yaEstan.add("m:" + id);
+        }
+
+        int anadidos = 0;
+        for (Mensaje m : nuevos) {
+            boolean repetido = (!m.uid.isEmpty() && yaEstan.contains("u:" + m.uid))
+                    || (!m.messageId.isEmpty() && yaEstan.contains("m:" + m.messageId));
+            if (repetido) {
+                Log.i(TAG, "Mensaje ya en cola, no se duplica: " + m.uid);
+                continue;
+            }
+            if (!m.uid.isEmpty()) yaEstan.add("u:" + m.uid);
+            if (!m.messageId.isEmpty()) yaEstan.add("m:" + m.messageId);
+            lista.put(m.aJSON());
+            anadidos++;
+        }
+
+        if (anadidos > 0) escribirPendientes(lista);
     }
 
     /** Quita los que la web ya convirtió y borra sus adjuntos del disco. */

@@ -246,7 +246,39 @@
     });
   }
 
+  /* Claves con las que se reconoce un mensaje. El identificador del
+     mensaje es el bueno; el UID vale como respaldo. */
+  function clavesDe(mensaje) {
+    var claves = [];
+    if (mensaje.messageId) claves.push('m:' + mensaje.messageId);
+    if (mensaje.uid) claves.push('u:' + mensaje.uid);
+    return claves;
+  }
+
+  var tratadosEnMemoria = Object.create(null);
+  var ordenTratados = [];
+  var MAX_TRATADOS = 500;   // no hace falta recordar más para evitar el solape
+
+  function marcarTratado(mensaje) {
+    clavesDe(mensaje).forEach(function (c) {
+      if (tratadosEnMemoria[c] !== true) ordenTratados.push(c);
+      tratadosEnMemoria[c] = true;
+    });
+    while (ordenTratados.length > MAX_TRATADOS) {
+      delete tratadosEnMemoria[ordenTratados.shift()];
+    }
+  }
+
+  function olvidarTratado(mensaje) {
+    clavesDe(mensaje).forEach(function (c) { delete tratadosEnMemoria[c]; });
+  }
+
+  function estaTratado(mensaje) {
+    return clavesDe(mensaje).some(function (c) { return tratadosEnMemoria[c] === true; });
+  }
+
   function yaConvertido(mensaje) {
+    if (estaTratado(mensaje)) return true;
     var id = mensaje.messageId;
     return S.state.avisos.some(function (a) {
       if (!a.correo) return false;
@@ -300,7 +332,38 @@
 
   /* ---------- ciclo principal ---------- */
 
+  var enCurso = null;      // pasada en marcha
+  var repetir = false;     // alguien pidió otra mientras trabajábamos
+
+  /**
+   * Varios caminos piden convertir a la vez (el servicio al llegar correo,
+   * la app al volver al primer plano, el botón de sincronizar). Si dos se
+   * solapan, ambos leen la misma lista de pendientes y crean el mismo
+   * aviso dos veces: por eso solo se deja una pasada a la vez.
+   */
   function procesarPendientes() {
+    if (enCurso) {
+      repetir = true;
+      return enCurso;
+    }
+
+    enCurso = pasada().then(function (r) {
+      enCurso = null;
+      if (!repetir) return r;
+      repetir = false;
+      return procesarPendientes().then(function (r2) {
+        return { creados: r.creados + r2.creados, ignorados: r.ignorados + r2.ignorados };
+      });
+    }, function (e) {
+      enCurso = null;
+      repetir = false;
+      throw e;
+    });
+
+    return enCurso;
+  }
+
+  function pasada() {
     if (!disponible()) return Promise.resolve({ creados: 0, ignorados: 0 });
 
     var mensajes = leerJSON(puente().correoPendientes(), []) || [];
@@ -317,6 +380,9 @@
           return null;
         }
 
+        /* Se apunta antes de crear nada: así, si otra pasada mira este
+           mismo mensaje, ya lo ve cogido. */
+        marcarTratado(mensaje);
         var aviso = aAviso(mensaje);
         return S.guardarAviso(aviso).then(function (guardado) {
           return guardarAdjuntos(guardado.id, mensaje.adjuntos).then(function () {
@@ -327,6 +393,7 @@
       }).catch(function (e) {
         /* Sin marcarlo: en la próxima sincronización se vuelve a intentar.
            El correo sigue en el servidor, nunca se borra. */
+        olvidarTratado(mensaje);
         if (global.console) console.error('Correo no convertido', e);
       });
     }, Promise.resolve()).then(function () {
