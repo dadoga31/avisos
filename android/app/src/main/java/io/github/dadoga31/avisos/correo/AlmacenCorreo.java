@@ -190,6 +190,19 @@ public class AlmacenCorreo {
         prefs().edit().putStringSet("vistos", todos).apply();
     }
 
+    /** Pide que la próxima consulta vuelva a traer los últimos correos. */
+    public void pedirRelectura(int cuantos) {
+        prefs().edit().putInt("relectura", cuantos).apply();
+    }
+
+    public int relecturaPedida() {
+        return prefs().getInt("relectura", 0);
+    }
+
+    public void relecturaHecha() {
+        prefs().edit().remove("relectura").apply();
+    }
+
     public synchronized void olvidarVistos() {
         prefs().edit().remove("vistos").apply();
     }

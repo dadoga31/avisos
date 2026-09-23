@@ -1242,18 +1242,29 @@
 
     var ignorados = S.state.ajustes.correoIgnorados || [];
 
+    var esperando = Number(e.pendientes) || 0;
+    var vigila = e.protocolo === 'pop3' ? 'Consultando cada 5 minutos' : 'Escuchando en tiempo real';
+
     return '<div class="card card__pad">' +
       '<dl class="kv">' +
         '<dt>Cuenta</dt><dd>' + esc(e.usuario) + '</dd>' +
         '<dt>Servidor</dt><dd>' + esc(e.servidor || '—') + ' · ' + esc(String(e.protocolo || '').toUpperCase()) + '</dd>' +
         '<dt>Estado</dt><dd>' + (e.error
           ? '<span style="color:var(--pr-urgente)">' + esc(e.error) + '</span>'
-          : (e.activo ? 'Escuchando en tiempo real' : 'En pausa')) + '</dd>' +
-        '<dt>Última vez</dt><dd>' + (e.ultimaSync ? esc(U.fmtSello(e.ultimaSync)) : 'nunca') + '</dd>' +
+          : (e.activo ? vigila : '<span style="color:var(--pr-alta)">En pausa — abre la app o revisa la batería</span>')) + '</dd>' +
+        '<dt>Última vez</dt><dd>' + (e.ultimaSync
+          ? esc(U.fmtSello(e.ultimaSync))
+          : '<span style="color:var(--pr-urgente)">nunca ha llegado a consultar</span>') + '</dd>' +
+        /* Este número dice dónde se corta la cadena: si hay correos
+           esperando, la descarga va bien y falla la conversión. */
+        '<dt>Esperando</dt><dd>' + (esperando
+          ? '<b>' + esperando + '</b> ' + (esperando === 1 ? 'correo por convertir' : 'correos por convertir')
+          : 'ninguno') + '</dd>' +
       '</dl>' +
       '<div class="divider"></div>' +
       '<div class="stack">' +
         '<button class="btn btn--block" data-correo-sync type="button">Sincronizar ahora</button>' +
+        '<button class="btn btn--block" data-correo-releer type="button">Volver a revisar los últimos correos</button>' +
         '<button class="btn btn--block" data-correo-config type="button">Cambiar los datos de la cuenta</button>' +
         '<button class="btn btn--block btn--danger" data-correo-quitar type="button">Desconectar el buzón</button>' +
       '</div>' +
@@ -1387,6 +1398,23 @@
         .then(function () {
           U.toast(total ? U.plural(total, 'aviso nuevo', 'avisos nuevos') : 'Sin correo nuevo');
           global.App.render();
+        });
+    });
+
+    var releer = root.querySelector('[data-correo-releer]');
+    if (releer) releer.addEventListener('click', function () {
+      U.confirmar('Volver a revisar',
+        'Se mirarán otra vez los últimos 20 correos del buzón. Los que ya tengan aviso se dejan como están; solo entrarán los que falten.',
+        { aceptar: 'Revisar' }).then(function (ok) {
+          if (!ok) return;
+          Correo.revisarDeNuevo(20);
+          U.toast('Revisando el buzón…');
+          esperar(4000)
+            .then(function () { return Correo.procesarPendientes(); })
+            .then(function (r) {
+              U.toast(r.creados ? U.plural(r.creados, 'aviso recuperado', 'avisos recuperados') : 'No faltaba ninguno');
+              global.App.render();
+            });
         });
     });
 

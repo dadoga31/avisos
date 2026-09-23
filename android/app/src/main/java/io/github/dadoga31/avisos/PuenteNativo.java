@@ -217,6 +217,13 @@ public class PuenteNativo {
         }, "probar-correo").start();
     }
 
+    /** Vuelve a mirar los últimos correos del buzón. */
+    @JavascriptInterface
+    public void correoRevisarDeNuevo(int cuantos) {
+        almacen.pedirRelectura(cuantos > 0 ? cuantos : 20);
+        ServicioCorreo.sincronizar(actividad);
+    }
+
     @JavascriptInterface
     public String correoPendientes() {
         return almacen.leerPendientes().toString();

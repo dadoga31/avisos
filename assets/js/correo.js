@@ -41,6 +41,14 @@
     if (disponible()) puente().correoSincronizarAhora();
   }
 
+  /* Vuelve a mirar los últimos correos del buzón. No duplica nada: los que
+     ya tienen aviso se descartan al convertir. */
+  function revisarDeNuevo(cuantos) {
+    var p = puente();
+    if (p && p.correoRevisarDeNuevo) p.correoRevisarDeNuevo(cuantos || 20);
+    else sincronizarAhora();
+  }
+
   /* La prueba de conexión tarda: la parte nativa contesta llamando a
      Correo.alProbar cuando termina. */
   var esperandoPrueba = null;
@@ -418,6 +426,7 @@
     guardarCuenta: guardarCuenta,
     borrarCuenta: borrarCuenta,
     sincronizarAhora: sincronizarAhora,
+    revisarDeNuevo: revisarDeNuevo,
     probar: probar,
     alProbar: alProbar,
     alLlegar: alLlegar,

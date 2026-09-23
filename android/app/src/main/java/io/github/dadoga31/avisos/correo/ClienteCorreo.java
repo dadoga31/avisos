@@ -163,7 +163,7 @@ public class ClienteCorreo {
             prefs().edit().putLong("uidValidity", validez).apply();
         }
 
-        if (ultimo == 0) {
+        if (ultimo == 0 && almacen.relecturaPedida() == 0) {
             /* Primera vez: tomamos nota del final del buzón y ya está. */
             Message[] todos = bandeja.getMessages();
             long tope = todos.length > 0 ? bandeja.getUID(todos[todos.length - 1]) : 0;
@@ -172,29 +172,35 @@ public class ClienteCorreo {
             return salida;
         }
 
+        /* Relectura pedida a mano: se retrocede el puntero para volver a
+           mirar los últimos correos. Repetirlos no molesta, porque los que
+           ya tienen aviso se descartan al convertir. */
+        int relectura = almacen.relecturaPedida();
+        if (relectura > 0) {
+            ultimo = Math.max(0, ultimo - relectura);
+            almacen.relecturaHecha();
+            Log.i(TAG, "Relectura: se vuelve desde el UID " + (ultimo + 1));
+        }
+
         Message[] mensajes = bandeja.getMessagesByUID(ultimo + 1, UIDFolder.LASTUID);
-        long mayor = ultimo;
-        int contados = 0;
+
+        /* El puntero avanza SOLO hasta el último correo que se ha entregado
+           de verdad. Si se moviera con los que se saltan o fallan, esos
+           correos no volverían a mirarse nunca y se perderían en silencio. */
+        long entregadoHasta = ultimo;
+        int entregados = 0;
 
         for (Message m : mensajes) {
             long uid = bandeja.getUID(m);
-            if (uid <= ultimo) continue;                 // getMessagesByUID incluye el último
-            mayor = Math.max(mayor, uid);
-            if (contados++ >= MAX_POR_VUELTA) continue;  // el resto vendrá en la siguiente vuelta
-            Mensaje leido = leer((MimeMessage) m, validez + "-" + uid);
-            if (leido != null) salida.add(leido);
+            if (uid <= ultimo) continue;                    // el rango incluye el último
+            if (entregados >= MAX_POR_VUELTA) break;        // el resto, en la siguiente vuelta
+            salida.add(leer((MimeMessage) m, validez + "-" + uid));
+            entregadoHasta = uid;
+            entregados++;
         }
 
-        if (contados <= MAX_POR_VUELTA) {
-            prefs().edit().putLong("ultimoUid", mayor).apply();
-        } else {
-            /* Quedan más: se avanza solo hasta donde se ha leído de verdad. */
-            long hasta = ultimo;
-            for (Mensaje m : salida) {
-                String[] partes = m.uid.split("-");
-                hasta = Math.max(hasta, Long.parseLong(partes[partes.length - 1]));
-            }
-            prefs().edit().putLong("ultimoUid", hasta).apply();
+        if (entregadoHasta > ultimo) {
+            prefs().edit().putLong("ultimoUid", entregadoHasta).apply();
         }
         return salida;
     }
@@ -205,18 +211,40 @@ public class ClienteCorreo {
         boolean primera = !prefs().getBoolean("pop3Iniciado", false);
 
         Message[] mensajes = bandeja.getMessages();
+
+        /* Relectura pedida a mano: los últimos N dejan de contar como
+           vistos para que vuelvan a mirarse. */
+        int relectura = almacen.relecturaPedida();
+        if (relectura > 0) {
+            primera = false;
+            for (int i = mensajes.length - 1; i >= 0 && i >= mensajes.length - relectura; i--) {
+                String u = bandeja.getUID(mensajes[i]);
+                if (u != null) vistos.remove(u);
+            }
+            almacen.relecturaHecha();
+            Log.i(TAG, "Relectura POP3 de los últimos " + relectura);
+        }
         Set<String> nuevosVistos = new HashSet<>();
-        int contados = 0;
+        int entregados = 0;
 
         /* Del final hacia atrás: lo reciente es lo que importa. */
         for (int i = mensajes.length - 1; i >= 0; i--) {
             String uid = bandeja.getUID(mensajes[i]);
             if (uid == null || vistos.contains(uid)) continue;
+
+            if (primera) {
+                /* Al conectar la cuenta, el pasado solo se anota. */
+                nuevosVistos.add(uid);
+                continue;
+            }
+
+            if (entregados >= MAX_POR_VUELTA) break;      // el resto, en la siguiente vuelta
+
+            /* Solo se da por visto lo que se entrega: si no, un correo que
+               falle al leerse desaparecería para siempre. */
+            salida.add(0, leer((MimeMessage) mensajes[i], uid));
             nuevosVistos.add(uid);
-            if (primera) continue;                       // el pasado no se convierte
-            if (contados++ >= MAX_POR_VUELTA) break;
-            Mensaje leido = leer((MimeMessage) mensajes[i], uid);
-            if (leido != null) salida.add(0, leido);
+            entregados++;
         }
 
         almacen.anadirVistos(nuevosVistos);
@@ -229,34 +257,59 @@ public class ClienteCorreo {
 
     // ---------- lectura de un mensaje ----------
 
+    /**
+     * Nunca devuelve null: si algo del correo no se puede leer, se entrega
+     * con lo que sí se haya podido sacar. Un aviso con el asunto y el
+     * remitente es infinitamente mejor que un correo perdido en silencio.
+     */
     private Mensaje leer(MimeMessage original, String uid) {
-        try {
-            Mensaje m = new Mensaje();
-            m.uid = uid;
+        Mensaje m = new Mensaje();
+        m.uid = uid;
 
+        try {
             String[] ids = original.getHeader("Message-ID");
             m.messageId = (ids != null && ids.length > 0) ? ids[0] : "";
+        } catch (Exception e) {
+            Log.w(TAG, "Sin identificador de mensaje", e);
+        }
 
+        try {
             Address[] de = original.getFrom();
             if (de != null && de.length > 0 && de[0] instanceof InternetAddress) {
                 InternetAddress dir = (InternetAddress) de[0];
                 m.de = dir.getAddress() == null ? "" : dir.getAddress();
                 m.deNombre = dir.getPersonal() == null ? "" : dir.getPersonal();
             }
+        } catch (Exception e) {
+            Log.w(TAG, "Remitente ilegible", e);
+        }
 
+        try {
             m.asunto = original.getSubject() == null ? "" : original.getSubject();
+        } catch (Exception e) {
+            Log.w(TAG, "Asunto ilegible", e);
+        }
+        if (m.asunto.isEmpty()) m.asunto = "(correo sin asunto)";
 
+        try {
             Date fecha = original.getSentDate();
             if (fecha == null) fecha = original.getReceivedDate();
             if (fecha == null) fecha = new Date();
             m.fecha = Fechas.iso(fecha);
-
-            recorrer(original, m, new int[]{0});
-            return m;
         } catch (Exception e) {
-            Log.e(TAG, "Mensaje ilegible", e);
-            return null;
+            m.fecha = Fechas.iso(new Date());
         }
+
+        try {
+            recorrer(original, m, new int[]{0});
+        } catch (Exception e) {
+            Log.e(TAG, "Cuerpo ilegible, se entrega el aviso igualmente", e);
+        }
+
+        if (m.texto.isEmpty() && m.html.isEmpty()) {
+            m.texto = "(no se pudo leer el texto del correo; ábrelo en tu gestor de correo)";
+        }
+        return m;
     }
 
     private void recorrer(Part parte, Mensaje m, int[] contador) throws Exception {
