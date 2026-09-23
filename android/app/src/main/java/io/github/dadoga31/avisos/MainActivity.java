@@ -80,6 +80,15 @@ public class MainActivity extends Activity {
             public boolean shouldOverrideUrlLoading(WebView vista, WebResourceRequest peticion) {
                 Uri destino = peticion.getUrl();
                 if (HOST.equals(destino.getHost())) return false;
+
+                /* blob: y data: solo existen dentro de la página: ninguna app
+                   del móvil sabe abrirlos, e intentarlo no hacía nada. Los
+                   adjuntos van por el puente, no por aquí. */
+                String esquema = destino.getScheme();
+                if ("blob".equals(esquema) || "data".equals(esquema) || "about".equals(esquema)) {
+                    return true;
+                }
+
                 abrirFuera(destino);   // tel:, whatsapp, mapas, Google Calendar…
                 return true;
             }

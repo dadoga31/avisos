@@ -494,6 +494,10 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
 .photos{ display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:6px }
 .photo{ position:relative; aspect-ratio:1; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; background:var(--bg-sunken) }
 .photo img{ width:100%; height:100%; object-fit:cover; display:block }
+.photo__ver{
+  display:block; width:100%; height:100%;
+  padding:0; border:0; background:none; cursor:pointer;
+}
 .photo__del{
   position:absolute; top:4px; right:4px; width:32px; height:32px; touch-action:manipulation;
   display:grid; place-items:center; border:0; border-radius:var(--r-s);
@@ -507,11 +511,16 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
   border:1px solid var(--line); border-radius:var(--r); background:var(--surface-2);
 }
 .archivo svg{ flex:none; width:17px; height:17px; color:var(--muted) }
+.archivo{ cursor:pointer; transition:border-color .12s ease }
+.archivo:hover{ border-color:var(--line-strong) }
+.archivo:active{ background:var(--bg-sunken) }
 .archivo__nombre{
   flex:1; min-width:0; font-size:13.5px; color:var(--accent);
   text-decoration:underline; text-underline-offset:2px;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
+.archivo__abrir{ flex:none; color:var(--muted); display:flex }
+.archivo__abrir svg{ width:16px; height:16px }
 .archivo__tam{ flex:none; font-family:var(--f-mono); font-size:11.5px; color:var(--muted) }
 
 .statusgrid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(104px,1fr)); gap:6px }
@@ -565,6 +574,47 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; 
 .sheet__body{ padding:16px 16px calc(16px + var(--safe-b)); overflow-y:auto; -webkit-overflow-scrolling:touch }
 @keyframes up{ from{ transform:translateY(14px); opacity:0 } to{ transform:none; opacity:1 } }
 @keyframes fade{ from{ opacity:0 } to{ opacity:1 } }
+
+/* ---------- Visor de adjuntos ---------- */
+.visor{
+  position:fixed; inset:0; z-index:80;
+  display:flex; flex-direction:column;
+  background:#0b0b0d;
+  padding-top:var(--safe-t); padding-bottom:var(--safe-b);
+}
+.visor[hidden]{ display:none }
+
+.visor__barra{
+  display:flex; align-items:center; gap:8px;
+  padding:8px 8px 8px 16px; flex:none;
+  background:rgba(0,0,0,.55);
+}
+.visor__nombre{
+  flex:1; min-width:0; color:#f2f3f5; font-size:14px; font-weight:550;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.visor__btn{ color:#f2f3f5; flex:none }
+.visor__btn:hover{ background:rgba(255,255,255,.12); color:#fff }
+
+.visor__lienzo{
+  flex:1; min-height:0; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  touch-action:none;               /* el zoom lo llevamos nosotros */
+}
+.visor__img{
+  max-width:100%; max-height:100%;
+  object-fit:contain;
+  transform-origin:center center;
+  will-change:transform;
+  user-select:none; -webkit-user-drag:none;
+}
+
+.visor__pie{
+  flex:none; display:flex; align-items:center; justify-content:center; gap:18px;
+  padding:10px; background:rgba(0,0,0,.55);
+  min-height:52px;
+}
+.visor__pos{ color:#c9ccd3; font-family:var(--f-mono); font-size:12.5px }
 
 /* ---------- Toast ---------- */
 .toast{

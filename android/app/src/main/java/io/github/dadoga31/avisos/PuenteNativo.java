@@ -125,7 +125,9 @@ public class PuenteNativo {
             intento.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
             Intent seleccion = Intent.createChooser(intento, fichero.getName());
-            seleccion.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            /* El permiso de lectura tiene que ir también en el selector, o la
+               aplicación elegida abre el archivo sin poder leerlo. */
+            seleccion.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
             actividad.startActivity(seleccion);
         } catch (Exception e) {
             Log.e(TAG, "No se pudo entregar el archivo", e);

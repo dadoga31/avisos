@@ -21,7 +21,8 @@
     filtro: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16l-6 7v6l-4-2v-4z"/></svg>',
     calendario: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="1"/><path d="M3 10h18M8 3v4M16 3v4M12 14v4M10 16h4"/></svg>',
     clip: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5 11.8 19.7a4.6 4.6 0 0 1-6.5-6.5l8.4-8.4a3 3 0 0 1 4.3 4.3l-8.2 8.2a1.5 1.5 0 0 1-2.1-2.1l7.5-7.5"/></svg>',
-    sobre: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></svg>'
+    sobre: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></svg>',
+    abrirFuera: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-8.5 8.5"/><path d="M19 14v5H5V5h5"/></svg>'
   };
 
   /* =========================================================
@@ -638,29 +639,50 @@
       var imagenes = adjuntos.filter(function (f) { return S.esImagen(f.mime); });
       var otros = adjuntos.filter(function (f) { return !S.esImagen(f.mime); });
 
-      rejilla.innerHTML = imagenes.length ? imagenes.map(function (f) {
+      /* Nada de enlaces a blob: dentro de la app de Android no hay quien
+         los abra. Al tocar, lo lleva el visor. */
+      rejilla.innerHTML = imagenes.length ? imagenes.map(function (f, i) {
         var url = URL.createObjectURL(f.blob);
         urlsVivas.push(url);
-        return '<figure class="photo"><a href="' + url + '" target="_blank" rel="noopener">' +
-          '<img src="' + url + '" alt="' + esc(f.nombre) + '" loading="lazy"></a>' +
+        return '<figure class="photo">' +
+          '<button class="photo__ver" data-ver="' + i + '" type="button" aria-label="Ver ' + esc(f.nombre) + '">' +
+            '<img src="' + url + '" alt="' + esc(f.nombre) + '" loading="lazy">' +
+          '</button>' +
           '<button class="photo__del" data-delfoto="' + esc(f.id) + '" type="button" aria-label="Borrar foto">' + ICON.x + '</button></figure>';
       }).join('') : '';
 
-      archivos.innerHTML = otros.map(function (f) {
-        var url = URL.createObjectURL(f.blob);
-        urlsVivas.push(url);
-        return '<div class="archivo">' +
+      archivos.innerHTML = otros.map(function (f, i) {
+        return '<div class="archivo" data-abrir="' + i + '" role="button" tabindex="0">' +
           ICON.clip +
-          '<a class="archivo__nombre" href="' + url + '" target="_blank" rel="noopener" download="' + esc(f.nombre) + '">' + esc(f.nombre) + '</a>' +
+          '<span class="archivo__nombre">' + esc(f.nombre) + '</span>' +
           '<span class="archivo__tam">' + esc(tamanoLegible(f.blob.size)) + '</span>' +
+          '<span class="archivo__abrir">' + ICON.abrirFuera + '</span>' +
           '<button class="iconbtn" data-delfoto="' + esc(f.id) + '" type="button" aria-label="Borrar adjunto">' + ICON.x + '</button>' +
           '</div>';
       }).join('');
 
       if (!adjuntos.length) rejilla.innerHTML = '<p class="small muted">Sin fotos ni adjuntos.</p>';
 
-      U.$$('[data-delfoto]', root).forEach(function (b) {
+      U.$$('[data-ver]', root).forEach(function (b) {
         b.addEventListener('click', function () {
+          Visor.abrir(imagenes, Number(b.dataset.ver));
+        });
+      });
+
+      U.$$('[data-abrir]', root).forEach(function (fila) {
+        function abrir(e) {
+          if (e.target.closest('[data-delfoto]')) return;   // el aspa borra
+          Visor.abrir(otros, Number(fila.dataset.abrir));
+        }
+        fila.addEventListener('click', abrir);
+        fila.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(e); }
+        });
+      });
+
+      U.$$('[data-delfoto]', root).forEach(function (b) {
+        b.addEventListener('click', function (e) {
+          e.stopPropagation();
           U.confirmar('Borrar adjunto', 'Se borrará del aviso y no se puede deshacer.', { peligro: true, aceptar: 'Borrar' })
             .then(function (ok) {
               if (ok) S.delFoto(b.dataset.delfoto).then(function () { pintarFotos(root, avisoId); });

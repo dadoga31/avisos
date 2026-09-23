@@ -75,6 +75,9 @@ funcionen el modo sin conexión y la instalación.
 - Seguimiento: notas con fecha y hora.
 - Material usado y horas trabajadas (acepta coma decimal: `2,5`).
 - Fotos desde la cámara, comprimidas y guardadas en el móvil.
+- **Ver los adjuntos**: al tocar una foto se abre a pantalla completa, con
+  zoom de dos dedos o doble toque, y se pasa de una a otra si hay varias. Un
+  PDF o cualquier otro archivo se abre con la aplicación que tengas para ello.
 - Compartir un resumen del aviso por WhatsApp, correo, etc.
 - **Llevar al calendario del móvil** (ver abajo).
 - Duplicar y eliminar.
@@ -277,6 +280,7 @@ assets/js/store.js       Modelo de datos y reglas de negocio
 assets/js/ics.js         Generación de archivos .ics para el calendario
 assets/js/ui.js          Formato, componentes, hoja inferior, avisos flotantes
 assets/js/swipe.js       Gestos de deslizamiento sobre las filas de aviso
+assets/js/visor.js       Visor a pantalla completa de fotos y adjuntos
 assets/js/views.js       Pantallas: agenda, lista, ficha, formulario, equipo, ajustes
 assets/js/app.js         Arranque y enrutado por hash
 assets/js/nativo.js      Puente con la app de Android (archivos y widget)
