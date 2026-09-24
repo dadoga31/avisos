@@ -32,6 +32,7 @@ public class ServicioCorreo extends Service {
     private static final long ESPERA_POP3 = 5 * 60 * 1000L;
     private static final long ESPERA_MIN = 15 * 1000L;
     private static final long ESPERA_MAX = 10 * 60 * 1000L;
+    private static final int CAIDAS_PARA_AVISAR = 6;
 
     public static final String ACCION_INICIAR = "io.github.dadoga31.avisos.CORREO_INICIAR";
     public static final String ACCION_PARAR = "io.github.dadoga31.avisos.CORREO_PARAR";
@@ -138,6 +139,22 @@ public class ServicioCorreo extends Service {
                 espera = ESPERA_MIN;                             // fue bien: se reinicia la espera
             } catch (Exception e) {
                 if (!activo.get()) break;
+
+                /* Que se caiga la conexión es lo normal en un móvil: se
+                   reconecta enseguida y sin marcar avería. Solo si pasa una
+                   y otra vez se da por roto y se avisa. */
+                if (ClienteCorreo.esCaidaDeRed(e)) {
+                    int caidas = almacen.anotarCaida();
+                    Log.i(TAG, "Conexión caída (" + caidas + "), reconectando", e);
+                    if (caidas >= CAIDAS_PARA_AVISAR) {
+                        String aviso = getString(R.string.correo_inestable);
+                        almacen.anotarSync(aviso);
+                        notificarEstado(aviso);
+                    }
+                    dormir(ESPERA_MIN);
+                    continue;                                    // sin alargar la espera
+                }
+
                 String error = ClienteCorreo.explicar(e);
                 Log.e(TAG, "Fallo con el buzón: " + error, e);
                 almacen.anotarSync(error);

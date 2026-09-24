@@ -2,7 +2,7 @@
 (function (global) {
   'use strict';
 
-  var APP_VERSION = '1.5.0';
+  var APP_VERSION = '1.5.1';
   global.APP_VERSION = APP_VERSION;
 
   var S = global.Store, U = global.UI, V = global.Views;

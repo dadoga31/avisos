@@ -21,4 +21,5 @@
     <string name="correo_error">Sin conexión con el buzón: %1$s</string>
     <string name="correo_uno">1 aviso nuevo desde el correo</string>
     <string name="correo_varios">%1$d avisos nuevos desde el correo</string>
+    <string name="correo_inestable">La conexión con el buzón se corta a menudo; sigue reintentando</string>
 </resources>

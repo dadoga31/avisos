@@ -35,6 +35,7 @@ public class ClienteCorreo {
 
     private static final String TAG = "AvisosCorreo";
     private static final int MAX_POR_VUELTA = 30;              // para no avalanchar la agenda
+    private static final long REFRESCO_IDLE = 8 * 60 * 1000L;  // se renueva la escucha cada 8 min
     private static final long MAX_ADJUNTO = 12L * 1024 * 1024; // 12 MB por adjunto
     private static final String PREFS = "correo_estado";
 
@@ -98,7 +99,33 @@ public class ClienteCorreo {
         }
     }
 
+    /**
+     * Con IMAP IDLE la conexión se cae sola cada dos por tres: el operador
+     * móvil o el propio servidor cortan lo que lleva un rato en silencio.
+     * Eso NO es una avería, es el día a día: toca reconectar y seguir.
+     */
+    public static boolean esCaidaDeRed(Exception e) {
+        if (e instanceof javax.mail.AuthenticationFailedException) return false;
+
+        Throwable t = e;
+        while (t != null) {
+            if (t instanceof java.io.IOException) return true;    // socket, EOF, reset…
+            t = t.getCause();
+        }
+
+        String m = e.getMessage() == null ? "" : e.getMessage().toLowerCase();
+        return m.contains("bye")
+                || m.contains("abort")
+                || m.contains("reset")
+                || m.contains("broken pipe")
+                || m.contains("connection closed")
+                || m.contains("connection dropped")
+                || m.contains("timed out")
+                || m.contains("unexpected end");
+    }
+
     public static String explicar(Exception e) {
+        if (esCaidaDeRed(e)) return "Se cortó la conexión con el buzón; reintentando";
         String m = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
         String bajo = m.toLowerCase();
         if (bajo.contains("unknownhost") || bajo.contains("unable to resolve"))
@@ -395,11 +422,24 @@ public class ClienteCorreo {
             throws Exception {
         Store store = null;
         IMAPFolder bandeja = null;
+        java.util.Timer refresco = null;
         try {
             store = conectar(c);
             bandeja = (IMAPFolder) store.getFolder("INBOX");
             bandeja.open(Folder.READ_ONLY);
             almacen.anotarActivo(true);
+
+            /* Se corta la escucha cada pocos minutos y se vuelve a pedir: así
+               la conexión nunca lleva tanto rato callada como para que la
+               corten por su cuenta, y se detecta antes si se ha caído. */
+            final IMAPFolder vigilada = bandeja;
+            refresco = new java.util.Timer("idle-refresco", true);
+            refresco.schedule(new java.util.TimerTask() {
+                @Override
+                public void run() {
+                    try { vigilada.idleAbort(); } catch (Exception ignorada) { }
+                }
+            }, REFRESCO_IDLE, REFRESCO_IDLE);
 
             while (activo.get()) {
                 bandeja.idle();                     // bloquea hasta que el servidor diga algo
@@ -408,6 +448,7 @@ public class ClienteCorreo {
                 if (cuantos > 0 && callback != null) callback.aviso(cuantos);
             }
         } finally {
+            if (refresco != null) refresco.cancel();
             almacen.anotarActivo(false);
             if (bandeja != null && bandeja.isOpen()) {
                 try { bandeja.close(false); } catch (Exception ignorada) { }

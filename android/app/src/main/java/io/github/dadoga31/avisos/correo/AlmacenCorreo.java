@@ -213,7 +213,15 @@ public class AlmacenCorreo {
         prefs().edit()
                 .putLong("ultimaSync", System.currentTimeMillis())
                 .putString("error", error == null ? "" : error)
+                .putInt("caidas", 0)
                 .apply();
+    }
+
+    /** Una conexión que se cae y se recupera no es una avería: solo se cuenta. */
+    public int anotarCaida() {
+        int n = prefs().getInt("caidas", 0) + 1;
+        prefs().edit().putInt("caidas", n).apply();
+        return n;
     }
 
     public void anotarActivo(boolean activo) {
@@ -234,6 +242,7 @@ public class AlmacenCorreo {
             if (sync > 0) o.put("ultimaSync", Fechas.iso(sync));
             o.put("error", prefs().getString("error", ""));
             o.put("activo", prefs().getBoolean("activo", false));
+            o.put("caidas", prefs().getInt("caidas", 0));
             o.put("pendientes", cuantosPendientes());
         } catch (Exception ignorada) { }
         return o;

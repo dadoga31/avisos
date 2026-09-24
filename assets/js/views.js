@@ -1188,6 +1188,7 @@
       '<p class="field__hint">El próximo aviso será <b class="mono">' + esc(S.siguienteRef()) + '</b>.</p></div></div>');
 
     html += U.seccion('Correo de la empresa', seccionCorreo());
+    html += U.seccion('Si algo falla', seccionFallos());
 
     var conFecha = ICS.exportables(S.state.avisos);
     var abiertosCal = conFecha.filter(S.abierto);
@@ -1265,15 +1266,22 @@
     var ignorados = S.state.ajustes.correoIgnorados || [];
 
     var esperando = Number(e.pendientes) || 0;
+    var caidas = Number(e.caidas) || 0;
     var vigila = e.protocolo === 'pop3' ? 'Consultando cada 5 minutos' : 'Escuchando en tiempo real';
+
+    /* Que la conexión se caiga y vuelva es normal en un móvil: no merece
+       pintarse en rojo como si el buzón estuviera roto. */
+    var estado;
+    if (e.error) estado = '<span style="color:var(--pr-urgente)">' + esc(e.error) + '</span>';
+    else if (!e.activo) estado = '<span style="color:var(--pr-alta)">En pausa — abre la app o revisa la batería</span>';
+    else if (caidas) estado = vigila + ' <span class="muted">· reconectando</span>';
+    else estado = vigila;
 
     return '<div class="card card__pad">' +
       '<dl class="kv">' +
         '<dt>Cuenta</dt><dd>' + esc(e.usuario) + '</dd>' +
         '<dt>Servidor</dt><dd>' + esc(e.servidor || '—') + ' · ' + esc(String(e.protocolo || '').toUpperCase()) + '</dd>' +
-        '<dt>Estado</dt><dd>' + (e.error
-          ? '<span style="color:var(--pr-urgente)">' + esc(e.error) + '</span>'
-          : (e.activo ? vigila : '<span style="color:var(--pr-alta)">En pausa — abre la app o revisa la batería</span>')) + '</dd>' +
+        '<dt>Estado</dt><dd>' + estado + '</dd>' +
         '<dt>Última vez</dt><dd>' + (e.ultimaSync
           ? esc(U.fmtSello(e.ultimaSync))
           : '<span style="color:var(--pr-urgente)">nunca ha llegado a consultar</span>') + '</dd>' +
@@ -1300,6 +1308,42 @@
         : '<p class="small muted">Ninguno. Todo lo que entre creará un aviso.</p>') +
       '<button class="btn btn--sm btn--block" data-anadir-ignorado type="button" style="margin-top:8px">' + ICON.mas + 'Ignorar un remitente</button>' +
       '</div>';
+  }
+
+  function seccionFallos() {
+    var lista = (global.Fallos && Fallos.lista()) || [];
+    if (!lista.length) {
+      return '<div class="card card__pad"><p class="small muted">' +
+        'Nada que contar: la app no ha registrado ningún fallo.</p></div>';
+    }
+    return '<div class="card card__pad">' +
+      '<p class="small muted" style="margin-bottom:10px">Lo último que le ha fallado a la app. ' +
+      'Si algo no va, comparte esta lista.</p>' +
+      '<ul class="timeline">' + lista.slice(0, 6).map(function (f) {
+        return '<li><time>' + esc(U.fmtSello(f.ts)) + (f.veces > 1 ? ' · ' + f.veces + ' veces' : '') + '</time>' +
+          '<p>' + esc(f.mensaje) + '</p></li>';
+      }).join('') + '</ul>' +
+      '<div class="divider"></div>' +
+      '<div class="btnrow btnrow--split">' +
+        '<button class="btn btn--sm" data-fallos-limpiar type="button">Vaciar</button>' +
+        '<button class="btn btn--sm btn--primary" data-fallos-compartir type="button">Compartir</button>' +
+      '</div></div>';
+  }
+
+  function montarFallos(root) {
+    var limpiar = root.querySelector('[data-fallos-limpiar]');
+    if (limpiar) limpiar.addEventListener('click', function () {
+      Fallos.limpiar();
+      U.toast('Lista vaciada');
+      global.App.render();
+    });
+    var compartir = root.querySelector('[data-fallos-compartir]');
+    if (compartir) compartir.addEventListener('click', function () {
+      var texto = Fallos.comoTexto();
+      if (navigator.share) navigator.share({ title: 'Fallos de Avisos', text: texto }).catch(function () {});
+      else if (navigator.clipboard) navigator.clipboard.writeText(texto).then(function () { U.toast('Copiado'); });
+      else U.abrirSheet('Fallos', '<textarea class="textarea" rows="12" readonly>' + esc(texto) + '</textarea>');
+    });
   }
 
   function sheetCuentaCorreo() {
@@ -1478,6 +1522,7 @@
 
   function montarAjustes(root) {
     montarCorreo(root);
+    montarFallos(root);
     DB.estimate().then(function (e) {
       var n = root.querySelector('#espacio');
       if (!n) return;
