@@ -437,7 +437,10 @@ public class ClienteCorreo {
             refresco.schedule(new java.util.TimerTask() {
                 @Override
                 public void run() {
-                    try { vigilada.idleAbort(); } catch (Exception ignorada) { }
+                    /* Cualquier orden sobre la carpeta desde otro hilo corta
+                       el IDLE; es la forma que documenta la propia librería.
+                       idleAbort() existe pero no es accesible desde aquí. */
+                    try { vigilada.getMessageCount(); } catch (Exception ignorada) { }
                 }
             }, REFRESCO_IDLE, REFRESCO_IDLE);
 
