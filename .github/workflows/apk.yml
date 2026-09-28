@@ -1,17 +1,10 @@
 name: APK de Android
 
+# La app se usa como PWA (se despliega en Vercel al hacer push). La APK de
+# Android sigue aquí para quien la quiera, pero se compila solo a mano: así los
+# cambios de la web no lanzan builds de Android que nadie va a instalar.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-      - claude/app-gestion-avisos-408zhn
-    paths:
-      - 'android/**'
-      - 'assets/**'
-      - 'index.html'
-      - 'manifest.webmanifest'
-      - '.github/workflows/apk.yml'
 
 permissions:
   contents: write

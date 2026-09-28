@@ -2,7 +2,7 @@
 (function (global) {
   'use strict';
 
-  var APP_VERSION = '1.5.1';
+  var APP_VERSION = '1.6.0';
   global.APP_VERSION = APP_VERSION;
 
   var S = global.Store, U = global.UI, V = global.Views;
@@ -228,12 +228,55 @@
        solo añadiría una caché que puede quedarse vieja. */
     var nativo = global.Nativo && Nativo.disponible();
     if ('serviceWorker' in navigator && location.protocol !== 'file:' && !nativo) {
-      global.addEventListener('load', function () {
-        navigator.serviceWorker.register('sw.js').catch(function (e) {
-          console.warn('Service worker no registrado:', e);
+      global.addEventListener('load', prepararServiceWorker);
+    }
+  }
+
+  /* Publicada en Vercel, la app se actualiza sola pero sin sobresaltos: se
+     avisa y se cambia cuando el usuario quiere. */
+  function prepararServiceWorker() {
+    var recargando = false;
+    /* Que la página esté controlada quiere decir que ya había una versión
+       instalada: solo entonces un trabajador en espera es una actualización, y
+       no la primera instalación. */
+    var controlada = function () { return !!navigator.serviceWorker.controller; };
+    var habiaControl = controlada();
+
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!habiaControl || recargando) return;   // en la primera visita no toca recargar
+      recargando = true;
+      location.reload();
+    });
+
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      if (reg.waiting && controlada()) avisarDeVersion(reg);
+
+      reg.addEventListener('updatefound', function () {
+        var entrante = reg.installing || reg.waiting;
+        if (!entrante) return;
+        /* Puede haber terminado de instalarse antes de que lleguemos aquí. */
+        if (entrante.state === 'installed') { if (controlada()) avisarDeVersion(reg); return; }
+        entrante.addEventListener('statechange', function () {
+          if (entrante.state === 'installed' && controlada()) avisarDeVersion(reg);
         });
       });
-    }
+
+      /* Al volver a la app se mira si hay algo nuevo publicado. */
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') reg.update().catch(function () {});
+      });
+    }).catch(function (e) {
+      console.warn('Service worker no registrado:', e);
+    });
+  }
+
+  function avisarDeVersion(reg) {
+    U.toast('Hay una versión nueva de la app', {
+      accion: 'Actualizar',
+      alPulsar: function () {
+        if (reg.waiting) reg.waiting.postMessage({ tipo: 'saltar' });
+      }
+    });
   }
 
   global.App = {

@@ -1,5 +1,7 @@
-/* sw.js — caché de la aplicación para que funcione sin conexión. */
-var VERSION = 'avisos-v1.5.1';
+/* sw.js — caché de la aplicación para que funcione sin conexión.
+   Sirve lo guardado al instante y refresca por detrás; cuando hay una
+   versión nueva lista, se avisa a la página para que lo diga. */
+var VERSION = 'avisos-v1.6.0';
 var SHELL = [
   './',
   './index.html',
@@ -17,6 +19,7 @@ var SHELL = [
   './assets/js/views.js',
   './assets/js/app.js',
   './assets/icons/favicon.svg',
+  './assets/icons/apple-touch-icon.png',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/icon-maskable-512.png'
@@ -24,9 +27,9 @@ var SHELL = [
 
 self.addEventListener('install', function (e) {
   e.waitUntil(
-    caches.open(VERSION)
-      .then(function (c) { return c.addAll(SHELL); })
-      .then(function () { return self.skipWaiting(); })
+    caches.open(VERSION).then(function (c) { return c.addAll(SHELL); })
+    /* Sin skipWaiting: la página avisa y el usuario decide cuándo pasar a
+       la versión nueva, para no cambiarle el suelo mientras trabaja. */
   );
 });
 
@@ -40,35 +43,45 @@ self.addEventListener('activate', function (e) {
   );
 });
 
+self.addEventListener('message', function (e) {
+  if (e.data && e.data.tipo === 'saltar') self.skipWaiting();
+});
+
+function guardar(peticion, respuesta) {
+  if (!respuesta || respuesta.status !== 200 || respuesta.type !== 'basic') return respuesta;
+  var copia = respuesta.clone();
+  caches.open(VERSION).then(function (c) { c.put(peticion, copia); });
+  return respuesta;
+}
+
 self.addEventListener('fetch', function (e) {
   var req = e.request;
   if (req.method !== 'GET') return;
   var url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
+  /* La página: primero la red, para estrenar cambios en cuanto hay cobertura. */
   if (req.mode === 'navigate') {
     e.respondWith(
-      fetch(req).then(function (res) {
-        var copia = res.clone();
-        caches.open(VERSION).then(function (c) { c.put('./index.html', copia); });
-        return res;
-      }).catch(function () {
-        return caches.match('./index.html').then(function (r) { return r || caches.match('./'); });
-      })
+      fetch(req)
+        .then(function (res) { return guardar('./index.html', res); })
+        .catch(function () {
+          return caches.match('./index.html').then(function (r) { return r || caches.match('./'); });
+        })
     );
     return;
   }
 
+  /* El resto: lo guardado al momento y, por detrás, se refresca. */
   e.respondWith(
     caches.match(req).then(function (cacheado) {
-      if (cacheado) return cacheado;
-      return fetch(req).then(function (res) {
-        if (res && res.status === 200 && res.type === 'basic') {
-          var copia = res.clone();
-          caches.open(VERSION).then(function (c) { c.put(req, copia); });
-        }
-        return res;
-      });
+      var red = fetch(req).then(function (res) {
+        return guardar(req, res);
+      }).catch(function () { return cacheado; });
+      /* Si respondemos de caché, el refresco hay que sostenerlo aparte o el
+         navegador puede cortarlo al dar la respuesta por terminada. */
+      if (cacheado) { e.waitUntil(red); return cacheado; }
+      return red;
     })
   );
 });

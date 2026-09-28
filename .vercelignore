@@ -1,0 +1,5 @@
+# Lo que no forma parte de la web: fuera del despliegue.
+android
+tools
+.github
+README.md

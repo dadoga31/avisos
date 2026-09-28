@@ -335,15 +335,46 @@
     });
   }
 
+  function esIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
+  function enlaceDescarga(nombre, blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 400);
+  }
+
   function descargar(nombre, contenido, mime, modo) {
     var blob = contenido instanceof Blob ? contenido : new Blob([contenido], { type: mime || 'application/json' });
+    var tipo = blob.type || mime || 'application/octet-stream';
 
     /* Dentro de la app de Android no hay descargas: el archivo se entrega
        al sistema, que ofrece abrirlo o compartirlo. */
     if (global.Nativo && Nativo.disponible()) {
-      Nativo.entregarArchivo(nombre, blob.type || mime || 'application/octet-stream', blob, modo)
+      Nativo.entregarArchivo(nombre, tipo, blob, modo)
         .catch(function (e) { toast('No se pudo guardar el archivo: ' + (e && e.message || e)); });
       return;
+    }
+
+    /* En el iPhone, y sobre todo con la app puesta en la pantalla de inicio,
+       una descarga por blob no lleva a ninguna parte: hay que pasar por la
+       hoja de compartir, que además deja guardar en Archivos. */
+    if (esIOS() && navigator.canShare) {
+      try {
+        var archivo = new File([blob], nombre, { type: tipo });
+        if (navigator.canShare({ files: [archivo] })) {
+          navigator.share({ files: [archivo], title: nombre })
+            .catch(function (e) {
+              if (!e || e.name !== 'AbortError') enlaceDescarga(nombre, blob);
+            });
+          return;
+        }
+      } catch (e) { /* sin compartir archivos: se descarga */ }
     }
 
     var url = URL.createObjectURL(blob);
@@ -361,6 +392,7 @@
     pill: pill, who: who, avisoRow: avisoRow, lista: lista, vacioHTML: vacioHTML,
     seccion: seccion, opciones: opciones,
     toast: toast, abrirSheet: abrirSheet, cerrarSheet: cerrarSheet,
-    confirmar: confirmar, pedirTexto: pedirTexto, descargar: descargar
+    confirmar: confirmar, pedirTexto: pedirTexto, descargar: descargar,
+    esIOS: esIOS
   };
 })(window);

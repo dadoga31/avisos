@@ -137,4 +137,7 @@ fs.mkdirSync(OUT, { recursive: true });
 fs.writeFileSync(path.join(OUT, 'icon-192.png'), render(192, 0.17, false));
 fs.writeFileSync(path.join(OUT, 'icon-512.png'), render(512, 0.17, false));
 fs.writeFileSync(path.join(OUT, 'icon-maskable-512.png'), render(512, 0.27, true));
+/* iOS no admite transparencia en el icono de la pantalla de inicio: las
+   esquinas saldrían negras. Va opaco y a sangre; el recorte lo pone iOS. */
+fs.writeFileSync(path.join(OUT, 'apple-touch-icon.png'), render(180, 0.20, true));
 console.log('Iconos generados en', OUT);

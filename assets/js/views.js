@@ -1249,10 +1249,16 @@
   function seccionCorreo() {
     var e = Correo.estado();
 
+    /* Leer un buzón exige abrir un socket contra el servidor de correo, y eso
+       ningún navegador lo permite: ni Safari en el iPhone ni Chrome. Solo la
+       app de Android, que envuelve esta misma web, puede hacerlo. */
     if (!e.soportado) {
       return '<div class="card card__pad">' +
-        '<p class="small muted">Los correos solo pueden leerse desde la <b>app de Android</b>: un navegador no puede conectarse a un buzón. ' +
-        'Instala la APK y configúralo allí; los avisos creados se ven igual en los dos sitios si importas la copia.</p>' +
+        '<p class="small muted" style="margin-bottom:12px">Esta versión se abre desde el navegador, y un navegador no puede conectarse a un buzón de correo. ' +
+        'Los avisos que entraban solos desde el correo hay que crearlos aquí a mano.</p>' +
+        (UI.esIOS()
+          ? '<p class="small muted">En el iPhone no hay forma de leer el correo dentro de la app. Lo que sí puedes hacer: reenviar el aviso a ti mismo y copiarlo, o abrirlo con el botón <b>+</b> de la Agenda, que ya trae los campos preparados.</p>'
+          : '<p class="small muted">Si lo necesitas en marcha otra vez, la <b>app de Android</b> sí lee el buzón: instálala y configúralo allí.</p>') +
         '</div>';
     }
 
@@ -1626,9 +1632,9 @@
     root.querySelector('[data-ayuda]').addEventListener('click', function () {
       U.abrirSheet('Cómo instalar la app',
         '<div class="stack small">' +
+        '<p><b>iPhone (Safari):</b> abre esta página en Safari, toca el botón <b>Compartir</b> (el cuadrado con la flecha hacia arriba), baja hasta <b>«Añadir a pantalla de inicio»</b> y confirma con <b>Añadir</b>. Te quedará el icono junto a las demás apps.</p>' +
         '<p><b>Android (Chrome):</b> menú ⋮ → «Añadir a pantalla de inicio» o «Instalar aplicación».</p>' +
-        '<p><b>iPhone (Safari):</b> botón Compartir → «Añadir a pantalla de inicio».</p>' +
-        '<p class="muted">Una vez instalada se abre a pantalla completa y funciona aunque no tengas cobertura.</p>' +
+        '<p class="muted">Una vez instalada se abre a pantalla completa, sin la barra del navegador, y funciona aunque no tengas cobertura. Los datos se guardan en el propio móvil: si la quitas de la pantalla de inicio, exporta antes una copia.</p>' +
         '</div>');
     });
 

@@ -11,21 +11,38 @@ guardan en el propio móvil.
 
 ## Cómo ponerla en el móvil
 
-### Opción A — GitHub Pages (recomendada)
+### Vercel (así está montada)
 
-1. En GitHub, entra en este repositorio → **Settings** → **Pages**.
-2. En *Build and deployment* elige **Deploy from a branch**.
-3. Branch: `claude/app-gestion-avisos-408zhn` (o `main` si ya has fusionado los
-   cambios), carpeta `/ (root)`. Guarda.
-4. Espera un minuto y abre en el móvil la dirección que te da GitHub
-   (`https://dadoga31.github.io/avisos/`).
-5. Instálala:
-   - **Android / Chrome:** menú ⋮ → *Añadir a pantalla de inicio*.
-   - **iPhone / Safari:** botón Compartir → *Añadir a pantalla de inicio*.
+El repositorio está conectado a Vercel: **cada push a la rama por defecto
+despliega la versión nueva**, sin compilar nada. La configuración vive en dos
+ficheros:
 
-A partir de ahí se abre a pantalla completa y funciona aunque no tengas datos.
+- `vercel.json` — cabeceras de caché. `sw.js`, `index.html` y el manifiesto se
+  piden siempre al servidor (si se quedaran en caché, el móvil no vería nunca
+  una versión nueva); el resto de `assets/` se guarda una hora.
+- `.vercelignore` — deja fuera del despliegue `android/`, `tools/`, `.github/`
+  y el README, que no forman parte de la web.
 
-### Opción B — probarla en el ordenador
+Cuando publicas una versión nueva, la app la detecta al volver a abrirla y
+ofrece **Actualizar** en un aviso flotante. Si no lo tocas, se aplica la próxima
+vez que la cierres del todo.
+
+### Instalarla en el iPhone
+
+1. Abre la dirección de Vercel **en Safari** (no en Chrome ni desde un enlace de
+   WhatsApp: tiene que ser Safari para que se pueda instalar).
+2. Toca el botón **Compartir** — el cuadrado con la flecha hacia arriba, abajo
+   en el centro.
+3. Baja en la lista hasta **«Añadir a pantalla de inicio»**.
+4. Confirma con **Añadir**.
+
+Queda un icono junto a las demás apps y se abre a pantalla completa, sin la
+barra de Safari. Funciona sin cobertura.
+
+En **Android / Chrome** es menú ⋮ → *Añadir a pantalla de inicio*, o el botón
+que sale en Ajustes → *Instalación*.
+
+### Probarla en el ordenador
 
 ```bash
 python3 -m http.server 8000
@@ -108,9 +125,16 @@ funcionen el modo sin conexión y la instalación.
 ## Avisos que llegan solos desde el correo
 
 La app puede leer el buzón de la empresa y convertir en aviso cada correo
-que entra. **Solo funciona en la APK de Android**: un navegador no tiene
-sockets, así que no puede hablar ni IMAP ni POP3. La conexión la hace el
-código nativo; nada pasa por ningún servidor intermedio.
+que entra. **Solo funciona en la APK de Android**, no en la PWA: para hablar
+IMAP o POP3 hay que abrir un socket contra el servidor de correo, y eso ningún
+navegador lo permite — ni Safari en el iPhone ni Chrome. La conexión la hace el
+código nativo de Android; nada pasa por ningún servidor intermedio.
+
+En la PWA, Ajustes → *Correo de la empresa* lo dice y los avisos se crean a
+mano. Traerlo al iPhone exigiría un servicio intermedio (una función en Vercel
+con un cron que lea el buzón y deje los avisos en una base de datos), y eso
+significa **guardar la contraseña del correo de la empresa en un servidor**, no
+solo en el móvil. Hoy no está hecho a propósito.
 
 ### Configurarlo
 
@@ -189,6 +213,30 @@ necesitaría un servidor publicando el calendario, que hoy la app no tiene.
 
 ---
 
+## Qué no hay en el iPhone
+
+La PWA lleva todo lo de arriba, con tres excepciones, todas por límites del
+navegador y no de la app:
+
+| | iPhone (PWA) | APK de Android |
+|---|---|---|
+| Avisos desde el correo | no | sí |
+| Widget en la pantalla de inicio | no | sí |
+| Notificaciones en segundo plano | no | sí |
+
+Un navegador no puede abrir sockets (de ahí el correo), iOS no tiene widgets
+para páginas web, y una PWA no corre en segundo plano cuando está cerrada. Lo
+demás —agenda, gestos, histórico, fotos, adjuntos a pantalla completa,
+calendario, copias de seguridad— funciona igual en los dos sitios.
+
+Guardar y compartir archivos sí cambia: en el iPhone, la copia de seguridad, el
+CSV y el `.ics` salen por la **hoja de compartir** en vez de descargarse, porque
+una descarga normal no llega a ninguna parte con la app instalada en la pantalla
+de inicio. Desde ahí puedes guardarlos en Archivos, mandarlos por correo o
+abrir el `.ics` con el Calendario.
+
+---
+
 ## La app de Android (APK) y el widget
 
 Además de la versión web, el repositorio trae una app nativa de Android en
@@ -197,10 +245,13 @@ y se sirve desde `appassets.androidplatform.net`, un origen seguro local, así
 que funciona sin red y sin servidor ninguno. El único permiso de red que pide
 es para leer el buzón de correo, y solo lo usa si configuras una cuenta.
 
+Ya no se compila en cada push: la versión que se usa es la PWA, y el APK se
+genera **solo cuando lo pides a mano**.
+
 ### Descargar e instalar
 
 1. Ve a la pestaña **Actions** del repositorio → *APK de Android* → **Run
-   workflow** (o espera a que se lance sola al tocar la app).
+   workflow**.
 2. Cuando termine, la APK queda publicada en
    **https://github.com/dadoga31/avisos/releases/tag/apk** como `avisos.apk`.
 3. Abre ese enlace **desde el móvil**, descarga el archivo y ábrelo. Android
@@ -275,6 +326,7 @@ index.html               Estructura de la interfaz
 manifest.webmanifest     Datos de instalación de la PWA
 sw.js                    Service worker (funcionamiento sin conexión)
 assets/css/app.css       Estilos (tema claro y oscuro)
+assets/js/fallos.js      Registro de errores (Ajustes → Si algo falla)
 assets/js/db.js          Capa sobre IndexedDB
 assets/js/store.js       Modelo de datos y reglas de negocio
 assets/js/ics.js         Generación de archivos .ics para el calendario
@@ -287,7 +339,9 @@ assets/js/nativo.js      Puente con la app de Android (archivos y widget)
 assets/js/correo.js      Conversión de correo entrante en avisos
 tools/make-icons.js      Genera los iconos PNG (node tools/make-icons.js)
 android/                 Proyecto de la app Android (WebView + widget)
-.github/workflows/       Compilación automática del APK
+.github/workflows/       Compilación del APK (solo a mano, Run workflow)
+vercel.json              Cabeceras de caché del despliegue
+.vercelignore            Lo que no se publica en la web
 ```
 
 No hay dependencias ni proceso de compilación: son ficheros estáticos.
