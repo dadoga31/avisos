@@ -244,7 +244,9 @@
     }
     n.classList.add('toast--on');
     clearTimeout(toastT);
-    toastT = setTimeout(ocultarToast, opts.accion ? 5500 : 2600);
+    /* Hay avisos que no se pueden perder por mirar a otro lado, como el de
+       que hay una versión nueva: esos se quedan hasta que se tocan. */
+    if (!opts.fijo) toastT = setTimeout(ocultarToast, opts.accion ? 5500 : 2600);
   }
 
   /* ---------- hoja inferior ---------- */

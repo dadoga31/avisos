@@ -1297,19 +1297,24 @@
 
     html += U.seccion('Atajos del iPhone', seccionAtajos());
 
-    html += U.seccion('Instalación', '<div class="card card__pad">' +
-      '<p class="small muted" style="margin-bottom:12px">Instálala en la pantalla de inicio para abrirla como una app y usarla sin cobertura.</p>' +
+    html += U.seccion('Instalación y versión', '<div class="card card__pad">' +
+      '<dl class="kv"><dt>Versión</dt><dd><b>' + esc(global.APP_VERSION || '1.0.0') + '</b></dd></dl>' +
+      '<div class="divider"></div>' +
       '<div class="stack">' +
         '<button class="btn btn--block" id="btnInstalar" type="button" hidden>Añadir a la pantalla de inicio</button>' +
         '<button class="btn btn--block" data-ayuda type="button">Cómo instalarla</button>' +
-      '</div></div>');
+        '<button class="btn btn--block" data-buscar-version type="button">Buscar una versión nueva</button>' +
+        '<button class="btn btn--block" data-reinstalar type="button">Reinstalar la app</button>' +
+      '</div>' +
+      '<p class="field__hint">Reinstalar vacía lo que la app tiene guardado del propio programa y lo vuelve a bajar. <b>Los avisos, los técnicos y las fotos no se tocan.</b> Úsalo si algo se queda a medias.</p>' +
+      '</div>');
 
     html += U.seccion('Datos', '<div class="card card__pad"><div class="stack">' +
       '<button class="btn btn--block" data-ejemplo type="button">Cargar datos de ejemplo</button>' +
       '<button class="btn btn--block btn--danger" data-borrartodo type="button">Borrar todos los datos</button>' +
       '</div></div>');
 
-    html += '<p class="small muted center">Avisos · versión ' + esc(global.APP_VERSION || '1.0.0') + '<br>Funciona sin conexión. Ningún dato sale del dispositivo.</p>';
+    html += '<p class="small muted center">Funciona sin conexión. Ningún dato sale del dispositivo.</p>';
 
     return {
       titulo: 'Ajustes',
@@ -1324,6 +1329,9 @@
      ========================================================= */
 
   function seccionAtajos() {
+    if (!global.Buzon) {
+      return '<div class="card card__pad"><p class="small muted">Esta parte necesita una versión más nueva de la app. Baja a <b>Instalación y versión</b> y toca <b>Buscar una versión nueva</b>.</p></div>';
+    }
     var b = Buzon.estado();
 
     var buzon;
@@ -1888,6 +1896,28 @@
         imp.value = '';
       };
       fr.readAsText(f);
+    });
+
+    root.querySelector('[data-buscar-version]').addEventListener('click', function (e) {
+      var b = e.currentTarget;
+      b.disabled = true;
+      U.toast('Mirando si hay algo nuevo…');
+      global.App.buscarActualizacion().then(function (r) {
+        b.disabled = false;
+        if (r === 'aplicando') U.toast('Versión nueva: actualizando…');
+        else if (r === 'al-dia') U.toast('Ya tienes la última versión');
+        else U.toast('No se ha podido comprobar: mira la cobertura');
+      });
+    });
+
+    root.querySelector('[data-reinstalar]').addEventListener('click', function () {
+      U.confirmar('Reinstalar la app',
+        'Se vuelve a bajar el programa entero. Tus avisos, técnicos y fotos se quedan como están: esto solo toca la copia que el móvil guarda de la app.',
+        { aceptar: 'Reinstalar' }).then(function (ok) {
+          if (!ok) return;
+          U.toast('Reinstalando…');
+          global.App.reinstalar();
+        });
     });
 
     root.querySelector('[data-ayuda]').addEventListener('click', function () {

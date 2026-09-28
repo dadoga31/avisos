@@ -1,7 +1,7 @@
 /* sw.js — caché de la aplicación para que funcione sin conexión.
    Sirve lo guardado al instante y refresca por detrás; cuando hay una
    versión nueva lista, se avisa a la página para que lo diga. */
-var VERSION = 'avisos-v1.8.0';
+var VERSION = 'avisos-v1.8.1';
 var SHELL = [
   './',
   './index.html',
@@ -56,6 +56,13 @@ function guardar(peticion, respuesta) {
   return respuesta;
 }
 
+/* ¿Es una de las piezas con las que se monta la app? */
+function esDelArmazon(url) {
+  var base = self.location.pathname.replace(/sw\.js$/, '');
+  var rel = './' + url.pathname.slice(base.length);
+  return SHELL.indexOf(rel) !== -1 || rel === './';
+}
+
 self.addEventListener('fetch', function (e) {
   var req = e.request;
   if (req.method !== 'GET') return;
@@ -65,19 +72,34 @@ self.addEventListener('fetch', function (e) {
      devolvería siempre la misma respuesta y no entraría ningún aviso. */
   if (url.pathname.indexOf('/api/') === 0) return;
 
-  /* La página: primero la red, para estrenar cambios en cuanto hay cobertura. */
+  /* La página y sus piezas salen SIEMPRE de la misma versión guardada.
+     Mezclar una página recién bajada con los .js viejos de la caché deja la
+     app a medias —secciones que no aparecen, botones que no hacen nada—, y
+     eso es peor que ir una versión por detrás. La versión entera se cambia de
+     golpe cuando el usuario acepta actualizar. */
   if (req.mode === 'navigate') {
     e.respondWith(
-      fetch(req)
-        .then(function (res) { return guardar('./index.html', res); })
-        .catch(function () {
-          return caches.match('./index.html').then(function (r) { return r || caches.match('./'); });
+      caches.open(VERSION)
+        .then(function (c) { return c.match('./index.html'); })
+        .then(function (r) {
+          return r || fetch(req).then(function (res) { return guardar('./index.html', res); });
         })
+        .catch(function () { return fetch(req); })
     );
     return;
   }
 
-  /* El resto: lo guardado al momento y, por detrás, se refresca. */
+  if (esDelArmazon(url)) {
+    e.respondWith(
+      caches.open(VERSION)
+        .then(function (c) { return c.match(req); })
+        .then(function (r) { return r || fetch(req).then(function (res) { return guardar(req, res); }); })
+    );
+    return;
+  }
+
+  /* Lo de fuera del armazón (iconos sueltos, lo que se añada): lo guardado al
+     momento y, por detrás, se refresca. */
   e.respondWith(
     caches.match(req).then(function (cacheado) {
       var red = fetch(req).then(function (res) {

@@ -2,7 +2,7 @@
 (function (global) {
   'use strict';
 
-  var APP_VERSION = '1.8.0';
+  var APP_VERSION = '1.8.1';
   global.APP_VERSION = APP_VERSION;
 
   var S = global.Store, U = global.UI, V = global.Views;
@@ -300,12 +300,16 @@
     var habiaControl = controlada();
 
     navigator.serviceWorker.addEventListener('controllerchange', function () {
-      if (!habiaControl || recargando) return;   // en la primera visita no toca recargar
+      /* La primera instalación también cambia el control, y ahí no hay nada
+         que recargar. Pero si el cambio es porque hemos pedido pasar a la
+         versión nueva, sí: en la pantalla siguen los ficheros viejos. */
+      if (recargando || (!habiaControl && !pedimosCambio)) return;
       recargando = true;
       location.reload();
     });
 
     navigator.serviceWorker.register('sw.js').then(function (reg) {
+      registro = reg;
       if (reg.waiting && controlada()) avisarDeVersion(reg);
 
       reg.addEventListener('updatefound', function () {
@@ -327,18 +331,67 @@
     });
   }
 
+  var registro = null;
+  var pedimosCambio = false;
+
   function avisarDeVersion(reg) {
     U.toast('Hay una versión nueva de la app', {
       accion: 'Actualizar',
-      alPulsar: function () {
-        if (reg.waiting) reg.waiting.postMessage({ tipo: 'saltar' });
-      }
+      fijo: true,
+      alPulsar: function () { aplicarVersion(reg); }
+    });
+  }
+
+  function aplicarVersion(reg) {
+    if (!reg || !reg.waiting) return false;
+    pedimosCambio = true;
+    reg.waiting.postMessage({ tipo: 'saltar' });
+    return true;
+  }
+
+  /* Mirar a mano si hay algo nuevo publicado, para no depender de pillar el
+     aviso al vuelo. */
+  function buscarActualizacion() {
+    if (!registro) return Promise.resolve('sin-sw');
+    if (aplicarVersion(registro)) return Promise.resolve('aplicando');
+    return registro.update().then(function () {
+      /* Instalar lleva un momento: se le da margen antes de decir que no hay
+         nada, que si no siempre diría que está al día. */
+      return new Promise(function (res) {
+        var intentos = 0;
+        (function mirar() {
+          if (aplicarVersion(registro)) return res('aplicando');
+          if (++intentos > 12) return res('al-dia');
+          setTimeout(mirar, 500);
+        })();
+      });
+    }, function () { return 'fallo'; });
+  }
+
+  /* Salida de emergencia: si la caché se queda a medias (una página nueva con
+     los ficheros viejos, por ejemplo), esto la vacía y vuelve a empezar. Los
+     avisos viven en otro sitio y no se tocan. */
+  function reinstalar() {
+    var pasos = [];
+    if (global.caches) {
+      pasos.push(caches.keys().then(function (ks) {
+        return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+      }));
+    }
+    if (navigator.serviceWorker) {
+      pasos.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+        return Promise.all(rs.map(function (r) { return r.unregister(); }));
+      }));
+    }
+    return Promise.all(pasos).then(function () {
+      location.reload();
     });
   }
 
   global.App = {
     render: render, aplicarTema: aplicarTema, version: APP_VERSION,
-    recogerCorreo: recogerCorreo, recogerBuzon: recogerBuzon
+    recogerCorreo: recogerCorreo, recogerBuzon: recogerBuzon,
+    buscarActualizacion: buscarActualizacion, reinstalar: reinstalar
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar);

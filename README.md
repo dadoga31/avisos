@@ -23,9 +23,26 @@ ficheros:
 - `.vercelignore` — deja fuera del despliegue `android/`, `tools/`, `.github/`
   y el README, que no forman parte de la web.
 
-Cuando publicas una versión nueva, la app la detecta al volver a abrirla y
-ofrece **Actualizar** en un aviso flotante. Si no lo tocas, se aplica la próxima
-vez que la cierres del todo.
+### Cómo llega una versión nueva al móvil
+
+El service worker guarda **la app entera bajo un mismo número de versión**: la
+página y sus `.js` salen siempre de la misma copia. Es a propósito. Servir la
+página recién bajada junto a los `.js` viejos de la caché deja la app a medias
+—secciones que no aparecen, botones que no hacen nada—, y eso es peor que ir
+una versión por detrás.
+
+Así que la versión se cambia de golpe: cuando hay una publicada, sale un aviso
+flotante con **Actualizar** que *no se va solo*; al tocarlo, la app se recarga
+con todo lo nuevo. Si no lo tocas, entra la próxima vez que cierres la app del
+todo.
+
+En Ajustes → *Instalación y versión* tienes el número que estás usando,
+**Buscar una versión nueva** (por si te perdiste el aviso) y **Reinstalar la
+app**, que vacía la copia guardada del programa y lo baja otra vez. Reinstalar
+no toca los avisos, los técnicos ni las fotos: eso vive en IndexedDB, aparte.
+
+> Al tocar los ficheros, **sube `VERSION` en `sw.js`**. Es lo que dispara todo
+> lo anterior: sin ese cambio, los móviles ya instalados siguen con lo suyo.
 
 ### Instalarla en el iPhone
 
@@ -480,5 +497,6 @@ No hay dependencias ni proceso de compilación: son ficheros estáticos.
 - **Sensibilidad de los gestos**: constantes `ANCHO_ACCIONES`, `UMBRAL_MIN` y
   `UMBRAL_PROP` al principio de `assets/js/swipe.js`.
 
-Después de tocar los ficheros, sube la versión en `sw.js` (`VERSION`) para que
-los móviles ya instalados se actualicen.
+Después de tocar los ficheros, sube la versión en `sw.js` (`VERSION`) y
+`APP_VERSION` en `assets/js/app.js`. Es lo único que hace que los móviles ya
+instalados se enteren; sin eso siguen con la copia que tienen.
