@@ -1324,14 +1324,40 @@
      ========================================================= */
 
   function seccionAtajos() {
-    return '<div class="card card__pad">' +
-      '<p class="small muted" style="margin-bottom:12px">Un atajo no puede escribir dentro de la app, pero sí <b>dejarte el aviso escrito</b>: tú dictas, el atajo lo copia y aquí lo pegas de un toque con el icono de arriba a la derecha de la Agenda. Sirve para lanzarlo con Siri, con el botón de acción o dando dos toques en la parte de atrás del móvil.</p>' +
+    var b = Buzon.estado();
+
+    var buzon;
+    if (!b.activo) {
+      buzon = '<div class="card card__pad">' +
+        '<p class="small muted" style="margin-bottom:12px">Con el buzón puesto, el atajo <b>manda el aviso a la app directamente</b>: tú dictas y el aviso aparece solo la próxima vez que abres Avisos. Sin copiar ni pegar nada.</p>' +
+        '<button class="btn btn--primary btn--block" data-buzon-activar type="button">Activar el buzón</button>' +
+        '<p class="field__hint">Hace falta haber conectado un Redis en Vercel (Storage → Upstash). Al activarlo se comprueba.</p>' +
+        '</div>';
+    } else {
+      buzon = '<div class="card card__pad">' +
+        '<dl class="kv">' +
+          '<dt>Buzón</dt><dd>en marcha</dd>' +
+          '<dt>Última vez</dt><dd>' + (b.ultima ? esc(U.fmtSello(b.ultima)) : 'todavía no ha recogido') + '</dd>' +
+          (b.error ? '<dt>Fallo</dt><dd><span style="color:var(--pr-urgente)">' + esc(b.error) + '</span></dd>' : '') +
+        '</dl>' +
+        '<div class="divider"></div>' +
+        '<div class="stack">' +
+          '<button class="btn btn--primary btn--block" data-buzon-atajo type="button">' + ICON.copia + 'Ver los datos del atajo</button>' +
+          '<button class="btn btn--block" data-buzon-ahora type="button">Recoger ahora</button>' +
+          '<button class="btn btn--block btn--danger" data-buzon-quitar type="button">Apagar el buzón</button>' +
+        '</div>' +
+        '<p class="field__hint">El aviso entra al abrir la app o al volver a ella. Una web no puede recogerlo con la app cerrada.</p>' +
+        '</div>';
+    }
+
+    return buzon +
+      '<div class="card card__pad">' +
+      '<span class="field__label">Sin buzón, a mano</span>' +
+      '<p class="small muted" style="margin-bottom:12px">También puedes hacer que el atajo <b>copie</b> el aviso y pegarlo aquí con el icono de arriba a la derecha de la Agenda. Vale igual para el texto de un correo o un WhatsApp.</p>' +
       '<div class="stack">' +
         '<button class="btn btn--block" data-atajo-ayuda type="button">Cómo montar el atajo</button>' +
-        '<button class="btn btn--block" data-atajo-enlace type="button">Copiar el enlace para Atajos</button>' +
         '<button class="btn btn--block" data-atajo-claves type="button">Ver las palabras que entiende</button>' +
       '</div>' +
-      '<p class="field__hint">También vale pegar el texto de un correo o un WhatsApp: se saca de ahí lo que se entienda.</p>' +
       '</div>';
   }
 
@@ -1355,28 +1381,20 @@
     var ayuda = root.querySelector('[data-atajo-ayuda]');
     if (!ayuda) return;
 
+    montarBuzon(root);
+
     ayuda.addEventListener('click', function () {
       U.abrirSheet('Montar el atajo en el iPhone',
         '<div class="stack small">' +
-        '<p><b>El atajo que va seguro</b> — en la app <b>Atajos</b>, toca <b>+</b> y añade, en este orden:</p>' +
+        '<p class="muted">Esto es el atajo <b>sin buzón</b>: copia el aviso y lo pegas tú. Si tienes el buzón en marcha, usa mejor <i>Ver los datos del atajo</i>, que lo manda solo.</p>' +
+        '<p>En la app <b>Atajos</b>, toca <b>+</b> y añade, en este orden:</p>' +
         '<p><b>1.</b> <i>Pedir entrada de texto</i> · pregunta: «¿Qué aviso?».</p>' +
         '<p><b>2.</b> <i>Copiar al portapapeles</i> · con el resultado del paso anterior.</p>' +
         '<p>Ponle nombre («Nuevo aviso») y lánzalo desde Siri, el botón de acción, el widget de Atajos o tocando dos veces la parte de atrás del móvil.</p>' +
         '<p>Después abre <b>Avisos</b> desde la pantalla de inicio y toca el icono de pegar, arriba a la derecha de la Agenda: el aviso entra relleno y solo hay que crearlo.</p>' +
         '<div class="divider"></div>' +
-        '<p><b>El atajo de un solo paso</b> — en vez de copiar, que el atajo abra el enlace de aquí abajo con el texto dentro (<i>Codificar URL</i> → <i>Texto</i> → <i>Abrir URL</i>). Va más rápido, pero <b>puede abrirse en Safari</b> en vez de en la app; y en el iPhone cada una guarda sus avisos por separado, así que el aviso se quedaría en Safari.</p>' +
-        '<p class="muted">Pruébalo: si al lanzarlo se abre la app de la pantalla de inicio y el aviso aparece en la lista, úsalo. Si sale con una advertencia en amarillo, quédate con el de copiar.</p>' +
-        '<div class="divider"></div>' +
         '<p class="muted">Si dictas y ya está, con el título basta. Si quieres más, dicta por líneas: «Central en fallo», «cliente dos puntos Farmacia Centro», «prioridad dos puntos urgente».</p>' +
         '</div>');
-    });
-
-    root.querySelector('[data-atajo-enlace]').addEventListener('click', function () {
-      var url = Atajos.enlace({ titulo: 'ESCRIBE AQUÍ EL AVISO', crear: '1' });
-      copiar(url).then(function (ok) {
-        U.toast(ok ? 'Enlace copiado' : 'No he podido copiarlo');
-        if (!ok) U.pedirTexto('Enlace para el atajo', { multilinea: true, valor: url, aceptar: 'Cerrar' });
-      });
     });
 
     root.querySelector('[data-atajo-claves]').addEventListener('click', function () {
@@ -1388,6 +1406,88 @@
         }).join('') + '</dl>' +
         '</div>');
     });
+  }
+
+  function montarBuzon(root) {
+    var activar = root.querySelector('[data-buzon-activar]');
+    if (activar) {
+      activar.addEventListener('click', function () {
+        activar.disabled = true;
+        U.toast('Comprobando el buzón…');
+        Buzon.activar().then(function () {
+          U.toast('Buzón en marcha');
+          global.App.render();
+          setTimeout(hojaDelAtajo, 250);
+        }, function (e) {
+          activar.disabled = false;
+          U.abrirSheet('No se ha podido activar',
+            '<div class="stack small">' +
+            '<p>' + esc(e && e.message || e) + '</p>' +
+            (e && e.codigo === 'sin-almacen'
+              ? '<div class="divider"></div>' +
+                '<p>Falta darle un sitio donde guardar los avisos mientras la app está cerrada:</p>' +
+                '<p><b>1.</b> Entra en <b>vercel.com</b> → tu proyecto → pestaña <b>Storage</b>.</p>' +
+                '<p><b>2.</b> <i>Create Database</i> → <b>Upstash</b> → <b>Redis</b> (el plan gratuito vale).</p>' +
+                '<p><b>3.</b> Conéctalo al proyecto: Vercel pone solo las variables que hacen falta.</p>' +
+                '<p><b>4.</b> Vuelve a desplegar (<i>Redeploy</i>) y prueba otra vez aquí.</p>'
+              : '<p class="muted">Comprueba que la app está abierta desde su dirección de Vercel y que hay cobertura.</p>') +
+            '</div>');
+        });
+      });
+      return;
+    }
+
+    var datos = root.querySelector('[data-buzon-atajo]');
+    if (!datos) return;
+    datos.addEventListener('click', hojaDelAtajo);
+
+    root.querySelector('[data-buzon-ahora]').addEventListener('click', function () {
+      U.toast('Recogiendo…');
+      global.App.recogerBuzon({ avisar: true }).catch(function () {});
+    });
+
+    root.querySelector('[data-buzon-quitar]').addEventListener('click', function () {
+      U.confirmar('Apagar el buzón',
+        'El atajo dejará de poder mandar avisos. Los que ya estén en la app se quedan como están.',
+        { peligro: true, aceptar: 'Apagar' }).then(function (ok) {
+          if (!ok) return;
+          Buzon.desactivar().then(function () { U.toast('Buzón apagado'); global.App.render(); });
+        });
+    });
+  }
+
+  /* Los dos datos que hay que teclear dentro de Atajos, cada uno con su botón
+     de copiar: el token es largo y no se puede escribir a mano sin errar. */
+  function hojaDelAtajo() {
+    var b = Buzon.estado();
+    U.abrirSheet('El atajo que manda el aviso',
+      '<div class="stack small">' +
+      '<p>En <b>Atajos</b> → <b>+</b>, dos acciones:</p>' +
+      '<p><b>1.</b> <i>Pedir entrada de texto</i> · pregunta: «¿Qué aviso?».</p>' +
+      '<p><b>2.</b> <i>Obtener contenido de URL</i>, con la dirección de abajo y, tocando en <i>Mostrar más</i>:</p>' +
+      '<p style="margin-left:12px">· <b>Método:</b> POST<br>' +
+      '· <b>Cabeceras:</b> una, de nombre <code>X-Token</code> y valor el token de abajo<br>' +
+      '· <b>Cuerpo de solicitud:</b> Archivo → el <i>Texto proporcionado</i> del paso 1</p>' +
+      '<p>Ponle nombre («Nuevo aviso») y ya lo puedes lanzar con Siri, con el botón de acción, desde el widget de Atajos o tocando dos veces la parte de atrás del móvil.</p>' +
+      '<div class="divider"></div>' +
+      '<span class="field__label">Dirección</span>' +
+      '<p class="small" style="word-break:break-all">' + esc(b.direccion) + '</p>' +
+      '<button class="btn btn--sm btn--block" data-copiar-dir type="button">' + ICON.copia + 'Copiar la dirección</button>' +
+      '<span class="field__label" style="margin-top:8px">Token</span>' +
+      '<p class="small" style="word-break:break-all">' + esc(b.token) + '</p>' +
+      '<button class="btn btn--sm btn--block" data-copiar-token type="button">' + ICON.copia + 'Copiar el token</button>' +
+      '<p class="field__hint">El token es la llave del buzón: quien lo tenga puede meter avisos aquí. No lo publiques.</p>' +
+      '<div class="divider"></div>' +
+      '<p class="muted">El aviso aparece al abrir la app o al volver a ella. Una web no puede recogerlo con la app cerrada.</p>' +
+      '</div>',
+      function (body) {
+        body.querySelector('[data-copiar-dir]').addEventListener('click', function () {
+          copiar(b.direccion).then(function (ok) { U.toast(ok ? 'Dirección copiada' : 'No he podido copiarla'); });
+        });
+        body.querySelector('[data-copiar-token]').addEventListener('click', function () {
+          copiar(b.token).then(function (ok) { U.toast(ok ? 'Token copiado' : 'No he podido copiarlo'); });
+        });
+      });
   }
 
   function copiar(texto) {

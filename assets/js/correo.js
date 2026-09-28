@@ -434,6 +434,13 @@
     aAviso: aAviso,
     htmlATexto: htmlATexto,
     quitarCitas: quitarCitas,
-    buscarTelefono: buscarTelefono
+    buscarTelefono: buscarTelefono,
+    /* Lo aprovecha atajos.js para lo que se dicta sin decir el tipo. */
+    deducirTipo: function (t) { return deducir(REGLAS_TIPO, t, 'tipo', ''); },
+    deducirSistema: function (t) { return deducir(REGLAS_SISTEMA, t, 'sistema', ''); },
+    deducirPrioridad: function (t) {
+      var p = deducirPrioridad(t);
+      return p === 'normal' ? '' : p;
+    }
   };
 })(window);

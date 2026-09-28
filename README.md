@@ -215,39 +215,83 @@ necesitaría un servidor publicando el calendario, que hoy la app no tiene.
 
 ## Crear avisos desde Atajos (iPhone)
 
-Un atajo no puede escribir dentro de la app —ninguna web deja hacer eso desde
-fuera—, pero sí dejar el aviso escrito para que la app lo recoja. Así se cubre
-lo que en Android hacía el widget: dictar un aviso sin abrir nada.
+Dictas un aviso a Siri y aparece en la app. Es lo que sustituye al widget que
+había en Android.
 
-### El atajo que va seguro
+Hay dos pegas del iPhone que conviene entender, porque explican por qué esto
+está montado como está:
+
+- Una web no puede recibir nada desde fuera. Un atajo no puede escribir en la
+  base de datos de la app.
+- Abrir un enlace desde Atajos **lleva a Safari**, y en iOS la app de la
+  pantalla de inicio [no comparte almacenamiento con
+  Safari](https://bugs.webkit.org/show_bug.cgi?id=181849): el aviso se quedaría
+  donde nunca lo verías.
+
+Así que el atajo deja el aviso en un **buzón** en el propio despliegue de
+Vercel, y la app lo recoge sola al abrirla. Sin copiar ni pegar.
+
+### 1. Conectar el almacén (una vez)
+
+El buzón necesita dónde guardar los avisos mientras la app está cerrada:
+
+1. En **vercel.com** → tu proyecto → pestaña **Storage**.
+2. *Create Database* → **Upstash** → **Redis**. El plan gratuito sobra.
+3. Conéctalo al proyecto: Vercel pone solo `KV_REST_API_URL` y
+   `KV_REST_API_TOKEN`.
+4. **Redeploy** para que la función las vea.
+
+Sin esas variables, `/api/buzon` responde `503` diciendo exactamente esto.
+
+### 2. Encender el buzón
+
+Ajustes → *Atajos del iPhone* → **Activar el buzón**. La app genera un token
+(192 bits, solo vive en este móvil), comprueba que el buzón responde y te
+enseña los dos datos que hay que meter en Atajos.
+
+El token es la llave: quien lo tenga puede meter avisos en tu app. No viaja en
+las copias de seguridad, para que no se escape al mandarlas por correo.
+
+### 3. El atajo
 
 En **Atajos** → **+**, dos acciones:
 
 1. *Pedir entrada de texto* — pregunta: «¿Qué aviso?».
-2. *Copiar al portapapeles* — con el resultado del paso anterior.
+2. *Obtener contenido de URL*, con la dirección del buzón y, en *Mostrar más*:
+   - **Método:** POST
+   - **Cabeceras:** `X-Token` con el valor del token
+   - **Cuerpo de solicitud:** Archivo → el *Texto proporcionado* del paso 1
 
-Llámalo «Nuevo aviso». Se puede lanzar con Siri, con el botón de acción, desde
-el widget de Atajos o **tocando dos veces la parte de atrás del móvil**.
+Llámalo «Nuevo aviso» y lánzalo con Siri, con el botón de acción, desde el
+widget de Atajos o **tocando dos veces la parte de atrás del móvil**.
 
-Después abres Avisos desde la pantalla de inicio y tocas el **icono de pegar**,
-arriba a la derecha de la Agenda: el aviso entra relleno y solo hay que crearlo.
+El aviso entra en la app la próxima vez que la abres o vuelves a ella. Una web
+no puede recogerlo con la app cerrada; eso sí necesitaría una app nativa.
 
-### El atajo de un solo paso
+### El buzón por dentro
 
-En vez de copiar, que el atajo abra un enlace con el aviso dentro
-(*Codificar URL* → *Texto* → *Abrir URL*). El enlace está en Ajustes → *Atajos
-del iPhone* → **Copiar el enlace para Atajos**:
+`api/buzon.js`, una función sin dependencias:
 
-```
-https://TU-DIRECCION/#/nuevo?titulo=ESCRIBE%20AQUI%20EL%20AVISO&crear=1
-```
+| | |
+|---|---|
+| `POST /api/buzon` | deja un aviso (texto plano o `{"texto": "…"}`) |
+| `GET /api/buzon` | entrega lo que haya **y lo vacía**, en una sola orden |
+| `GET /api/buzon?ojear=1` | dice cuántos esperan, sin tocarlos |
 
-Con `crear=1` el aviso se crea sin preguntar; sin él, se abre el formulario
-relleno. Es más rápido, pero **en el iPhone el enlace puede abrirse en Safari**
-en vez de en la app instalada, y las dos guardan sus datos por separado: el
-aviso se quedaría en Safari. Si pasa eso, la app lo detecta y lo dice en
-amarillo en lugar de crear el aviso donde no lo vas a ver. Pruébalo: si
-funciona en tu iPhone, quédate con este; si no, con el de copiar.
+Todo con la cabecera `X-Token`. La clave de Redis es el SHA-256 del token, así
+que el servidor no guarda tokens ni puede listar los buzones que existen. La
+cola se recorta a 100 avisos y caduca a los 30 días.
+
+### Sin buzón: copiar y pegar
+
+Si no quieres montar el almacén, el atajo puede *Copiar al portapapeles* y tú
+pegas el aviso con el icono de la barra de la Agenda. Sirve igual para el texto
+de un correo o un WhatsApp.
+
+También funciona un enlace `#/nuevo?titulo=…` (con `crear=1` lo crea sin
+preguntar). En Android y en el ordenador va bien; en el iPhone cae en Safari, y
+cuando eso pasa la app **no crea el aviso a escondidas**: enseña el formulario
+con una advertencia en amarillo.
 
 ### Qué se puede escribir
 
@@ -271,7 +315,11 @@ título y el resto la descripción (o sea: dictar y ya está).
 | `sistema` | alarma · cctv · accesos · incendios · portero |
 | `tecnico` | nombre de alguien del Equipo |
 
-Ejemplo de lo que puede copiar el atajo:
+Lo que no digas se deduce del texto, con las mismas reglas que los correos:
+«cámara» es CCTV, «no funciona» es avería, «urgente» es urgente, y un teléfono
+suelto en el texto se recoge como teléfono del cliente.
+
+Ejemplo de lo que puede dictar el atajo:
 
 ```
 Central en fallo de comunicación
@@ -281,9 +329,6 @@ prioridad: urgente
 fecha: mañana
 hora: 9:30
 ```
-
-El mismo botón de pegar sirve para cualquier otro texto: un correo, un
-WhatsApp, unas notas. Se saca de ahí lo que se entienda.
 
 ---
 
@@ -295,7 +340,7 @@ navegador y no de la app:
 | | iPhone (PWA) | APK de Android |
 |---|---|---|
 | Avisos desde el correo | no | sí |
-| Widget en la pantalla de inicio | no (pero hay atajo, ver arriba) | sí |
+| Widget en la pantalla de inicio | no (hay atajo con Siri, ver arriba) | sí |
 | Notificaciones en segundo plano | no | sí |
 
 Un navegador no puede abrir sockets (de ahí el correo), iOS no tiene widgets
@@ -412,6 +457,8 @@ assets/js/app.js         Arranque y enrutado por hash
 assets/js/nativo.js      Puente con la app de Android (archivos y widget)
 assets/js/correo.js      Conversión de correo entrante en avisos
 assets/js/atajos.js      Avisos que llegan escritos de fuera (Atajos, portapapeles)
+assets/js/buzon.js       Recogida de los avisos que deja un atajo
+api/buzon.js             Buzón en el servidor (función de Vercel + Redis)
 tools/make-icons.js      Genera los iconos PNG (node tools/make-icons.js)
 android/                 Proyecto de la app Android (WebView + widget)
 .github/workflows/       Compilación del APK (solo a mano, Run workflow)

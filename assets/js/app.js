@@ -2,7 +2,7 @@
 (function (global) {
   'use strict';
 
-  var APP_VERSION = '1.7.0';
+  var APP_VERSION = '1.8.0';
   global.APP_VERSION = APP_VERSION;
 
   var S = global.Store, U = global.UI, V = global.Views;
@@ -193,8 +193,10 @@
     var diaVisible = S.hoyISO();
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState !== 'visible') return;
-      /* Al volver a la app puede haber entrado correo mientras estaba fuera. */
+      /* Al volver a la app puede haber entrado correo, o un aviso dejado por
+         un atajo, mientras estaba fuera. */
       recogerCorreo();
+      recogerBuzon();
       if (S.hoyISO() === diaVisible) return;
       diaVisible = S.hoyISO();
       render({ restaurar: true });
@@ -234,6 +236,32 @@
     }).catch(function (e) { console.warn('Correo no procesado:', e); });
   }
 
+  /* Los avisos que deja un atajo del iPhone esperan en el servidor hasta que
+     alguien abre la app: el buzón entrega y vacía de una vez. */
+  var recogiendo = false;
+
+  function recogerBuzon(opts) {
+    opts = opts || {};
+    if (recogiendo || !global.Buzon || !Buzon.activo()) return Promise.resolve(null);
+    recogiendo = true;
+    return Buzon.recoger().then(function (r) {
+      recogiendo = false;
+      if (r && r.creados) {
+        U.toast(r.creados === 1 ? 'Nuevo aviso desde el atajo' : r.creados + ' avisos nuevos desde el atajo');
+        render({ restaurar: true });
+      } else if (opts.avisar) {
+        U.toast('No había ningún aviso esperando');
+        render({ restaurar: true });
+      }
+      return r;
+    }, function (e) {
+      recogiendo = false;
+      console.warn('Buzón no recogido:', e);
+      if (opts.avisar) { U.toast('El buzón falla: ' + (e && e.message || e)); render({ restaurar: true }); }
+      throw e;
+    });
+  }
+
   /* ---------- arranque ---------- */
 
   function arrancar() {
@@ -244,6 +272,7 @@
       if (!location.hash) location.replace('#/agenda');
       render();
       recogerCorreo();
+      recogerBuzon();
     }).catch(function (e) {
       console.error(e);
       elView.innerHTML = U.vacioHTML({
@@ -309,7 +338,7 @@
 
   global.App = {
     render: render, aplicarTema: aplicarTema, version: APP_VERSION,
-    recogerCorreo: recogerCorreo
+    recogerCorreo: recogerCorreo, recogerBuzon: recogerBuzon
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar);

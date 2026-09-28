@@ -123,7 +123,7 @@
     { id: 'cctv', voces: ['camara', 'camaras', 'video', 'videovigilancia', 'grabador', 'dvr', 'nvr'] },
     { id: 'accesos', voces: ['acceso', 'lector', 'tarjeta', 'tarjetas', 'torno'] },
     { id: 'incendios', voces: ['incendio', 'fuego', 'humo', 'extincion', 'pci'] },
-    { id: 'portero', voces: ['videoportero', 'telefonillo', 'porteroautomatico'] },
+    { id: 'interfono', voces: ['portero', 'videoportero', 'telefonillo', 'porteroautomatico'] },
     { id: 'alarma', voces: ['intrusion', 'central', 'sirena', 'cra'] }
   ];
   var VOCES_TIPO = [
@@ -244,7 +244,21 @@
     if (d.telefono != null) d.telefono = String(d.telefono).replace(/[^\d+]/g, '');
 
     Object.keys(d).forEach(function (k) { if (d[k] === '' || d[k] == null) delete d[k]; });
+    deducirLoQueFalte(d);
     return d;
+  }
+
+  /* Lo que no se ha dicho se saca del propio texto, con las mismas reglas que
+     usan los correos: «cámara» es CCTV, «no funciona» es avería, «urgente» es
+     urgente. Si no se reconoce nada se deja el valor por defecto del aviso. */
+  function deducirLoQueFalte(d) {
+    if (!global.Correo) return;
+    var texto = [d.titulo, d.descripcion].filter(Boolean).join(' ');
+    if (!texto) return;
+    if (!d.tipo) { var t = Correo.deducirTipo(texto); if (t) d.tipo = t; }
+    if (!d.sistema) { var s = Correo.deducirSistema(texto); if (s) d.sistema = s; }
+    if (!d.prioridad) { var p = Correo.deducirPrioridad(texto); if (p) d.prioridad = p; }
+    if (!d.telefono) { var f = Correo.buscarTelefono(texto); if (f) d.telefono = f; }
   }
 
   /* ---------- escritura ---------- */

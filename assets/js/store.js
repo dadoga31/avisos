@@ -41,7 +41,9 @@
     avisos: [],
     tecnicos: [],
     ajustes: { tema: 'auto', prefijoRef: 'AV', contadorRef: 0, verCerrados: false, recordatorio: 30, pistaGestos: true,
-      correoIgnorados: [] }
+      correoIgnorados: [],
+      /* Buzón de los atajos del iPhone: el token es un secreto de este móvil. */
+      buzonToken: '', buzonUltima: '', buzonError: '' }
   };
 
   /* ---------- utilidades ---------- */
@@ -482,12 +484,23 @@
     return new Blob([arr], { type: mime });
   }
 
+  /* La copia de seguridad se manda por correo o se guarda en la nube: el token
+     del buzón no tiene por qué viajar con ella, que con él se pueden meter
+     avisos en este móvil. */
+  function ajustesSinSecretos() {
+    var a = Object.assign({}, state.ajustes);
+    delete a.buzonToken;
+    delete a.buzonUltima;
+    delete a.buzonError;
+    return a;
+  }
+
   function exportar(conFotos) {
     var base = {
       formato: 'avisos-backup',
       version: 1,
       exportado: new Date().toISOString(),
-      ajustes: state.ajustes,
+      ajustes: ajustesSinSecretos(),
       tecnicos: state.tecnicos,
       avisos: state.avisos,
       fotos: []

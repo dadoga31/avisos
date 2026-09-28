@@ -1,7 +1,7 @@
 /* sw.js — caché de la aplicación para que funcione sin conexión.
    Sirve lo guardado al instante y refresca por detrás; cuando hay una
    versión nueva lista, se avisa a la página para que lo diga. */
-var VERSION = 'avisos-v1.7.0';
+var VERSION = 'avisos-v1.8.0';
 var SHELL = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ var SHELL = [
   './assets/js/swipe.js',
   './assets/js/visor.js',
   './assets/js/atajos.js',
+  './assets/js/buzon.js',
   './assets/js/views.js',
   './assets/js/app.js',
   './assets/icons/favicon.svg',
@@ -60,6 +61,9 @@ self.addEventListener('fetch', function (e) {
   if (req.method !== 'GET') return;
   var url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+  /* El buzón de los atajos habla con el servidor: guardarlo en caché
+     devolvería siempre la misma respuesta y no entraría ningún aviso. */
+  if (url.pathname.indexOf('/api/') === 0) return;
 
   /* La página: primero la red, para estrenar cambios en cuanto hay cobertura. */
   if (req.mode === 'navigate') {
