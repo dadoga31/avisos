@@ -1,7 +1,7 @@
 /* sw.js — caché de la aplicación para que funcione sin conexión.
    Sirve lo guardado al instante y refresca por detrás; cuando hay una
    versión nueva lista, se avisa a la página para que lo diga. */
-var VERSION = 'avisos-v1.6.0';
+var VERSION = 'avisos-v1.7.0';
 var SHELL = [
   './',
   './index.html',
@@ -16,6 +16,7 @@ var SHELL = [
   './assets/js/ui.js',
   './assets/js/swipe.js',
   './assets/js/visor.js',
+  './assets/js/atajos.js',
   './assets/js/views.js',
   './assets/js/app.js',
   './assets/icons/favicon.svg',

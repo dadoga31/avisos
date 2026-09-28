@@ -2,7 +2,7 @@
 (function (global) {
   'use strict';
 
-  var APP_VERSION = '1.6.0';
+  var APP_VERSION = '1.7.0';
   global.APP_VERSION = APP_VERSION;
 
   var S = global.Store, U = global.UI, V = global.Views;
@@ -38,7 +38,7 @@
     switch (s[0]) {
       case 'avisos':  return { vista: V.avisos(r.params), tab: 'avisos' };
       case 'aviso':   return { vista: V.detalle({ id: s[1] }), tab: 'avisos', sinFab: true };
-      case 'nuevo':   return { vista: V.formulario(null), tab: null, sinFab: true };
+      case 'nuevo':   return { vista: V.formulario(null, Atajos.deObjeto(r.params)), tab: null, sinFab: true };
       case 'editar':  return { vista: V.formulario({ id: s[1] }), tab: null, sinFab: true };
       case 'historico': return { vista: V.historico(), tab: 'historico', sinFab: true };
       case 'equipo':  return { vista: V.equipo(), tab: 'equipo', sinFab: true };
@@ -47,9 +47,35 @@
     }
   }
 
+  /* Un atajo del iPhone puede pedir que el aviso se cree sin preguntar
+     (#/nuevo?...&crear=1). Se hace una sola vez por dirección: si no, recargar
+     la página crearía el aviso otra vez. */
+  var atajoHecho = '';
+
+  function atenderAtajo(r) {
+    if (r.seg[0] !== 'nuevo' || !r.params.crear) return false;
+    /* En Safari del iPhone el aviso iría a parar a otro sitio distinto del de
+       la app instalada: mejor enseñar el formulario con la advertencia que
+       crearlo a escondidas donde no lo va a ver. */
+    if (U.esIOS() && !U.enApp()) return false;
+    var huella = location.hash;
+    if (atajoHecho === huella) return false;
+    atajoHecho = huella;
+
+    var datos = Atajos.deObjeto(r.params);
+    if (!datos.titulo) return false;           // sin título no hay aviso que crear
+    S.guardarAviso(Atajos.aAviso(datos)).then(function (g) {
+      location.replace('#/aviso/' + g.id);     // sin dejar rastro en el historial
+      render();
+      U.toast('Aviso ' + g.ref + ' creado');
+    });
+    return true;
+  }
+
   function render(opts) {
     opts = opts || {};
     var r = parseHash();
+    if (atenderAtajo(r)) return;
     var clave = r.raw;
     var mismaRuta = clave === rutaActual;
 
@@ -119,6 +145,8 @@
   function conectarAcciones(r) {
     var ed = elActions.querySelector('[data-editar]');
     if (ed) ed.addEventListener('click', function () { location.hash = '#/editar/' + r.seg[1]; });
+    var pg = elActions.querySelector('[data-pegar]');
+    if (pg) pg.addEventListener('click', function () { V.pegarAviso({}); });
     var mn = elActions.querySelector('[data-menu]');
     if (mn) mn.addEventListener('click', function () {
       var a = S.byId(S.state.avisos, r.seg[1]);

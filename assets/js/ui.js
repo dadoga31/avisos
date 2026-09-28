@@ -340,6 +340,13 @@
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   }
 
+  /* ¿Está abierta como app (desde la pantalla de inicio) o dentro del
+     navegador? En el iPhone cada una guarda sus datos por separado. */
+  function enApp() {
+    if (navigator.standalone === true) return true;
+    return !!(global.matchMedia && global.matchMedia('(display-mode: standalone)').matches);
+  }
+
   function enlaceDescarga(nombre, blob) {
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
@@ -393,6 +400,6 @@
     seccion: seccion, opciones: opciones,
     toast: toast, abrirSheet: abrirSheet, cerrarSheet: cerrarSheet,
     confirmar: confirmar, pedirTexto: pedirTexto, descargar: descargar,
-    esIOS: esIOS
+    esIOS: esIOS, enApp: enApp
   };
 })(window);

@@ -95,6 +95,7 @@
     return {
       titulo: 'Agenda',
       sub: U.plural(r.abiertos, 'aviso abierto', 'avisos abiertos') + ' · ' + r.total + ' en total',
+      acciones: '<button class="iconbtn" data-pegar type="button" aria-label="Pegar un aviso copiado">' + ICON.copia + '</button>',
       html: html,
       mount: function (root) {
         U.$$('.kpi', root).forEach(function (b) {
@@ -832,9 +833,22 @@
      FORMULARIO
      ========================================================= */
 
-  function formulario(params) {
+  function formulario(params, prellenado) {
     var editando = !!(params && params.id);
-    var a = editando ? JSON.parse(JSON.stringify(S.byId(S.state.avisos, params.id) || {})) : S.nuevoAvisoVacio();
+    /* Un aviso que llega de un atajo entra ya escrito en el formulario: se
+       repasa de un vistazo y se crea, en vez de fiarse a ciegas. */
+    var desdeAtajo = null, porEnlace = false;
+    if (!editando) {
+      desdeAtajo = pendiente;
+      if (!desdeAtajo && prellenado && Object.keys(prellenado).length) {
+        desdeAtajo = prellenado;
+        porEnlace = true;
+      }
+      pendiente = null;
+    }
+    var a = editando
+      ? JSON.parse(JSON.stringify(S.byId(S.state.avisos, params.id) || {}))
+      : (desdeAtajo ? Atajos.aAviso(desdeAtajo) : S.nuevoAvisoVacio());
     if (editando && !a.id) {
       return { titulo: 'Aviso', html: U.vacioHTML({ titulo: 'Aviso no encontrado', texto: '' }), atras: '#/avisos' };
     }
@@ -842,6 +856,11 @@
     var tecs = S.state.tecnicos.map(function (t) { return { id: t.id, label: t.nombre }; });
 
     var html =
+      (porEnlace ? avisoDeContenedor() : '') +
+      (editando ? '' :
+        '<div class="btnrow" style="margin-bottom:4px">' +
+          '<button class="btn btn--sm btn--block" data-pegar type="button">' + ICON.copia + 'Pegar un aviso copiado</button>' +
+        '</div>') +
       '<form id="fAviso" novalidate>' +
       U.seccion('El trabajo', '<div class="card card__pad">' +
         '<div class="field"><label class="field__label" for="titulo">Título *</label>' +
@@ -893,12 +912,15 @@
 
     return {
       titulo: editando ? 'Editar ' + (a.ref || 'aviso') : 'Nuevo aviso',
-      sub: editando ? 'Modifica los datos y guarda' : 'Se guardará como ' + S.siguienteRef(),
+      sub: editando ? 'Modifica los datos y guarda'
+        : (desdeAtajo ? 'Repásalo y créalo · será ' + S.siguienteRef() : 'Se guardará como ' + S.siguienteRef()),
       atras: editando ? '#/aviso/' + a.id : '#/agenda',
       html: html,
       mount: function (root) {
         var form = root.querySelector('#fAviso');
         root.querySelector('[data-cancelar]').addEventListener('click', function () { history.back(); });
+        var pegar = root.querySelector('[data-pegar]');
+        if (pegar) pegar.addEventListener('click', function () { pegarAviso({ alFormulario: true }); });
         form.addEventListener('submit', function (ev) {
           ev.preventDefault();
           var titulo = form.querySelector('#titulo');
@@ -926,6 +948,63 @@
         });
       }
     };
+  }
+
+  /* =========================================================
+     PEGAR UN AVISO (atajos del iPhone, correos, WhatsApp…)
+     ========================================================= */
+
+  /* Datos a la espera de pintarse en el próximo formulario. Van por aquí y no
+     por la dirección para no dejar el teléfono del cliente en el historial. */
+  var pendiente = null;
+
+  function pegarAviso(opts) {
+    opts = opts || {};
+    Atajos.delPortapapeles().then(function (texto) {
+      if (!aplicar(texto, opts)) pedirloAMano(opts, texto);
+    }, function () {
+      /* Safari puede negar la lectura, y algún navegador ni la trae. */
+      pedirloAMano(opts, '');
+    });
+  }
+
+  function aplicar(texto, opts) {
+    var d = Atajos.deTexto(texto);
+    if (!d) return false;
+    pendiente = d;
+    if (opts.alFormulario && /^#\/nuevo/.test(location.hash)) global.App.render();
+    else location.hash = '#/nuevo';
+    U.toast('Aviso pegado: repásalo y créalo');
+    return true;
+  }
+
+  function pedirloAMano(opts, valor) {
+    U.pedirTexto('Pegar un aviso', {
+      multilinea: true,
+      valor: valor || '',
+      label: 'Pega aquí el texto (mantén pulsado → Pegar)',
+      placeholder: 'Central en fallo\ncliente: Farmacia Centro\ntel: 611223344\nprioridad: urgente',
+      aceptar: 'Usar este texto'
+    }).then(function (v) {
+      if (v == null) return;
+      if (!aplicar(v, opts)) U.toast('No he entendido ningún aviso en ese texto');
+    });
+  }
+
+  /* En el iPhone, la app de la pantalla de inicio y Safari guardan sus datos
+     por separado. Si un atajo abre un enlace, cae en Safari, y el aviso que se
+     cree ahí no aparecerá en la app. Más vale decirlo antes de crearlo. */
+  function enSitioEquivocado() {
+    return U.esIOS() && !U.enApp();
+  }
+
+  function avisoDeContenedor() {
+    if (!enSitioEquivocado()) return '';
+    return '<div class="card card__pad card--ojo" style="margin-bottom:10px">' +
+      '<p class="small"><b>Ojo:</b> esto se ha abierto en Safari, no en la app de la pantalla de inicio. ' +
+      'En el iPhone cada una guarda sus avisos por su cuenta, así que lo que crees aquí <b>no aparecerá en la app</b>.</p>' +
+      '<p class="small muted" style="margin-top:8px">Para que entre bien: cambia el atajo para que <b>copie</b> el aviso en vez de abrir el enlace, abre la app desde la pantalla de inicio y pégalo con el icono de arriba a la derecha.</p>' +
+      '</div>';
   }
 
   function clientesPrevios() {
@@ -1216,6 +1295,8 @@
         '<button class="btn btn--block" data-imp type="button">Importar copia…</button>' +
       '</div></div>');
 
+    html += U.seccion('Atajos del iPhone', seccionAtajos());
+
     html += U.seccion('Instalación', '<div class="card card__pad">' +
       '<p class="small muted" style="margin-bottom:12px">Instálala en la pantalla de inicio para abrirla como una app y usarla sin cobertura.</p>' +
       '<div class="stack">' +
@@ -1236,6 +1317,85 @@
       html: html,
       mount: function (root) { montarAjustes(root); }
     };
+  }
+
+  /* =========================================================
+     ATAJOS DEL IPHONE
+     ========================================================= */
+
+  function seccionAtajos() {
+    return '<div class="card card__pad">' +
+      '<p class="small muted" style="margin-bottom:12px">Un atajo no puede escribir dentro de la app, pero sí <b>dejarte el aviso escrito</b>: tú dictas, el atajo lo copia y aquí lo pegas de un toque con el icono de arriba a la derecha de la Agenda. Sirve para lanzarlo con Siri, con el botón de acción o dando dos toques en la parte de atrás del móvil.</p>' +
+      '<div class="stack">' +
+        '<button class="btn btn--block" data-atajo-ayuda type="button">Cómo montar el atajo</button>' +
+        '<button class="btn btn--block" data-atajo-enlace type="button">Copiar el enlace para Atajos</button>' +
+        '<button class="btn btn--block" data-atajo-claves type="button">Ver las palabras que entiende</button>' +
+      '</div>' +
+      '<p class="field__hint">También vale pegar el texto de un correo o un WhatsApp: se saca de ahí lo que se entienda.</p>' +
+      '</div>';
+  }
+
+  var CLAVES_ATAJO = [
+    ['titulo', 'lo que hay que hacer (también «asunto» o «t»)'],
+    ['cliente', 'nombre o empresa (también «c»)'],
+    ['dir', 'dirección'],
+    ['tel', 'teléfono'],
+    ['contacto', 'persona de contacto'],
+    ['desc', 'descripción; se puede repetir («nota:»)'],
+    ['fecha', 'hoy · mañana · lunes · +3 · 30/9 · 2026-09-30'],
+    ['hora', '9 · 9:30 · 0930'],
+    ['duracion', 'horas previstas, con coma: 1,5'],
+    ['prioridad', 'baja · normal · alta · urgente (también «p»)'],
+    ['tipo', 'avería · instalación · mantenimiento · revisión · presupuesto'],
+    ['sistema', 'alarma · cctv · accesos · incendios · portero'],
+    ['tecnico', 'nombre de alguien del Equipo']
+  ];
+
+  function montarAtajos(root) {
+    var ayuda = root.querySelector('[data-atajo-ayuda]');
+    if (!ayuda) return;
+
+    ayuda.addEventListener('click', function () {
+      U.abrirSheet('Montar el atajo en el iPhone',
+        '<div class="stack small">' +
+        '<p><b>El atajo que va seguro</b> — en la app <b>Atajos</b>, toca <b>+</b> y añade, en este orden:</p>' +
+        '<p><b>1.</b> <i>Pedir entrada de texto</i> · pregunta: «¿Qué aviso?».</p>' +
+        '<p><b>2.</b> <i>Copiar al portapapeles</i> · con el resultado del paso anterior.</p>' +
+        '<p>Ponle nombre («Nuevo aviso») y lánzalo desde Siri, el botón de acción, el widget de Atajos o tocando dos veces la parte de atrás del móvil.</p>' +
+        '<p>Después abre <b>Avisos</b> desde la pantalla de inicio y toca el icono de pegar, arriba a la derecha de la Agenda: el aviso entra relleno y solo hay que crearlo.</p>' +
+        '<div class="divider"></div>' +
+        '<p><b>El atajo de un solo paso</b> — en vez de copiar, que el atajo abra el enlace de aquí abajo con el texto dentro (<i>Codificar URL</i> → <i>Texto</i> → <i>Abrir URL</i>). Va más rápido, pero <b>puede abrirse en Safari</b> en vez de en la app; y en el iPhone cada una guarda sus avisos por separado, así que el aviso se quedaría en Safari.</p>' +
+        '<p class="muted">Pruébalo: si al lanzarlo se abre la app de la pantalla de inicio y el aviso aparece en la lista, úsalo. Si sale con una advertencia en amarillo, quédate con el de copiar.</p>' +
+        '<div class="divider"></div>' +
+        '<p class="muted">Si dictas y ya está, con el título basta. Si quieres más, dicta por líneas: «Central en fallo», «cliente dos puntos Farmacia Centro», «prioridad dos puntos urgente».</p>' +
+        '</div>');
+    });
+
+    root.querySelector('[data-atajo-enlace]').addEventListener('click', function () {
+      var url = Atajos.enlace({ titulo: 'ESCRIBE AQUÍ EL AVISO', crear: '1' });
+      copiar(url).then(function (ok) {
+        U.toast(ok ? 'Enlace copiado' : 'No he podido copiarlo');
+        if (!ok) U.pedirTexto('Enlace para el atajo', { multilinea: true, valor: url, aceptar: 'Cerrar' });
+      });
+    });
+
+    root.querySelector('[data-atajo-claves]').addEventListener('click', function () {
+      U.abrirSheet('Palabras que entiende',
+        '<div class="stack small">' +
+        '<p class="muted">Una por línea, en cualquier orden: <b>clave: valor</b>. Lo que no encaje se queda como descripción.</p>' +
+        '<dl class="kv">' + CLAVES_ATAJO.map(function (c) {
+          return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>';
+        }).join('') + '</dl>' +
+        '</div>');
+    });
+  }
+
+  function copiar(texto) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(texto).then(function () { return true; },
+        function () { return false; });
+    }
+    return Promise.resolve(false);
   }
 
   /* =========================================================
@@ -1528,6 +1688,7 @@
 
   function montarAjustes(root) {
     montarCorreo(root);
+    montarAtajos(root);
     montarFallos(root);
     DB.estimate().then(function (e) {
       var n = root.querySelector('#espacio');
@@ -1673,6 +1834,6 @@
   global.Views = {
     agenda: agenda, avisos: avisos, detalle: detalle, formulario: formulario,
     historico: historico, equipo: equipo, ajustes: ajustes,
-    menuAviso: menuAviso, liberarURLs: liberarURLs
+    menuAviso: menuAviso, liberarURLs: liberarURLs, pegarAviso: pegarAviso
   };
 })(window);

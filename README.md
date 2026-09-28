@@ -213,6 +213,80 @@ necesitaría un servidor publicando el calendario, que hoy la app no tiene.
 
 ---
 
+## Crear avisos desde Atajos (iPhone)
+
+Un atajo no puede escribir dentro de la app —ninguna web deja hacer eso desde
+fuera—, pero sí dejar el aviso escrito para que la app lo recoja. Así se cubre
+lo que en Android hacía el widget: dictar un aviso sin abrir nada.
+
+### El atajo que va seguro
+
+En **Atajos** → **+**, dos acciones:
+
+1. *Pedir entrada de texto* — pregunta: «¿Qué aviso?».
+2. *Copiar al portapapeles* — con el resultado del paso anterior.
+
+Llámalo «Nuevo aviso». Se puede lanzar con Siri, con el botón de acción, desde
+el widget de Atajos o **tocando dos veces la parte de atrás del móvil**.
+
+Después abres Avisos desde la pantalla de inicio y tocas el **icono de pegar**,
+arriba a la derecha de la Agenda: el aviso entra relleno y solo hay que crearlo.
+
+### El atajo de un solo paso
+
+En vez de copiar, que el atajo abra un enlace con el aviso dentro
+(*Codificar URL* → *Texto* → *Abrir URL*). El enlace está en Ajustes → *Atajos
+del iPhone* → **Copiar el enlace para Atajos**:
+
+```
+https://TU-DIRECCION/#/nuevo?titulo=ESCRIBE%20AQUI%20EL%20AVISO&crear=1
+```
+
+Con `crear=1` el aviso se crea sin preguntar; sin él, se abre el formulario
+relleno. Es más rápido, pero **en el iPhone el enlace puede abrirse en Safari**
+en vez de en la app instalada, y las dos guardan sus datos por separado: el
+aviso se quedaría en Safari. Si pasa eso, la app lo detecta y lo dice en
+amarillo en lugar de crear el aviso donde no lo vas a ver. Pruébalo: si
+funciona en tu iPhone, quédate con este; si no, con el de copiar.
+
+### Qué se puede escribir
+
+Una línea por dato, en cualquier orden, con `clave: valor`. Lo que no encaje se
+queda como descripción; y si no pones ninguna clave, la primera línea es el
+título y el resto la descripción (o sea: dictar y ya está).
+
+| Clave | Valor |
+|---|---|
+| `titulo` (`asunto`, `t`) | lo que hay que hacer |
+| `cliente` (`c`) | nombre o empresa |
+| `dir` | dirección |
+| `tel` | teléfono |
+| `contacto` | persona de contacto |
+| `desc` (`nota`) | descripción; se puede repetir |
+| `fecha` | `hoy`, `mañana`, `lunes`, `+3`, `30/9`, `2026-09-30` |
+| `hora` | `9`, `9:30`, `0930` |
+| `duracion` | horas previstas, con coma: `1,5` |
+| `prioridad` (`p`) | baja · normal · alta · urgente |
+| `tipo` | avería · instalación · mantenimiento · revisión · presupuesto |
+| `sistema` | alarma · cctv · accesos · incendios · portero |
+| `tecnico` | nombre de alguien del Equipo |
+
+Ejemplo de lo que puede copiar el atajo:
+
+```
+Central en fallo de comunicación
+cliente: Farmacia Centro
+tel: 611223344
+prioridad: urgente
+fecha: mañana
+hora: 9:30
+```
+
+El mismo botón de pegar sirve para cualquier otro texto: un correo, un
+WhatsApp, unas notas. Se saca de ahí lo que se entienda.
+
+---
+
 ## Qué no hay en el iPhone
 
 La PWA lleva todo lo de arriba, con tres excepciones, todas por límites del
@@ -221,7 +295,7 @@ navegador y no de la app:
 | | iPhone (PWA) | APK de Android |
 |---|---|---|
 | Avisos desde el correo | no | sí |
-| Widget en la pantalla de inicio | no | sí |
+| Widget en la pantalla de inicio | no (pero hay atajo, ver arriba) | sí |
 | Notificaciones en segundo plano | no | sí |
 
 Un navegador no puede abrir sockets (de ahí el correo), iOS no tiene widgets
@@ -337,6 +411,7 @@ assets/js/views.js       Pantallas: agenda, lista, ficha, formulario, equipo, aj
 assets/js/app.js         Arranque y enrutado por hash
 assets/js/nativo.js      Puente con la app de Android (archivos y widget)
 assets/js/correo.js      Conversión de correo entrante en avisos
+assets/js/atajos.js      Avisos que llegan escritos de fuera (Atajos, portapapeles)
 tools/make-icons.js      Genera los iconos PNG (node tools/make-icons.js)
 android/                 Proyecto de la app Android (WebView + widget)
 .github/workflows/       Compilación del APK (solo a mano, Run workflow)
