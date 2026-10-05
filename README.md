@@ -94,12 +94,17 @@ vibración solo funciona desde iOS 18 y no se puede volver atrás deslizando
 desde el borde (para eso está el botón de volver).
 
 **Agenda (pantalla de inicio)**
+
+Es a la vez la agenda del día y el buscador: no hay una lista de avisos aparte.
+
+- Todos los avisos abiertos agrupados en *Vencidos · Hoy · Mañana · Próximos 7
+  días · Más adelante · Sin fecha*. Ninguno se queda fuera.
+- El globo rojo de la pestaña cuenta los avisos **vencidos**.
 - Una tarjeta con lo que queda para **hoy** en grande, un anillo con lo ya
   hecho y accesos a vencidos, próximos 7 días y sin asignar (cada uno abre la
   lista ya filtrada). Su color avisa: rojizo si hay algo vencido, violeta y
   naranja si hay urgentes, azul si va todo en orden.
-- Los avisos agrupados en *Vencidos · Hoy · Mañana · Próximos 7 días · Sin fecha*.
-- **Gestos sobre cada aviso** (también en la lista de Avisos):
+- **Gestos sobre cada aviso** (también en los resultados de búsqueda):
   - Deslizar a la **izquierda** lo marca como hecho: aparece el panel verde, al
     pasar el umbral vibra y la fila se va deslizándose y encogiendo.
   - Deslizar a la **derecha** despliega *En curso* y *Cancelar*.
@@ -111,10 +116,13 @@ desde el borde (para eso está el botón de volver).
   - Los avisos ya cerrados no se deslizan, y el desplazamiento vertical de la
     lista sigue funcionando con normalidad.
 
-**Avisos**
-- Buscador por cliente, dirección, teléfono, referencia, título o técnico.
-- Filtros rápidos (solo abiertos, vencidos, urgentes, sin asignar, hoy) y
-  filtros completos por estado, prioridad, tipo, sistema, técnico y rango de fechas.
+**Buscar (arriba de la Agenda)**
+- Buscador por cliente, dirección, teléfono, referencia, título o técnico. Al
+  escribir, la Agenda pasa a enseñar los resultados, **abiertos y cerrados**;
+  **Cancelar** la devuelve a como estaba.
+- El botón del embudo abre los filtros completos: estado, prioridad, tipo,
+  sistema, técnico y rango de fechas. Con la búsqueda en marcha hay además
+  filtros rápidos (solo abiertos, vencidos, urgentes, sin asignar, hoy).
 - Orden por fecha, por prioridad o por los más recientes.
 
 **Ficha del aviso**
@@ -146,10 +154,11 @@ desde el borde (para eso está el botón de volver).
 - Buscador y filtros de resueltos / cancelados.
 - Deslizar a la derecha un aviso cerrado lo **reabre** como pendiente.
 
+**Equipo**
+- Alta de técnicos con teléfono y color; se ve cuántos avisos abiertos y
+  vencidos lleva cada uno. Al borrar un técnico sus avisos quedan sin asignar.
+
 **Ajustes**
-- **Equipo**, la primera fila: alta de técnicos con teléfono y color; se ve
-  cuántos avisos abiertos y vencidos lleva cada uno. Al borrar un técnico sus
-  avisos quedan sin asignar.
 - Tema automático / claro / oscuro.
 - Prefijo de la numeración de referencias.
 - Exportación al calendario del móvil, con recordatorio configurable.

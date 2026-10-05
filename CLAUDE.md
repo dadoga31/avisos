@@ -72,8 +72,11 @@ compilar: tokens y componentes en `assets/css/app.css`, comportamiento en
   tinte es `systemBlue` (`--tint`) y cada estado del aviso tiene su color
   (`.e-<estado>` pone `--c` y `--ct`). La tarjeta de hoy cambia de degradado
   con los datos: rojizo con vencidos, violeta-naranja con urgentes, azul si no.
-- Navegación: Agenda · Avisos · **+** · Hechos · Ajustes. Equipo es una fila de
-  Ajustes. Las pantallas de primer nivel llevan título grande (34 px) que se
+- Navegación: Agenda · Hechos · **+** · Equipo · Ajustes. No hay lista de
+  avisos aparte: la Agenda lleva el buscador encima y, al buscar o filtrar,
+  enseña los resultados (abiertos y cerrados); `#/avisos?v=…` es un alias que
+  llega a ella ya filtrada. Todo aviso abierto tiene que salir en algún grupo
+  de la Agenda (por eso existe «Más adelante»). Las pantallas de primer nivel llevan título grande (34 px) que se
   recoge en la barra al bajar; las que se abren desde ellas (`atras` en la
   vista) llevan el título pequeño en la barra y botón de volver
   (`data-vista="apilada"`). En los formularios no hay barra de pestañas.

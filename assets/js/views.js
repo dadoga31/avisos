@@ -71,11 +71,46 @@
 
   /* =========================================================
      AGENDA
+     Lo abierto, agrupado por fecha, y encima el buscador. Al escribir o
+     filtrar, la misma pantalla pasa a ser la lista de resultados (abiertos y
+     cerrados); «Cancelar» la devuelve a la agenda.
      ========================================================= */
 
   function agenda() {
-    var hoy = S.hoyISO();
     var r = S.resumen();
+    var buscando = enBusqueda();
+    var html = buscador(buscando) + (buscando ? resultados() : agendaDelDia(r));
+
+    return {
+      titulo: 'Agenda',
+      sub: buscando
+        ? 'Buscando en ' + U.plural(S.state.avisos.length, 'aviso')
+        : U.plural(r.abiertos, 'aviso abierto', 'avisos abiertos') + ' · ' + r.total + ' en total',
+      acciones: '<button class="iconbtn" data-pegar type="button" aria-label="Pegar un aviso copiado">' + ICON.copia + '</button>',
+      html: html,
+      mount: function (root) {
+        montarBuscador(root);
+        /* Los accesos de la tarjeta de hoy abren la lista ya filtrada. */
+        U.$$('[data-k]', root).forEach(function (b) {
+          b.addEventListener('click', function () {
+            aplicarVista(b.dataset.k);
+            global.scrollTo(0, 0);
+            global.App.render();
+          });
+        });
+        var ej = root.querySelector('[data-accion="ejemplo"]');
+        if (ej) ej.addEventListener('click', function () {
+          S.datosDeEjemplo().then(function () { U.toast('Datos de ejemplo cargados'); global.App.render(); });
+        });
+        var pista = root.querySelector('[data-pista]');
+        if (pista) pista.addEventListener('click', ocultarPista);
+        conectarGestos(root);
+      }
+    };
+  }
+
+  function agendaDelDia(r) {
+    var hoy = S.hoyISO();
     var abiertos = S.state.avisos.filter(S.abierto);
 
     function grupo(pred) { return S.ordenar(abiertos.filter(pred), 'fecha'); }
@@ -84,6 +119,9 @@
     var deHoy = grupo(function (a) { return a.fecha === hoy; });
     var manana = grupo(function (a) { return a.fecha === S.sumaDias(hoy, 1); });
     var proximos = grupo(function (a) { return a.fecha && a.fecha > S.sumaDias(hoy, 1) && a.fecha <= S.sumaDias(hoy, 7); });
+    /* Sin este grupo, lo que tiene fecha a más de una semana no se veía en
+       ningún sitio de la agenda. */
+    var despues = grupo(function (a) { return a.fecha && a.fecha > S.sumaDias(hoy, 7); });
     var sinFecha = grupo(function (a) { return !a.fecha; });
 
     var html = '';
@@ -101,55 +139,38 @@
     }
 
     if (!S.state.avisos.length) {
-      html += U.vacioHTML({
+      return html + U.vacioHTML({
         titulo: 'Todavía no hay avisos',
         texto: 'Crea el primero con el botón + o carga unos datos de ejemplo para ver cómo funciona.',
         accion: 'ejemplo', accionLabel: 'Cargar datos de ejemplo'
       });
-    } else {
-      var desliza = { swipe: true };
-      if (vencidos.length) {
-        html += U.seccion('<span class="section__title--rojo">Vencidos</span>',
-          U.lista(vencidos, null, desliza), U.plural(vencidos.length, 'aviso'));
-      }
-      html += U.seccion('Hoy',
-        deHoy.length ? U.lista(deHoy, null, desliza) : '<div class="card card__pad small muted">Nada programado para hoy.</div>',
-        deHoy.length ? U.plural(deHoy.length, 'aviso') : '');
-      if (manana.length) html += U.seccion('Mañana', U.lista(manana, null, desliza), U.plural(manana.length, 'aviso'));
-      if (proximos.length) html += U.seccion('Próximos 7 días', U.lista(proximos, null, desliza), U.plural(proximos.length, 'aviso'));
-      if (sinFecha.length) html += U.seccion('Sin fecha', U.lista(sinFecha, null, desliza), U.plural(sinFecha.length, 'aviso'));
-      if (!vencidos.length && !deHoy.length && !manana.length && !proximos.length && !sinFecha.length) {
-        html += U.vacioHTML({ titulo: 'Todo al día', texto: 'No queda ningún aviso abierto. Buen trabajo.' });
-      }
-
-      var cerrados = S.cerrados();
-      if (cerrados.length) {
-        html += '<a class="cierre" href="#/historico">' +
-          '<span>' + (r.hechosHoy
-            ? '<b>' + U.plural(r.hechosHoy, 'aviso') + '</b> que has dado por hecho hoy'
-            : '<b>' + U.plural(cerrados.length, 'aviso cerrado', 'avisos cerrados') + '</b> en el histórico') +
-          '</span><span class="cierre__ir">Ver' + ICON.chevron + '</span></a>';
-      }
     }
 
-    return {
-      titulo: 'Agenda',
-      sub: U.plural(r.abiertos, 'aviso abierto', 'avisos abiertos') + ' · ' + r.total + ' en total',
-      acciones: '<button class="iconbtn" data-pegar type="button" aria-label="Pegar un aviso copiado">' + ICON.copia + '</button>',
-      html: html,
-      mount: function (root) {
-        U.$$('[data-k]', root).forEach(function (b) {
-          b.addEventListener('click', function () { location.hash = '#/avisos?v=' + b.dataset.k; });
-        });
-        var ej = root.querySelector('[data-accion="ejemplo"]');
-        if (ej) ej.addEventListener('click', function () {
-          S.datosDeEjemplo().then(function () { U.toast('Datos de ejemplo cargados'); global.App.render(); });
-        });
-        var pista = root.querySelector('[data-pista]');
-        if (pista) pista.addEventListener('click', ocultarPista);
-        conectarGestos(root);
-      }
-    };
+    var desliza = { swipe: true };
+    if (vencidos.length) {
+      html += U.seccion('<span class="section__title--rojo">Vencidos</span>',
+        U.lista(vencidos, null, desliza), U.plural(vencidos.length, 'aviso'));
+    }
+    html += U.seccion('Hoy',
+      deHoy.length ? U.lista(deHoy, null, desliza) : '<div class="card card__pad small muted">Nada programado para hoy.</div>',
+      deHoy.length ? U.plural(deHoy.length, 'aviso') : '');
+    if (manana.length) html += U.seccion('Mañana', U.lista(manana, null, desliza), U.plural(manana.length, 'aviso'));
+    if (proximos.length) html += U.seccion('Próximos 7 días', U.lista(proximos, null, desliza), U.plural(proximos.length, 'aviso'));
+    if (despues.length) html += U.seccion('Más adelante', U.lista(despues, null, desliza), U.plural(despues.length, 'aviso'));
+    if (sinFecha.length) html += U.seccion('Sin fecha', U.lista(sinFecha, null, desliza), U.plural(sinFecha.length, 'aviso'));
+    if (!abiertos.length) {
+      html += U.vacioHTML({ titulo: 'Todo al día', texto: 'No queda ningún aviso abierto. Buen trabajo.' });
+    }
+
+    var cerrados = S.cerrados();
+    if (cerrados.length) {
+      html += '<a class="cierre" href="#/historico">' +
+        '<span>' + (r.hechosHoy
+          ? '<b>' + U.plural(r.hechosHoy, 'aviso') + '</b> que has dado por hecho hoy'
+          : '<b>' + U.plural(cerrados.length, 'aviso cerrado', 'avisos cerrados') + '</b> en el histórico') +
+        '</span><span class="cierre__ir">Ver' + ICON.chevron + '</span></a>';
+    }
+    return html;
   }
 
   /* La tarjeta principal: lo que queda para hoy en grande, un anillo con lo
@@ -255,28 +276,49 @@
   }
 
   /* =========================================================
-     LISTA DE AVISOS
+     BÚSQUEDA (dentro de la Agenda)
      ========================================================= */
 
-  var filtro = { texto: '', estado: '', prioridad: '', tecnico: '', tipo: '', sistema: '', soloAbiertos: true, vencidos: false, orden: 'fecha' };
+  /* Por defecto se busca en todo, también en lo cerrado: buscar a un cliente
+     suele ser para ver qué se le hizo. */
+  var FILTRO_VACIO = { texto: '', estado: '', prioridad: '', tecnico: '', tipo: '', sistema: '', desde: '', hasta: '', soloAbiertos: false, vencidos: false };
+  var filtro = Object.assign({ orden: 'fecha' }, FILTRO_VACIO);
 
+  function enBusqueda() {
+    return !!(String(filtro.texto || '').trim() || contarFiltros() || filtro.vencidos || filtro.soloAbiertos);
+  }
+
+  function limpiarBusqueda() {
+    Object.assign(filtro, FILTRO_VACIO);
+  }
+
+  /* Una lista ya filtrada: los accesos de la tarjeta de hoy y los enlaces de
+     antes a #/avisos?v=… */
   function aplicarVista(v) {
-    filtro.vencidos = false; filtro.estado = ''; filtro.prioridad = ''; filtro.tecnico = '';
-    filtro.desde = ''; filtro.hasta = ''; filtro.soloAbiertos = true;
+    limpiarBusqueda();
+    filtro.soloAbiertos = true;
     if (v === 'vencidos') filtro.vencidos = true;
     else if (v === 'hoy') { filtro.desde = S.hoyISO(); filtro.hasta = S.hoyISO(); }
     else if (v === 'semana') { filtro.desde = S.hoyISO(); filtro.hasta = S.sumaDias(S.hoyISO(), 7); }
     else if (v === 'sinasignar') filtro.tecnico = '__sin__';
   }
 
-  function avisos(params) {
-    if (params && params.v) { aplicarVista(params.v); location.replace('#/avisos'); }
-
-    var res = S.ordenar(S.filtrar(filtro), filtro.orden);
+  function buscador(buscando) {
     var activos = contarFiltros();
+    return '<div class="searchbar">' +
+      '<span class="searchbar__field">' + ICON.lupa +
+        '<input id="q" type="search" inputmode="search" enterkeyhint="search" placeholder="Buscar cliente, dirección, ref…" value="' + esc(filtro.texto) + '" autocomplete="off">' +
+      '</span>' +
+      '<button class="iconbtn searchbar__filtro' + (activos ? ' searchbar__filtro--on' : '') + '" data-mas type="button" aria-label="Filtros' + (activos ? ' (' + activos + ' activos)' : '') + '">' + ICON.filtro + '</button>' +
+      (buscando ? '<button class="searchbar__cancelar" data-clear type="button">Cancelar</button>' : '') +
+    '</div>';
+  }
+
+  function resultados() {
+    var res = S.ordenar(S.filtrar(filtro), filtro.orden);
 
     var vacio = { titulo: 'Sin resultados', texto: 'Prueba a quitar filtros o a buscar otra cosa.' };
-    if (!res.length) {
+    if (!res.length && String(filtro.texto || '').trim()) {
       var sinFiltros = S.filtrar({ texto: filtro.texto });
       if (sinFiltros.length) {
         vacio.texto = sinFiltros.length + (sinFiltros.length === 1 ? ' aviso coincide' : ' avisos coinciden') +
@@ -286,62 +328,54 @@
       }
     }
 
-    var chips = '<div class="chips">' +
-      chip('abiertos', filtro.soloAbiertos, 'Solo abiertos') +
-      chip('vencidos', filtro.vencidos, 'Vencidos') +
-      chip('urgente', filtro.prioridad === 'urgente', 'Urgentes') +
-      chip('sinasignar', filtro.tecnico === '__sin__', 'Sin asignar') +
-      chip('hoy', filtro.desde === S.hoyISO() && filtro.hasta === S.hoyISO(), 'Hoy') +
-      '<button class="chip" data-mas type="button">' + ICON.filtro + 'Más filtros' +
-        (activos ? '<span class="chip__n">' + activos + '</span>' : '') + '</button>' +
-      '</div>';
-
-    var html =
-      '<div class="searchbar">' +
-        '<span class="searchbar__field">' + ICON.lupa +
-          '<input id="q" type="search" inputmode="search" placeholder="Buscar cliente, dirección, ref…" value="' + esc(filtro.texto) + '" autocomplete="off">' +
-        '</span>' +
-        (filtro.texto ? '<button class="iconbtn searchbar__clear" data-clear type="button" aria-label="Limpiar búsqueda">' + ICON.x + '</button>' : '') +
-      '</div>' + chips +
+    return '<div class="chips">' +
+        chip('abiertos', filtro.soloAbiertos, 'Solo abiertos') +
+        chip('vencidos', filtro.vencidos, 'Vencidos') +
+        chip('urgente', filtro.prioridad === 'urgente', 'Urgentes') +
+        chip('sinasignar', filtro.tecnico === '__sin__', 'Sin asignar') +
+        chip('hoy', filtro.desde === S.hoyISO() && filtro.hasta === S.hoyISO(), 'Hoy') +
+      '</div>' +
       '<div class="section__head"><h2 class="section__title">' +
         U.plural(res.length, 'resultado') +
       '</h2><button class="btn btn--ghost btn--sm" data-orden type="button">Orden: ' + esc(nombreOrden(filtro.orden)) + '</button></div>' +
       U.lista(res, vacio, { swipe: true });
+  }
 
-    return {
-      titulo: 'Avisos',
-      sub: U.plural(S.state.avisos.length, 'aviso guardado', 'avisos guardados') + ' en este dispositivo',
-      html: html,
-      mount: function (root) {
-        var q = root.querySelector('#q');
-        var t = null;
-        q.addEventListener('input', function () {
-          clearTimeout(t);
-          t = setTimeout(function () { filtro.texto = q.value; global.App.render({ mantenerFoco: '#q' }); }, 220);
-        });
-        var cl = root.querySelector('[data-clear]');
-        if (cl) cl.addEventListener('click', function () { filtro.texto = ''; global.App.render(); });
+  function montarBuscador(root) {
+    var q = root.querySelector('#q');
+    var t = null;
+    q.addEventListener('input', function () {
+      clearTimeout(t);
+      t = setTimeout(function () { filtro.texto = q.value; global.App.render({ mantenerFoco: '#q' }); }, 220);
+    });
+    /* «Buscar» en el teclado solo lo esconde: la lista ya está al día. */
+    q.addEventListener('keydown', function (e) { if (e.key === 'Enter') q.blur(); });
 
-        U.$$('.chip[data-chip]', root).forEach(function (c) {
-          c.addEventListener('click', function () { toggleChip(c.dataset.chip); global.App.render(); });
-        });
-        root.querySelector('[data-mas]').addEventListener('click', sheetFiltros);
+    var cl = root.querySelector('[data-clear]');
+    if (cl) cl.addEventListener('click', function () {
+      clearTimeout(t);
+      limpiarBusqueda();
+      global.App.render();
+    });
 
-        var todos = root.querySelector('[data-accion="todos"]');
-        if (todos) todos.addEventListener('click', function () {
-          filtro.estado = filtro.prioridad = filtro.tipo = filtro.sistema = filtro.tecnico = '';
-          filtro.desde = filtro.hasta = '';
-          filtro.vencidos = false; filtro.soloAbiertos = false;
-          global.App.render();
-        });
-        root.querySelector('[data-orden]').addEventListener('click', function () {
-          var ordenes = ['fecha', 'prioridad', 'reciente'];
-          filtro.orden = ordenes[(ordenes.indexOf(filtro.orden) + 1) % ordenes.length];
-          global.App.render();
-        });
-        conectarGestos(root);
-      }
-    };
+    U.$$('[data-mas]', root).forEach(function (b) { b.addEventListener('click', sheetFiltros); });
+    U.$$('.chip[data-chip]', root).forEach(function (c) {
+      c.addEventListener('click', function () { toggleChip(c.dataset.chip); global.App.render(); });
+    });
+
+    var todos = root.querySelector('[data-accion="todos"]');
+    if (todos) todos.addEventListener('click', function () {
+      var texto = filtro.texto;
+      limpiarBusqueda();
+      filtro.texto = texto;
+      global.App.render();
+    });
+    var orden = root.querySelector('[data-orden]');
+    if (orden) orden.addEventListener('click', function () {
+      var ordenes = ['fecha', 'prioridad', 'reciente'];
+      filtro.orden = ordenes[(ordenes.indexOf(filtro.orden) + 1) % ordenes.length];
+      global.App.render();
+    });
   }
 
   function nombreOrden(o) {
@@ -421,7 +455,7 @@
 
   function detalle(params) {
     var a = S.byId(S.state.avisos, params.id);
-    if (!a) return { titulo: 'Aviso', html: U.vacioHTML({ titulo: 'Aviso no encontrado', texto: 'Puede que se haya eliminado.' }), atras: '#/avisos' };
+    if (!a) return { titulo: 'Aviso', html: U.vacioHTML({ titulo: 'Aviso no encontrado', texto: 'Puede que se haya eliminado.' }), atras: '#/agenda' };
 
     var c = a.cliente || {};
     var tel = String(c.telefono || '').replace(/\s+/g, '');
@@ -545,7 +579,7 @@
     return {
       titulo: a.ref || 'Aviso',
       sub: (c.nombre || 'Sin cliente'),
-      atras: '#/avisos',
+      atras: '#/agenda',
       acciones: '<button class="iconbtn" data-editar type="button" aria-label="Editar">' + ICON.lapiz + '</button>' +
                 '<button class="iconbtn" data-menu type="button" aria-label="Más acciones">' + ICON.puntos + '</button>',
       html: html,
@@ -883,7 +917,7 @@
               U.confirmar('Eliminar aviso', 'Se borrará ' + (a.ref || 'el aviso') + ' con sus notas y fotos. No se puede deshacer.', { peligro: true, aceptar: 'Eliminar' })
                 .then(function (ok) {
                   if (!ok) return;
-                  S.borrarAviso(a.id).then(function () { U.toast('Aviso eliminado'); location.hash = '#/avisos'; });
+                  S.borrarAviso(a.id).then(function () { U.toast('Aviso eliminado'); location.hash = '#/agenda'; });
                 });
             }
           });
@@ -936,7 +970,7 @@
       ? JSON.parse(JSON.stringify(S.byId(S.state.avisos, params.id) || {}))
       : (desdeAtajo ? Atajos.aAviso(desdeAtajo) : S.nuevoAvisoVacio());
     if (editando && !a.id) {
-      return { titulo: 'Aviso', html: U.vacioHTML({ titulo: 'Aviso no encontrado', texto: '' }), atras: '#/avisos' };
+      return { titulo: 'Aviso', html: U.vacioHTML({ titulo: 'Aviso no encontrado', texto: '' }), atras: '#/agenda' };
     }
     var c = a.cliente || (a.cliente = {});
     var tecs = S.state.tecnicos.map(function (t) { return { id: t.id, label: t.nombre }; });
@@ -1276,7 +1310,6 @@
     return {
       titulo: 'Equipo',
       sub: U.plural(tecs.length, 'técnico'),
-      atras: '#/ajustes',
       html: html,
       mount: function (root) {
         var nb = root.querySelector('[data-nuevo]');
@@ -1330,7 +1363,6 @@
   function ajustes() {
     var r = S.resumen();
     var tema = S.state.ajustes.tema || 'auto';
-    var nTec = S.state.tecnicos.length;
 
     var conFecha = ICS.exportables(S.state.avisos);
     var abiertosCal = conFecha.filter(S.abierto);
@@ -1338,12 +1370,6 @@
     var proximos = abiertosCal.filter(function (a) { return a.fecha >= S.hoyISO() && a.fecha <= limite30; });
 
     var html = '';
-
-    html += bloque('', fila({
-      href: '#/equipo', icono: 'personas', color: COLOR.azul, titulo: 'Equipo',
-      sub: r.sinAsignar ? r.sinAsignar + ' sin asignar' : '',
-      valor: U.plural(nTec, 'técnico'), chevron: true
-    }));
 
     html += bloque('Resumen',
       fila({ estatica: true, titulo: 'Avisos', valor: r.total + ' · ' + r.abiertos + ' abiertos' }) +
@@ -1405,7 +1431,7 @@
 
     return {
       titulo: 'Ajustes',
-      sub: 'Equipo, copias, apariencia y datos',
+      sub: 'Copias, apariencia y datos',
       html: html,
       mount: function (root) { montarAjustes(root); }
     };
@@ -2057,7 +2083,7 @@
   }
 
   global.Views = {
-    agenda: agenda, avisos: avisos, detalle: detalle, formulario: formulario,
+    agenda: agenda, verLista: aplicarVista, detalle: detalle, formulario: formulario,
     historico: historico, equipo: equipo, ajustes: ajustes,
     menuAviso: menuAviso, liberarURLs: liberarURLs, pegarAviso: pegarAviso
   };

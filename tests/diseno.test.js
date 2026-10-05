@@ -10,11 +10,11 @@ function centroX(caja) { return caja.x + caja.width / 2; }
 
 module.exports = {
 
-  'la barra tiene Agenda, Avisos, +, Hechos y Ajustes, con el + en el centro': async function (base) {
+  'la barra tiene Agenda, Hechos, +, Equipo y Ajustes, con el + en el centro': async function (base) {
     var p = await L.abrir(base);
     try {
       var tabs = await p.locator('#tabbar .tab').evaluateAll(function (ts) { return ts.map(function (t) { return t.dataset.tab; }); });
-      assert.deepStrictEqual(tabs, ['agenda', 'avisos', 'historico', 'ajustes']);
+      assert.deepStrictEqual(tabs, ['agenda', 'historico', 'equipo', 'ajustes']);
       var mas = await p.locator('#fab').boundingBox();
       var ancho = p.viewportSize().width;
       assert.ok(Math.abs(centroX(mas) - ancho / 2) < 1.5, 'el + está en ' + centroX(mas) + ' y el centro en ' + ancho / 2);
@@ -24,10 +24,11 @@ module.exports = {
   'la lente queda bajo la pestaña activa al cambiar de sección': async function (base) {
     var p = await L.abrir(base, { movimiento: true });
     try {
-      var rutas = [['#/avisos', 'avisos'], ['#/historico', 'historico'], ['#/ajustes', 'ajustes'], ['#/equipo', 'ajustes'], ['#/agenda', 'agenda']];
+      var rutas = [['#/historico', 'historico'], ['#/equipo', 'equipo'], ['#/ajustes', 'ajustes'], ['#/nuevo', null], ['#/agenda', 'agenda']];
       for (var i = 0; i < rutas.length; i++) {
         await L.ir(p, rutas[i][0]);
         await p.waitForTimeout(800);            // que acabe el muelle
+        if (!rutas[i][1]) continue;             // el formulario no lleva barra
         var tab = await p.locator('#tabbar .tab[data-tab="' + rutas[i][1] + '"]').boundingBox();
         var lente = await p.locator('#lente').boundingBox();
         assert.ok(Math.abs(tab.x - lente.x) < 1.5 && Math.abs(tab.width - lente.width) < 1.5,
@@ -37,16 +38,17 @@ module.exports = {
     } finally { await L.cerrar(p); }
   },
 
-  'Equipo se abre desde Ajustes y vuelve': async function (base) {
-    var p = await L.abrir(base, { ruta: '#/ajustes' });
+  'Equipo es una pantalla de primer nivel; la ficha de un aviso, no': async function (base) {
+    var p = await L.abrir(base, { ruta: '#/equipo' });
     try {
-      await L.tocar(p, '#view a.fila[href="#/equipo"]');
-      await p.waitForFunction(function () { return location.hash === '#/equipo'; });
-      await p.waitForSelector('#navTitle >> text=Equipo');
-      assert.ok(await p.locator('#btnBack').isVisible(), 'en Equipo tiene que haber botón de volver');
+      assert.strictEqual(await p.evaluate(function () { return document.documentElement.dataset.vista; }), 'raiz');
+      assert.ok(await p.locator('#btnBack').isHidden());
+      assert.strictEqual(await p.locator('#view a.fila[href="#/equipo"]').count(), 0);
+      await p.evaluate(function () { return Store.datosDeEjemplo(); });
+      var id = await p.evaluate(function () { return Store.state.avisos[0].id; });
+      await L.ir(p, '#/aviso/' + id);
+      await p.waitForSelector('#btnBack:not([hidden])');
       assert.strictEqual(await p.evaluate(function () { return document.documentElement.dataset.vista; }), 'apilada');
-      await L.tocar(p, '#btnBack');
-      await p.waitForFunction(function () { return location.hash === '#/ajustes'; });
       L.sinErrores(p);
     } finally { await L.cerrar(p); }
   },
@@ -72,7 +74,6 @@ module.exports = {
     try {
       assert.deepStrictEqual(await color(), ['#f2f2f7', '#f2f2f7']);
       await L.conEjemplos(p);
-      await L.ir(p, '#/avisos');
       await L.tocar(p, '[data-mas]');
       await p.waitForSelector('#sheet:not([hidden])');
       assert.deepStrictEqual(await color(), ['#b6b6b9', '#b6b6b9']);
@@ -102,7 +103,7 @@ module.exports = {
     var p = await L.abrir(base, { movimiento: true });
     try {
       await L.conEjemplos(p);
-      var rutas = ['#/agenda', '#/avisos', '#/historico', '#/ajustes', '#/equipo'];
+      var rutas = ['#/agenda', '#/historico', '#/ajustes', '#/equipo'];
       for (var i = 0; i < rutas.length; i++) {
         await L.ir(p, rutas[i]);
         await p.waitForTimeout(300);

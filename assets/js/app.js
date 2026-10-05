@@ -2,7 +2,7 @@
 (function (global) {
   'use strict';
 
-  var APP_VERSION = '2.0.0';
+  var APP_VERSION = '2.1.0';
   global.APP_VERSION = APP_VERSION;
 
   var S = global.Store, U = global.UI, V = global.Views;
@@ -41,14 +41,12 @@
   function resolver(r) {
     var s = r.seg;
     switch (s[0]) {
-      case 'avisos':  return { vista: V.avisos(r.params), tab: 'avisos' };
-      case 'aviso':   return { vista: V.detalle({ id: s[1] }), tab: 'avisos' };
+      case 'aviso':   return { vista: V.detalle({ id: s[1] }), tab: 'agenda' };
       /* En los formularios la barra de pestañas estorba: tienen sus botones. */
       case 'nuevo':   return { vista: V.formulario(null, Atajos.deObjeto(r.params)), tab: null, sinBarra: true };
       case 'editar':  return { vista: V.formulario({ id: s[1] }), tab: null, sinBarra: true };
       case 'historico': return { vista: V.historico(), tab: 'historico' };
-      /* Equipo vive dentro de Ajustes, como una página más de Configuración. */
-      case 'equipo':  return { vista: V.equipo(), tab: 'ajustes' };
+      case 'equipo':  return { vista: V.equipo(), tab: 'equipo' };
       case 'ajustes': return { vista: V.ajustes(), tab: 'ajustes' };
       default:        return { vista: V.agenda(), tab: 'agenda' };
     }
@@ -83,6 +81,13 @@
     opts = opts || {};
     var r = parseHash();
     if (atenderAtajo(r)) return;
+    /* La lista de avisos ahora es la búsqueda de la Agenda. Los enlaces de
+       antes (#/avisos?v=vencidos…) llegan a ella ya filtrada. */
+    if (r.seg[0] === 'avisos') {
+      if (r.params.v) V.verLista(r.params.v);
+      location.replace('#/agenda');
+      return;
+    }
     var clave = r.raw;
     var mismaRuta = clave === rutaActual;
 
@@ -178,9 +183,10 @@
     });
   }
 
+  /* El globo rojo de la Agenda cuenta lo vencido: lo que pide atención. */
   function actualizarBadge() {
-    var n = S.resumen().abiertos;
-    var b = document.getElementById('badgeAbiertos');
+    var n = S.resumen().vencidos;
+    var b = document.getElementById('badgeAgenda');
     b.textContent = n > 99 ? '99+' : n;
     b.hidden = !n;
   }

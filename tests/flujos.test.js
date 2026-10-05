@@ -71,7 +71,6 @@ module.exports = {
     var p = await L.abrir(base);
     try {
       await L.conEjemplos(p);
-      await L.ir(p, '#/avisos');
       await L.tocar(p, '[data-mas]');
       await p.waitForSelector('#sheet:not([hidden])');
       await L.tocar(p, '#sheet .sheet__panel [data-close]');
@@ -85,11 +84,10 @@ module.exports = {
     } finally { await L.cerrar(p); }
   },
 
-  'la búsqueda filtra la lista de avisos': async function (base) {
+  'la búsqueda de la agenda filtra los avisos': async function (base) {
     var p = await L.abrir(base);
     try {
       await L.conEjemplos(p);
-      await L.ir(p, '#/avisos');
       var antes = await p.locator('[data-aviso]').count();
       var cliente = await p.evaluate(function () {
         return Store.state.avisos.filter(Store.abierto)[0].cliente.nombre;
@@ -129,7 +127,7 @@ module.exports = {
     try {
       await L.conEjemplos(p);
       var id = await p.evaluate(function () { return Store.state.avisos[0].id; });
-      var rutas = ['#/agenda', '#/avisos', '#/historico', '#/equipo', '#/ajustes', '#/nuevo', '#/aviso/' + id, '#/editar/' + id];
+      var rutas = ['#/agenda', '#/historico', '#/equipo', '#/ajustes', '#/nuevo', '#/aviso/' + id, '#/editar/' + id];
       for (var i = 0; i < rutas.length; i++) {
         await L.ir(p, rutas[i]);
         await p.waitForSelector('#view > *');

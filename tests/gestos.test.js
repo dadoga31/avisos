@@ -54,7 +54,6 @@ module.exports = {
         var a = Store.state.avisos.filter(function (x) { return Store.abierto(x) && x.estado !== 'en_curso'; });
         return a.length ? a[0].id : null;
       });
-      await L.ir(p, '#/avisos');
       var fila = '[data-swipe="' + id + '"]';
       await p.locator(fila).scrollIntoViewIfNeeded();
       await L.deslizar(p, fila, 200);

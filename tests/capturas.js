@@ -14,7 +14,7 @@ var L = require('./lib');
 
 var PANTALLAS = {
   agenda: '#/agenda',
-  avisos: '#/avisos',
+  busqueda: 'busqueda',
   hechos: '#/historico',
   ajustes: '#/ajustes',
   equipo: '#/equipo',
@@ -63,8 +63,12 @@ async function preparar(page, nombre) {
       return Store.state.avisos.filter(function (a) { return (a.notas || []).length; })[0].id;
     });
     await L.ir(page, '#/aviso/' + id);
+  } else if (nombre === 'busqueda') {
+    await L.ir(page, '#/agenda');
+    await page.fill('#q', 'alarma');
+    await page.waitForSelector('[data-clear]');
   } else if (nombre === 'hoja') {
-    await L.ir(page, '#/avisos');
+    await L.ir(page, '#/agenda');
     await page.locator('[data-mas]').tap();
   } else if (nombre === 'recogido') {
     await L.ir(page, '#/agenda');
@@ -93,7 +97,12 @@ async function main() {
         await preparar(page, pantallas[k]);
         var f = path.join(carpeta, pantallas[k] + '-' + modelos[i] + '-' + temas[j] + '.png');
         await foto(page, f, modelos[i]);
-        await page.evaluate(function () { if (window.UI) UI.cerrarSheet(); window.scrollTo(0, 0); });
+        await page.evaluate(function () {
+          if (window.UI) UI.cerrarSheet();
+          var c = document.querySelector('[data-clear]');
+          if (c) c.click();
+          window.scrollTo(0, 0);
+        });
       }
       if (page.errores.length) console.log('⚠ errores en ' + modelos[i] + '/' + temas[j] + ':\n  ' + page.errores.join('\n  '));
       await L.cerrar(page);

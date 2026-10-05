@@ -677,7 +677,16 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.8; 
 .searchbar input:focus{ box-shadow:0 0 0 2px color-mix(in srgb, var(--tint) 45%, transparent) }
 .searchbar input::placeholder{ color:var(--label-2) }
 .searchbar input::-webkit-search-cancel-button{ display:none }
-.searchbar__clear{ flex:none; width:44px; height:44px; background:var(--fill-3); color:var(--label-2); touch-action:manipulation }
+.searchbar__clear, .searchbar__filtro{ flex:none; width:44px; height:44px; background:var(--fill-3); color:var(--label-2); touch-action:manipulation }
+.searchbar__filtro svg{ width:19px; height:19px; stroke-width:2 }
+.searchbar__filtro--on{ background:var(--tint); color:#fff; box-shadow:0 4px 12px color-mix(in srgb, var(--tint) 28%, transparent) }
+/* Como en iOS: con la búsqueda en marcha, «Cancelar» la deja y vuelve a la agenda. */
+.searchbar__cancelar{
+  flex:none; min-height:44px; padding:0 2px 0 4px; border:0; background:transparent;
+  color:var(--tint); font-size:17px; transition:opacity .15s ease;
+}
+.searchbar__cancelar:active{ opacity:.5 }
+.searchbar + .hero{ margin-top:4px }
 
 .chips{
   display:flex; gap:8px; overflow-x:auto; scrollbar-width:none;
@@ -687,14 +696,15 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.8; 
 .chips::-webkit-scrollbar{ display:none }
 .chip{
   flex:none; height:36px; padding:0 14px; border-radius:999px;
-  background:var(--card); border:.5px solid var(--card-stroke); box-shadow:var(--card-shadow);
+  /* Sombra corta: la fila se desplaza en horizontal y recortaría una larga. */
+  background:var(--card); border:.5px solid var(--card-stroke); box-shadow:0 1px 3px rgba(0,0,0,.07);
   font-size:15px; font-weight:500; color:var(--label); white-space:nowrap;
   display:inline-flex; align-items:center; gap:6px;
   transition:background-color .2s ease, color .2s ease, transform var(--press-out);
 }
 .chip svg{ width:17px; height:17px; stroke-width:2 }
 .chip:active{ transform:scale(.95); transition:transform var(--press-in) }
-.chip[aria-pressed="true"]{ background:var(--tint); color:#fff; border-color:transparent; box-shadow:0 4px 12px color-mix(in srgb, var(--tint) 28%, transparent) }
+.chip[aria-pressed="true"]{ background:var(--tint); color:#fff; border-color:transparent; box-shadow:0 2px 6px color-mix(in srgb, var(--tint) 30%, transparent) }
 .chip__n{ font-size:13px; opacity:.7; font-variant-numeric:tabular-nums }
 
 /* ---------- Formularios ---------- */
