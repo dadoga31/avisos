@@ -41,14 +41,71 @@ iPhone, instalada desde Safari en la pantalla de inicio.
 
 ## Pruebas
 
-- Las pruebas se guardan en `tests/` y se suben con el código. Las de las
-  primeras sesiones se quedaron fuera del repositorio y se perdieron.
-- La web se sirve con `python3 -m http.server 8000` y se prueba con Playwright
-  y el Chromium preinstalado. Los gestos táctiles, con `Input.dispatchTouchEvent`
-  por CDP. El puente de Android se simula con un `window.AvisosNativo` falso
-  inyectado con `addInitScript`.
+- `cd tests && npm install && npm test` (o `node run.js gestos` para un solo
+  fichero). Usan `playwright-core` con el Chromium preinstalado y un iPhone
+  emulado: UA de iPhone, `navigator.standalone = true`, tamaño del modelo y
+  movimiento reducido salvo donde se pide lo contrario (`movimiento: true`).
+- Nada de push con una prueba en rojo. Las pruebas usan atributos estables
+  (`data-aviso`, `data-swipe`, `data-estado`, ids del armazón): si cambias el
+  marcado, conserva esos ganchos.
+- Los gestos táctiles van por CDP (`Input.dispatchTouchEvent`). El puente de
+  Android se simula con un `window.AvisosNativo` falso en `addInitScript`.
 - Ante un fallo que cuenta el usuario: reprodúcelo con una prueba antes de
   arreglarlo y comprueba después que pasa.
+- `node tests/capturas.js [carpeta] [modelos] [temas] [pantallas]` saca fotos
+  de cada pantalla con la barra de estado simulada encima. Revísalas en claro y
+  oscuro a 375, 393, 402 y 430 px antes de dar por bueno un cambio visual:
+  que el + esté centrado, que la lente caiga bajo su pestaña, que nada se corte
+  y que no haya errores de consola. Chromium sin pantalla no pinta bien
+  `backdrop-filter` ni la tipografía SF: el resultado final se mira en el iPhone.
+
+## Sistema de diseño: app nativa de iPhone (iOS 26 / Liquid Glass)
+
+Viene del proyecto Investor del mismo usuario (Preact) y aquí está hecho sin
+compilar: tokens y componentes en `assets/css/app.css`, comportamiento en
+`assets/js/ios.js`. Mantenerlo al tocar cualquier pantalla.
+
+- Tiene que parecer **una app de Apple**: materiales translúcidos, esquinas
+  redondeadas y concéntricas, tipografía del sistema, colores del sistema y
+  movimiento con muelles. Llamativa, pero con contención.
+- La interfaz es neutra y **el color lo llevan los datos y las acciones**: el
+  tinte es `systemBlue` (`--tint`) y cada estado del aviso tiene su color
+  (`.e-<estado>` pone `--c` y `--ct`). La tarjeta de hoy cambia de degradado
+  con los datos: rojizo con vencidos, violeta-naranja con urgentes, azul si no.
+- Navegación: Agenda · Avisos · **+** · Hechos · Ajustes. Equipo es una fila de
+  Ajustes. Las pantallas de primer nivel llevan título grande (34 px) que se
+  recoge en la barra al bajar; las que se abren desde ellas (`atras` en la
+  vista) llevan el título pequeño en la barra y botón de volver
+  (`data-vista="apilada"`). En los formularios no hay barra de pestañas.
+- **Barra de estado**: `apple-mobile-web-app-status-bar-style` en `default`,
+  nunca `black-translucent` (hora y batería en blanco, ilegibles en claro).
+  `theme-color` lo pone `Ios.barraEstado()` según el tema de la app, sin
+  `media`, y se oscurece a `#b6b6b9` con la hoja abierta en modo claro. El
+  borde de arriba de la página es `--bg` liso y el fondo ambiental entra con
+  una máscara en 150 px para que no se vea la unión.
+- **Esquinas concéntricas** de la barra de pestañas: el radio de la pantalla
+  se deduce del modelo (`RADIOS` en `ios.js`), solo con la app instalada.
+  Margen igual por los lados y por abajo = max(12, R − alto/2); radio = R −
+  margen; lo de dentro, radio − separación.
+- `backdrop-filter` solo en capas flotantes (barras, hoja, aviso, botones
+  redondos); las tarjetas son translúcidas sin desenfoque. Hay un `@supports`
+  con fondos opacos. Las filas que se deslizan son opacas (`--card-solid`) para
+  que no se transparente la acción de debajo.
+- Componentes: listas agrupadas con separador que empieza en el texto
+  (`.grupo`, `.fila`, helpers `fila()` y `bloque()` en `views.js`), filas de
+  aviso en tres líneas (título y hora; cliente; estado, referencia y técnico),
+  segmentados en cápsula con una pieza que se desliza, hoja con asa que se
+  cierra arrastrando la cabecera más de 120 px, aviso flotante arriba en
+  cápsula de cristal. Inputs de 16 px o más para que iOS no haga zoom.
+- Movimiento: muelles con `linear()` (`--spring-smooth` sin rebote para hojas y
+  títulos, `--spring` 4 %, `--spring-slide` 8 % para lente y segmentados,
+  `--spring-bounce` 15 % al soltar). Pulsar es inmediato y soltar va con
+  muelle. Luz al tocar, bloques que aparecen una vez al entrar en pantalla
+  (atributo `data-reveal`, solo al cambiar de ruta: si se repinta la misma, no
+  se anima) y cifras que cuentan. Todo se apaga con `prefers-reduced-motion`.
+- Lo que una web **no** puede imitar, y no se promete: la refracción real del
+  cristal, el radio exacto de la pantalla, la vibración antes de iOS 18 (se usa
+  un `<input switch>` invisible) y volver deslizando desde el borde.
 
 ## Fallos ya resueltos (no volver a meterlos)
 

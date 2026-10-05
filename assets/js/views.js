@@ -22,7 +22,51 @@
     calendario: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="1"/><path d="M3 10h18M8 3v4M16 3v4M12 14v4M10 16h4"/></svg>',
     clip: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5 11.8 19.7a4.6 4.6 0 0 1-6.5-6.5l8.4-8.4a3 3 0 0 1 4.3 4.3l-8.2 8.2a1.5 1.5 0 0 1-2.1-2.1l7.5-7.5"/></svg>',
     sobre: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></svg>',
-    abrirFuera: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-8.5 8.5"/><path d="M19 14v5H5V5h5"/></svg>'
+    abrirFuera: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-8.5 8.5"/><path d="M19 14v5H5V5h5"/></svg>',
+    desliza: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8 3.5 11.5 7 15M17 8l3.5 3.5L17 15M3.5 11.5h17"/></svg>',
+    chevron: '<svg class="fila__chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5.5 6.5 6.5L9 18.5"/></svg>',
+    personas: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c0-3.2 2.5-5.3 5.5-5.3s5.5 2.1 5.5 5.3"/><path d="M15.5 5.6a3 3 0 0 1 0 5.8M17.6 14.6c1.8.7 2.9 2.4 2.9 4.9"/></svg>',
+    exportar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 13v5.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V13"/></svg>',
+    importar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M8 11l4 4 4-4"/><path d="M5 13v5.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V13"/></svg>',
+    tabla: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 10h16M4 14.5h16M10 10v9"/></svg>',
+    campana: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5z"/><path d="M10 20.5h4"/></svg>',
+    movil: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M11 18h2"/></svg>',
+    ayuda: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4"/><circle cx="12" cy="16.7" r=".6" fill="currentColor"/></svg>',
+    actualizar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 9A8 8 0 0 0 5 7.5M4.5 15A8 8 0 0 0 19 16.5"/><path d="M5 3.5v4h4M19 20.5v-4h-4"/></svg>',
+    reinstalar: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5v4h4"/></svg>',
+    matraz: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 3.5h5M10.5 3.5v5.2L5.4 17.6A2 2 0 0 0 7.1 20.5h9.8a2 2 0 0 0 1.7-2.9l-5.1-8.9V3.5"/><path d="M7.8 14.5h8.4"/></svg>',
+    numero: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 4 8 20M16 4l-1.5 16M4.5 9h15M4 15h15"/></svg>',
+    disco: '<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6.5" rx="7" ry="2.8"/><path d="M5 6.5v11c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-11M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/></svg>'
+  };
+
+  /* Fila de una lista agrupada, como en Ajustes del iPhone: icono sobre
+     color, título, valor a la derecha y flecha si lleva a otra pantalla. */
+  function fila(o) {
+    var etiqueta = o.href ? 'a' : (o.label ? 'label' : (o.estatica ? 'div' : 'button'));
+    var attrs = (o.href ? ' href="' + esc(o.href) + '"' : '') + (etiqueta === 'button' ? ' type="button"' : '') + (o.attrs || '');
+    return '<li><' + etiqueta + ' class="fila' + (o.control ? ' fila--control' : '') + (o.clase ? ' ' + o.clase : '') + '"' + attrs + '>' +
+      (o.icono ? '<span class="fila__icono" style="--c:' + o.color + '">' + ICON[o.icono] + '</span>' : '') +
+      '<span class="fila__main"><span class="fila__titulo">' + o.titulo + '</span>' +
+        (o.sub ? '<span class="fila__sub">' + o.sub + '</span>' : '') + '</span>' +
+      (o.control || '') +
+      (o.valor != null ? '<span class="fila__valor"' + (o.idValor ? ' id="' + o.idValor + '"' : '') + '>' + o.valor + '</span>' : '') +
+      (o.chevron ? ICON.chevron : '') +
+      '</' + etiqueta + '></li>';
+  }
+
+  function bloque(titulo, filas, pie, opts) {
+    opts = opts || {};
+    return '<section class="bloque">' +
+      (titulo ? '<h2 class="grupo__cabecera">' + titulo + '</h2>' : '') +
+      '<ul class="grupo' + (opts.sinIconos ? '' : ' grupo--iconos') + '">' + filas + '</ul>' +
+      (pie ? '<p class="grupo__pie">' + pie + '</p>' : '') +
+      '</section>';
+  }
+
+  /* Colores del sistema para los iconos de Ajustes */
+  var COLOR = {
+    azul: '#007aff', verde: '#34c759', indigo: '#5856d6', naranja: '#ff9500',
+    rojo: '#ff3b30', gris: '#8e8e93', turquesa: '#30b0c7', morado: '#af52de'
   };
 
   /* =========================================================
@@ -44,18 +88,14 @@
 
     var html = '';
 
-    html += '<div class="kpis">' +
-      kpi('vencidos', r.vencidos, 'Vencidos', r.vencidos ? 'kpi--alert' : '') +
-      kpi('hoy', r.hoy, 'Hoy', '') +
-      kpi('semana', r.semana, '7 días', '') +
-      kpi('sinasignar', r.sinAsignar, 'Sin asignar', r.sinAsignar ? 'kpi--accent' : '') +
-      '</div>';
+    if (S.state.avisos.length) html += tarjetaHoy(r, deHoy, vencidos, abiertos);
 
     if (S.state.avisos.length && S.state.ajustes.pistaGestos !== false) {
       html += '<div class="pista">' +
+        '<span class="pista__ico">' + ICON.desliza + '</span>' +
         '<span>Desliza un aviso <b>hacia la izquierda</b> para darlo por hecho, o ' +
         '<b>hacia la derecha</b> para ponerlo en curso o cancelarlo. ' +
-        'La banda de color de cada fila indica su estado.</span>' +
+        'El color del icono de cada fila indica su estado.</span>' +
         '<button class="iconbtn" data-pista type="button" aria-label="Entendido">' + ICON.x + '</button>' +
         '</div>';
     }
@@ -69,10 +109,10 @@
     } else {
       var desliza = { swipe: true };
       if (vencidos.length) {
-        html += U.seccion('<span style="color:var(--pr-urgente)">Vencidos</span>',
+        html += U.seccion('<span class="section__title--rojo">Vencidos</span>',
           U.lista(vencidos, null, desliza), U.plural(vencidos.length, 'aviso'));
       }
-      html += U.seccion('Hoy · <b>' + esc(U.fmtFechaLarga(hoy)) + '</b>',
+      html += U.seccion('Hoy',
         deHoy.length ? U.lista(deHoy, null, desliza) : '<div class="card card__pad small muted">Nada programado para hoy.</div>',
         deHoy.length ? U.plural(deHoy.length, 'aviso') : '');
       if (manana.length) html += U.seccion('Mañana', U.lista(manana, null, desliza), U.plural(manana.length, 'aviso'));
@@ -88,7 +128,7 @@
           '<span>' + (r.hechosHoy
             ? '<b>' + U.plural(r.hechosHoy, 'aviso') + '</b> que has dado por hecho hoy'
             : '<b>' + U.plural(cerrados.length, 'aviso cerrado', 'avisos cerrados') + '</b> en el histórico') +
-          '</span><span class="cierre__ir">Ver histórico ›</span></a>';
+          '</span><span class="cierre__ir">Ver' + ICON.chevron + '</span></a>';
       }
     }
 
@@ -98,7 +138,7 @@
       acciones: '<button class="iconbtn" data-pegar type="button" aria-label="Pegar un aviso copiado">' + ICON.copia + '</button>',
       html: html,
       mount: function (root) {
-        U.$$('.kpi', root).forEach(function (b) {
+        U.$$('[data-k]', root).forEach(function (b) {
           b.addEventListener('click', function () { location.hash = '#/avisos?v=' + b.dataset.k; });
         });
         var ej = root.querySelector('[data-accion="ejemplo"]');
@@ -110,6 +150,52 @@
         conectarGestos(root);
       }
     };
+  }
+
+  /* La tarjeta principal: lo que queda para hoy en grande, un anillo con lo
+     ya hecho y accesos a lo que pide atención. El color avisa: rojizo si hay
+     vencidos, violeta-naranja si hay urgentes, azul si va todo en orden. */
+  var VUELTA = 2 * Math.PI * 42;
+
+  function tarjetaHoy(r, deHoy, vencidos, abiertos) {
+    var hechos = r.hechosHoy;
+    var total = deHoy.length + hechos;
+    var parte = total ? hechos / total : 0;
+    var urgentes = abiertos.some(function (a) { return a.prioridad === 'urgente'; });
+    var tono = vencidos.length ? ' hero--exceso' : (urgentes ? ' hero--tenso' : '');
+    var fecha = U.fmtFechaLarga(S.hoyISO()).replace(/ de \d{4}$/, '').replace(',', '');
+    fecha = fecha.charAt(0).toUpperCase() + fecha.slice(1);
+
+    function dato(k, n, etiqueta) {
+      return '<button class="hero__stat" data-k="' + k + '" type="button">' +
+        '<span class="k">' + esc(etiqueta) + '</span><span class="v" data-cuenta="' + n + '">' + n + '</span></button>';
+    }
+
+    return '<section class="hero' + tono + '">' +
+      '<div class="hero__top">' +
+        '<div>' +
+          '<p class="hero__eyebrow">' + esc(fecha) + '</p>' +
+          '<p class="hero__cifra" data-cuenta="' + deHoy.length + '">' + deHoy.length + '</p>' +
+          '<p class="hero__linea">' + (deHoy.length === 1 ? 'aviso para hoy' : 'avisos para hoy') +
+            (hechos ? ' · <b>' + U.plural(hechos, 'hecho') + '</b>' : '') + '</p>' +
+        '</div>' +
+        '<div class="anillo" role="img" aria-label="' + (total ? hechos + ' de ' + total + ' avisos de hoy hechos' : 'Nada para hoy') + '">' +
+          '<svg viewBox="0 0 100 100" aria-hidden="true">' +
+            '<circle class="anillo__pista" cx="50" cy="50" r="42"/>' +
+            '<circle class="anillo__valor" cx="50" cy="50" r="42" stroke-dasharray="' + VUELTA.toFixed(2) + '"' +
+              ' stroke-dashoffset="' + (VUELTA * (1 - parte)).toFixed(2) + '" data-anillo="' + parte.toFixed(3) + '"' +
+              (total ? '' : ' style="opacity:0"') + '/>' +
+          '</svg>' +
+          '<span class="anillo__txt"><strong>' + (total ? hechos + '/' + total : '—') + '</strong>' +
+            '<span>' + (total ? 'hechos' : 'libre') + '</span></span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="hero__stats">' +
+        dato('vencidos', r.vencidos, 'Vencidos') +
+        dato('semana', r.semana, '7 días') +
+        dato('sinasignar', r.sinAsignar, 'Sin asignar') +
+      '</div>' +
+    '</section>';
   }
 
   /* =========================================================
@@ -349,14 +435,14 @@
       U.pill(a.estado) +
       '<span class="tag">' + esc(S.catalogo(S.TIPOS, a.tipo).label) + '</span>' +
       '<span class="tag">' + esc(S.catalogo(S.SISTEMAS, a.sistema).label) + '</span>' +
-      '<span class="tag"' + (a.prioridad === 'urgente' ? ' style="color:var(--pr-urgente);border-color:currentColor"' : (a.prioridad === 'alta' ? ' style="color:var(--pr-alta);border-color:currentColor"' : '')) + '>' +
+      '<span class="tag' + (a.prioridad === 'urgente' || a.prioridad === 'alta' ? ' tag--' + a.prioridad : '') + '">' +
         'Prioridad ' + esc(S.catalogo(S.PRIORIDADES, a.prioridad).label.toLowerCase()) + '</span>' +
       '</div>';
 
     /* estado rápido */
     html += U.seccion('Estado', '<div class="card card__pad"><div class="statusgrid">' +
       S.ESTADOS.map(function (e) {
-        return '<button data-estado="' + e.id + '" type="button" aria-pressed="' + (e.id === a.estado ? 'true' : 'false') + '">' + esc(e.label) + '</button>';
+        return '<button class="e-' + e.id + '" data-estado="' + e.id + '" type="button" aria-pressed="' + (e.id === a.estado ? 'true' : 'false') + '">' + esc(e.label) + '</button>';
       }).join('') + '</div></div>');
 
     /* cita y asignación */
@@ -364,7 +450,7 @@
     html += U.seccion('Cuándo y quién', '<div class="card card__pad">' +
       '<dl class="kv">' +
         '<dt>Fecha</dt><dd' + (tarde ? ' style="color:var(--pr-urgente);font-weight:600"' : '') + '>' +
-          esc(U.fmtFechaLarga(a.fecha)) + (tarde ? ' · vencido hace ' + U.plural(U.diasDe(a.fecha), 'día') : '') + '</dd>' +
+          esc(U.fmtFechaLarga(a.fecha).replace(' de ' + new Date().getFullYear(), '')) + (tarde ? ' · vencido hace ' + U.plural(U.diasDe(a.fecha), 'día') : '') + '</dd>' +
         '<dt>Hora</dt><dd>' + esc(a.hora || '—') + (a.duracion ? ' · ' + esc(a.duracion) + ' h previstas' : '') + '</dd>' +
         '<dt>Asignado a</dt><dd>' + U.who(a.asignadoA) + '</dd>' +
         '<dt>Horas</dt><dd>' + esc(U.fmtHoras(horasTot)) + '</dd>' +
@@ -480,7 +566,7 @@
 
     root.querySelector('[data-asignar]').addEventListener('click', function () {
       var cat = S.state.tecnicos.map(function (t) { return { id: t.id, label: t.nombre + ' · ' + U.plural(S.cargaPorTecnico(t.id), 'abierto') }; });
-      if (!cat.length) { U.toast('Añade técnicos en la pestaña Equipo'); return; }
+      if (!cat.length) { U.toast('Añade técnicos en Ajustes → Equipo'); return; }
       U.abrirSheet('Asignar aviso',
         campoSelect('as_t', 'Técnico', cat, a.asignadoA, 'Sin asignar') +
         '<button class="btn btn--primary btn--block" data-ok type="button">Guardar</button>',
@@ -858,7 +944,7 @@
     var html =
       (porEnlace ? avisoDeContenedor() : '') +
       (editando ? '' :
-        '<div class="btnrow" style="margin-bottom:4px">' +
+        '<div class="btnrow" style="margin-bottom:22px">' +
           '<button class="btn btn--sm btn--block" data-pegar type="button">' + ICON.copia + 'Pegar un aviso copiado</button>' +
         '</div>') +
       '<form id="fAviso" novalidate>' +
@@ -901,7 +987,7 @@
           campoSelect('estado', 'Estado', S.ESTADOS, a.estado) +
         '</div>' +
         campoSelect('asignadoA', 'Asignado a', tecs, a.asignadoA, 'Sin asignar') +
-        (tecs.length ? '' : '<p class="field__hint">Aún no hay técnicos. Puedes añadirlos en la pestaña Equipo.</p>') +
+        (tecs.length ? '' : '<p class="field__hint">Aún no hay técnicos. Puedes añadirlos en Ajustes → Equipo.</p>') +
         '</div>') +
 
       '<div class="btnrow btnrow--split">' +
@@ -1169,14 +1255,14 @@
       html += '<div class="avlist">' + tecs.map(function (t) {
         var carga = S.cargaPorTecnico(t.id);
         var venc = S.state.avisos.filter(function (a) { return a.asignadoA === t.id && S.vencido(a); }).length;
-        return '<button class="avrow" data-tec="' + esc(t.id) + '" type="button">' +
-          '<span class="avrow__flag" style="background:' + esc(t.color) + '"></span>' +
+        return '<button class="avrow avrow--simple" data-tec="' + esc(t.id) + '" type="button">' +
+          '<span class="avrow__avatar" style="--c:' + esc(t.color) + '" aria-hidden="true">' + esc(S.iniciales(t.nombre)) + '</span>' +
           '<span class="avrow__main">' +
             '<span class="avrow__title">' + esc(t.nombre) + '</span>' +
             '<span class="avrow__sub">' + (t.telefono ? esc(t.telefono) + ' · ' : '') +
-              U.plural(carga, 'abierto') + (venc ? ' · <span style="color:var(--pr-urgente)">' + venc + ' vencidos</span>' : '') + '</span>' +
+              U.plural(carga, 'abierto') + (venc ? ' · <span style="color:var(--pr-urgente)">' + U.plural(venc, 'vencido') + '</span>' : '') + '</span>' +
           '</span>' +
-          '<span class="avrow__side"><span class="avrow__when">' + carga + '</span></span>' +
+          '<span class="avrow__side" style="justify-content:center"><span class="avrow__cuenta">' + carga + '</span></span>' +
         '</button>';
       }).join('') + '</div>';
     }
@@ -1190,6 +1276,7 @@
     return {
       titulo: 'Equipo',
       sub: U.plural(tecs.length, 'técnico'),
+      atras: '#/ajustes',
       html: html,
       mount: function (root) {
         var nb = root.querySelector('[data-nuevo]');
@@ -1207,10 +1294,10 @@
     U.abrirSheet(esNuevo ? 'Nuevo técnico' : 'Editar técnico',
       '<div class="field"><label class="field__label" for="t_n">Nombre *</label><input class="input" id="t_n" value="' + esc(t.nombre) + '"></div>' +
       '<div class="field"><label class="field__label" for="t_t">Teléfono</label><input class="input" id="t_t" type="tel" inputmode="tel" value="' + esc(t.telefono || '') + '"></div>' +
-      '<div class="field"><span class="field__label">Color</span><div class="segmented">' +
+      '<div class="field"><span class="field__label">Color</span><div class="colores">' +
         S.COLORES.map(function (col) {
-          return '<label style="background:' + col + '1a"><input type="radio" name="color" value="' + col + '"' + (col === t.color ? ' checked' : '') + '>' +
-            '<span style="color:' + col + ';font-weight:600">' + (col === t.color ? '●' : '○') + '</span></label>';
+          return '<label style="--c:' + col + '"><input type="radio" name="color" value="' + col + '" aria-label="Color ' + col + '"' +
+            (col === t.color ? ' checked' : '') + '></label>';
         }).join('') + '</div></div>' +
       '<div class="btnrow btnrow--split">' +
         (esNuevo ? '' : '<button class="btn btn--danger" data-borrar type="button">Eliminar</button>') +
@@ -1243,82 +1330,82 @@
   function ajustes() {
     var r = S.resumen();
     var tema = S.state.ajustes.tema || 'auto';
-
-    var html = '';
-
-    html += U.seccion('Resumen', '<div class="card card__pad">' +
-      '<dl class="kv">' +
-        '<dt>Avisos</dt><dd>' + r.total + ' (' + r.abiertos + ' abiertos, ' + r.resueltos + ' resueltos)</dd>' +
-        '<dt>Vencidos</dt><dd>' + r.vencidos + '</dd>' +
-        '<dt>Urgentes</dt><dd>' + r.urgentes + '</dd>' +
-        '<dt>Técnicos</dt><dd>' + S.state.tecnicos.length + '</dd>' +
-        '<dt>Espacio</dt><dd id="espacio">—</dd>' +
-      '</dl></div>');
-
-    html += U.seccion('Apariencia', '<div class="card card__pad">' +
-      '<div class="field" style="margin:0"><span class="field__label">Tema</span><div class="segmented">' +
-        [['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']].map(function (o) {
-          return '<label><input type="radio" name="tema" value="' + o[0] + '"' + (tema === o[0] ? ' checked' : '') + '><span>' + o[1] + '</span></label>';
-        }).join('') + '</div></div></div>');
-
-    html += U.seccion('Numeración', '<div class="card card__pad">' +
-      '<div class="field" style="margin:0"><label class="field__label" for="prefijo">Prefijo de referencia</label>' +
-      '<input class="input" id="prefijo" value="' + esc(S.state.ajustes.prefijoRef || 'AV') + '" maxlength="6">' +
-      '<p class="field__hint">El próximo aviso será <b class="mono">' + esc(S.siguienteRef()) + '</b>.</p></div></div>');
-
-    html += U.seccion('Correo de la empresa', seccionCorreo());
-    html += U.seccion('Si algo falla', seccionFallos());
+    var nTec = S.state.tecnicos.length;
 
     var conFecha = ICS.exportables(S.state.avisos);
     var abiertosCal = conFecha.filter(S.abierto);
     var limite30 = S.sumaDias(S.hoyISO(), 30);
     var proximos = abiertosCal.filter(function (a) { return a.fecha >= S.hoyISO() && a.fecha <= limite30; });
 
-    html += U.seccion('Calendario del móvil', '<div class="card card__pad">' +
-      '<p class="small muted" style="margin-bottom:12px">Genera un archivo <b>.ics</b> y ábrelo: el móvil te ofrecerá añadir los avisos a tu calendario, junto al resto de tu día. Solo entran los avisos que tengan fecha.</p>' +
-      campoSelect('recordatorio', 'Aviso previo en el calendario', RECORDATORIOS, String(Number(S.state.ajustes.recordatorio) || 0)) +
-      '<div class="stack">' +
-        '<button class="btn btn--block" data-cal="proximos" type="button">Próximos 30 días (' + proximos.length + ')</button>' +
-        '<button class="btn btn--block" data-cal="abiertos" type="button">Todos los abiertos (' + abiertosCal.length + ')</button>' +
-        '<button class="btn btn--block" data-cal="todos" type="button">Todos con fecha (' + conFecha.length + ')</button>' +
-      '</div>' +
-      '<p class="field__hint">Al reimportar, los eventos ya añadidos se actualizan en vez de duplicarse.</p>' +
-      '</div>');
+    var html = '';
 
-    html += U.seccion('Copia de seguridad', '<div class="card card__pad">' +
-      '<p class="small muted" style="margin-bottom:12px">Los datos viven solo en este móvil. Haz copias de vez en cuando y guárdalas donde quieras (correo, nube, PC).</p>' +
-      '<div class="stack">' +
-        '<button class="btn btn--block" data-exp="full" type="button">Exportar copia completa (con fotos)</button>' +
-        '<button class="btn btn--block" data-exp="light" type="button">Exportar solo datos (sin fotos)</button>' +
-        '<button class="btn btn--block" data-exp="csv" type="button">Exportar avisos a CSV (Excel)</button>' +
-        '<input type="file" id="impInput" accept="application/json,.json" hidden>' +
-        '<button class="btn btn--block" data-imp type="button">Importar copia…</button>' +
-      '</div></div>');
+    html += bloque('', fila({
+      href: '#/equipo', icono: 'personas', color: COLOR.azul, titulo: 'Equipo',
+      sub: r.sinAsignar ? r.sinAsignar + ' sin asignar' : '',
+      valor: U.plural(nTec, 'técnico'), chevron: true
+    }));
+
+    html += bloque('Resumen',
+      fila({ estatica: true, titulo: 'Avisos', valor: r.total + ' · ' + r.abiertos + ' abiertos' }) +
+      fila({ estatica: true, titulo: 'Vencidos', valor: String(r.vencidos) }) +
+      fila({ estatica: true, titulo: 'Urgentes', valor: String(r.urgentes) }) +
+      fila({ estatica: true, titulo: 'Resueltos', valor: String(r.resueltos) }) +
+      fila({ estatica: true, titulo: 'Espacio', valor: '—', idValor: 'espacio' }),
+      '', { sinIconos: true });
+
+    html += bloque('Apariencia',
+      '<li class="fila fila--bloque"><div class="segmented" role="radiogroup" aria-label="Tema">' +
+        [['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Oscuro']].map(function (o) {
+          return '<label><input type="radio" name="tema" value="' + o[0] + '"' + (tema === o[0] ? ' checked' : '') + '><span>' + o[1] + '</span></label>';
+        }).join('') + '</div></li>', '', { sinIconos: true });
+
+    html += bloque('Calendario del móvil',
+      fila({ label: true, icono: 'campana', color: COLOR.rojo, titulo: 'Aviso previo',
+        control: '<select class="en-fila" id="recordatorio">' + U.opciones(RECORDATORIOS, String(Number(S.state.ajustes.recordatorio) || 0)) + '</select>' }) +
+      fila({ icono: 'calendario', color: COLOR.rojo, titulo: 'Próximos 30 días', valor: String(proximos.length), attrs: ' data-cal="proximos"', clase: 'fila--accion' }) +
+      fila({ icono: 'calendario', color: COLOR.naranja, titulo: 'Todos los abiertos', valor: String(abiertosCal.length), attrs: ' data-cal="abiertos"', clase: 'fila--accion' }) +
+      fila({ icono: 'calendario', color: COLOR.gris, titulo: 'Todos con fecha', valor: String(conFecha.length), attrs: ' data-cal="todos"', clase: 'fila--accion' }),
+      'Genera un archivo <b>.ics</b> y ábrelo: el móvil te ofrece añadir los avisos a tu calendario. ' +
+      'Solo entran los que tienen fecha, y al volver a importarlos se actualizan en vez de duplicarse.');
+
+    html += bloque('Copia de seguridad',
+      fila({ icono: 'exportar', color: COLOR.azul, titulo: 'Copia completa', sub: 'Con fotos y adjuntos', attrs: ' data-exp="full"' }) +
+      fila({ icono: 'exportar', color: COLOR.turquesa, titulo: 'Solo los datos', sub: 'Sin fotos, ocupa poco', attrs: ' data-exp="light"' }) +
+      fila({ icono: 'tabla', color: COLOR.verde, titulo: 'Avisos en CSV', sub: 'Para abrir en Excel', attrs: ' data-exp="csv"' }) +
+      fila({ icono: 'importar', color: COLOR.indigo, titulo: 'Importar copia…', attrs: ' data-imp' }) +
+      '<li hidden><input type="file" id="impInput" accept="application/json,.json"></li>',
+      'Los datos viven solo en este móvil. Haz copias de vez en cuando y guárdalas donde quieras: Archivos, iCloud, el correo.');
 
     html += U.seccion('Atajos del iPhone', seccionAtajos());
+    html += U.seccion('Correo de la empresa', seccionCorreo());
 
-    html += U.seccion('Instalación y versión', '<div class="card card__pad">' +
-      '<dl class="kv"><dt>Versión</dt><dd><b>' + esc(global.APP_VERSION || '1.0.0') + '</b></dd></dl>' +
-      '<div class="divider"></div>' +
-      '<div class="stack">' +
-        '<button class="btn btn--block" id="btnInstalar" type="button" hidden>Añadir a la pantalla de inicio</button>' +
-        '<button class="btn btn--block" data-ayuda type="button">Cómo instalarla</button>' +
-        '<button class="btn btn--block" data-buscar-version type="button">Buscar una versión nueva</button>' +
-        '<button class="btn btn--block" data-reinstalar type="button">Reinstalar la app</button>' +
-      '</div>' +
-      '<p class="field__hint">Reinstalar vacía lo que la app tiene guardado del propio programa y lo vuelve a bajar. <b>Los avisos, los técnicos y las fotos no se tocan.</b> Úsalo si algo se queda a medias.</p>' +
-      '</div>');
+    html += bloque('Numeración',
+      fila({ label: true, icono: 'numero', color: COLOR.gris, titulo: 'Prefijo',
+        control: '<input class="en-fila" id="prefijo" value="' + esc(S.state.ajustes.prefijoRef || 'AV') + '" maxlength="6" autocapitalize="characters" autocomplete="off">' }),
+      'El próximo aviso será <b>' + esc(S.siguienteRef()) + '</b>.');
 
-    html += U.seccion('Datos', '<div class="card card__pad"><div class="stack">' +
-      '<button class="btn btn--block" data-ejemplo type="button">Cargar datos de ejemplo</button>' +
-      '<button class="btn btn--block btn--danger" data-borrartodo type="button">Borrar todos los datos</button>' +
-      '</div></div>');
+    html += bloque('Instalación y versión',
+      fila({ estatica: true, icono: 'movil', color: COLOR.azul, titulo: 'Versión', valor: '<b>' + esc(global.APP_VERSION || '1.0.0') + '</b>' }) +
+      '<li hidden id="filaInstalar"><button class="fila fila--accion" id="btnInstalar" type="button" hidden>' +
+        '<span class="fila__icono" style="--c:' + COLOR.azul + '">' + ICON.mas + '</span>' +
+        '<span class="fila__main"><span class="fila__titulo">Añadir a la pantalla de inicio</span></span></button></li>' +
+      fila({ icono: 'ayuda', color: COLOR.morado, titulo: 'Cómo instalarla', attrs: ' data-ayuda', chevron: true }) +
+      fila({ icono: 'actualizar', color: COLOR.verde, titulo: 'Buscar una versión nueva', attrs: ' data-buscar-version' }) +
+      fila({ icono: 'reinstalar', color: COLOR.naranja, titulo: 'Reinstalar la app', attrs: ' data-reinstalar' }),
+      'Reinstalar vacía lo que la app tiene guardado del propio programa y lo vuelve a bajar. ' +
+      '<b>Los avisos, los técnicos y las fotos no se tocan.</b> Úsalo si algo se queda a medias.');
 
-    html += '<p class="small muted center">Funciona sin conexión. Ningún dato sale del dispositivo.</p>';
+    html += U.seccion('Si algo falla', seccionFallos());
+
+    html += bloque('Datos',
+      fila({ icono: 'matraz', color: COLOR.naranja, titulo: 'Cargar datos de ejemplo', attrs: ' data-ejemplo' }));
+    html += bloque('',
+      fila({ titulo: 'Borrar todos los datos', attrs: ' data-borrartodo', clase: 'fila--peligro' }),
+      'Funciona sin conexión. Ningún dato sale del dispositivo.', { sinIconos: true });
 
     return {
       titulo: 'Ajustes',
-      sub: 'Copias, apariencia y datos',
+      sub: 'Equipo, copias, apariencia y datos',
       html: html,
       mount: function (root) { montarAjustes(root); }
     };
@@ -1798,6 +1885,14 @@
     montarCorreo(root);
     montarAtajos(root);
     montarFallos(root);
+    /* El botón de instalar lo enseña app.js cuando el navegador lo ofrece;
+       su fila se enseña con él. */
+    var bi = root.querySelector('#btnInstalar');
+    if (bi) new MutationObserver(function () {
+      var li = root.querySelector('#filaInstalar');
+      if (li) li.hidden = bi.hidden;
+    }).observe(bi, { attributes: true, attributeFilter: ['hidden'] });
+
     DB.estimate().then(function (e) {
       var n = root.querySelector('#espacio');
       if (!n) return;

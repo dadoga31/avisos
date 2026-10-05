@@ -96,6 +96,16 @@
   var ICO_SOBRE = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></svg>';
   var ICO_REABRIR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4.5V10h5.5"/></svg>';
 
+  /* Glifo de cada estado, sobre un cuadrado de su color en la fila. */
+  var ICO_ESTADO = {
+    pendiente:  '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" stroke-dasharray="3.2 2.7"/></svg>',
+    programado: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="5.5" width="15" height="14" rx="3"/><path d="M4.5 10h15M9 3.5v3M15 3.5v3"/></svg>',
+    en_curso:   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 5.6a4.2 4.2 0 0 0-5.3 5.3l-4.9 4.9a1.5 1.5 0 0 0 2.1 2.1l4.9-4.9a4.2 4.2 0 0 0 5.3-5.3l-2.4 2.4-2.1-.5-.5-2.1z"/></svg>',
+    en_espera:  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 7v10M14.5 7v10" stroke-width="2.6"/></svg>',
+    resuelto:   '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 4 4L18 8.5" stroke-width="2.4"/></svg>',
+    cancelado:  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9" stroke-width="2.4"/></svg>'
+  };
+
   function pill(estadoId) {
     var e = S.catalogo(S.ESTADOS, estadoId);
     return '<span class="pill pill--' + esc(estadoId) + '">' + esc(e.label) + '</span>';
@@ -138,23 +148,21 @@
       ? '<span class="prio prio--' + esc(a.prioridad) + '">' + esc(S.catalogo(S.PRIORIDADES, a.prioridad).label) + '</span>'
       : '';
 
+    /* Tres líneas, como en Mail: lo que hay que hacer y cuándo; dónde; y el
+       estado, la referencia y quién lo lleva. */
     var fila = '' +
-      '<button class="avrow avrow--e-' + esc(a.estado) + '" data-aviso="' + esc(a.id) + '" type="button">' +
-        '<span class="avrow__flag" aria-hidden="true"></span>' +
-        '<span class="avrow__main">' +
-          '<span class="avrow__top">' +
-            '<span class="avrow__ref">' + esc(a.ref || '—') + '</span>' +
-            (a.origen === 'correo' ? '<span class="avrow__origen" title="Llegó por correo">' + ICO_SOBRE + '</span>' : '') +
-            pill(a.estado) + prio +
-          '</span>' +
-          '<span class="avrow__title">' + esc(a.titulo || '(sin título)') + '</span>' +
-          '<span class="avrow__sub">' + esc(sub.join(' — ')) + '</span>' +
-        '</span>' +
-        '<span class="avrow__side">' +
-          '<span class="avrow__when' + (tarde ? ' avrow__when--late' : '') + '">' +
-            (tarde ? '⚠ ' : '') + esc(cuando) +
-          '</span>' +
-          who(a.asignadoA, { soloAvatar: true }) +
+      '<button class="avrow avrow--e-' + esc(a.estado) + ' e-' + esc(a.estado) + '" data-aviso="' + esc(a.id) + '" type="button">' +
+        '<span class="avrow__estado" aria-hidden="true">' + (ICO_ESTADO[a.estado] || ICO_ESTADO.pendiente) + '</span>' +
+        '<span class="avrow__title">' + esc(a.titulo || '(sin título)') + '</span>' +
+        '<span class="avrow__when' + (tarde ? ' avrow__when--late' : '') + '">' + esc(cuando) + '</span>' +
+        '<span class="avrow__sub">' + esc(sub.join(' — ')) + '</span>' +
+        '<span class="avrow__top">' +
+          '<span class="avrow__etiqueta">' + esc(S.catalogo(S.ESTADOS, a.estado).label) + '</span>' +
+          '<span aria-hidden="true">·</span>' +
+          '<span class="avrow__ref">' + esc(a.ref || '—') + '</span>' +
+          (a.origen === 'correo' ? '<span class="avrow__origen" title="Llegó por correo">' + ICO_SOBRE + '</span>' : '') +
+          prio +
+          '<span class="avrow__quien">' + who(a.asignadoA, { soloAvatar: true }) + '</span>' +
         '</span>' +
       '</button>';
 
@@ -224,11 +232,26 @@
     n.classList.remove('toast--accion');
   }
 
+  var ICO_TOAST = {
+    bien: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12.3 2.8 2.8L16.2 9.6"/></svg>',
+    ojo: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><circle cx="12" cy="16.3" r=".6" fill="currentColor"/></svg>',
+    nueva: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v8.5M8.3 12.5 12 16.2l3.7-3.7"/></svg>'
+  };
+  /* Los avisos que cuentan un problema llevan otro icono que los que
+     confirman que algo se ha hecho. */
+  var PROBLEMA = /^(no |error|el buzón falla|ponle|escribe|falta|añade técnicos)/i;
+
   function toast(msg, opts) {
     opts = opts || {};
     var n = document.getElementById('toast');
-    n.innerHTML = '';
-    n.appendChild(document.createTextNode(msg));
+    var ojo = PROBLEMA.test(msg);
+    n.innerHTML = '<span class="toast__ico">' + (opts.fijo ? ICO_TOAST.nueva : (ojo ? ICO_TOAST.ojo : ICO_TOAST.bien)) + '</span>';
+    var txt = document.createElement('span');
+    txt.className = 'toast__txt';
+    txt.textContent = msg;
+    n.appendChild(txt);
+    n.classList.toggle('toast--ojo', ojo);
+    n.classList.toggle('toast--fijo', !!opts.fijo);
     n.classList.toggle('toast--accion', !!opts.accion);
     if (opts.accion) {
       var b = document.createElement('button');
@@ -252,9 +275,20 @@
   /* ---------- hoja inferior ---------- */
 
   var sheetCierre = null;
+  var tCierre = null;
+  var arrastreListo = false;
 
   function abrirSheet(titulo, contenido, onMount) {
     var s = document.getElementById('sheet');
+    /* Si se estaba cerrando otra (una confirmación que sigue a una hoja), la
+       nueva entra de nuevo desde abajo. */
+    clearTimeout(tCierre);
+    if (s.classList.contains('sheet--cerrando')) {
+      s.classList.remove('sheet--cerrando');
+      var panel = s.querySelector('.sheet__panel');
+      panel.style.animation = 'none'; void panel.offsetWidth; panel.style.animation = '';
+    }
+    if (!arrastreListo && global.Ios) { arrastreListo = true; Ios.arrastrarHoja(s, cerrarSheet); }
     document.getElementById('sheetTitle').textContent = titulo;
     var body = document.getElementById('sheetBody');
     body.innerHTML = '';
@@ -264,6 +298,7 @@
     document.body.style.overflow = 'hidden';
     document.body.classList.add('sheet-abierta');
     if (onMount) onMount(body);
+    if (global.Ios) { Ios.segmentados(body); Ios.barraEstado(); }
     var primero = body.querySelector('input,textarea,select,button');
     if (primero && !('ontouchstart' in window)) primero.focus();
     return body;
@@ -271,11 +306,22 @@
 
   function cerrarSheet() {
     var s = document.getElementById('sheet');
-    if (s.hidden) return;
-    s.hidden = true;
-    document.getElementById('sheetBody').innerHTML = '';
+    if (s.hidden || s.classList.contains('sheet--cerrando')) return;
     document.body.style.overflow = '';
     document.body.classList.remove('sheet-abierta');
+    function fin() {
+      s.hidden = true;
+      s.classList.remove('sheet--cerrando');
+      document.getElementById('sheetBody').innerHTML = '';
+      if (global.Ios) Ios.barraEstado();
+    }
+    /* Baja deslizándose antes de desaparecer, como en iOS. */
+    if (!global.Ios || Ios.sinMovimiento()) fin();
+    else {
+      s.classList.add('sheet--cerrando');
+      Ios.barraEstado();
+      tCierre = setTimeout(fin, 300);
+    }
     if (sheetCierre) { var f = sheetCierre; sheetCierre = null; f(null); }
   }
 
@@ -398,7 +444,7 @@
     esc: esc, el: el, frag: frag, $: $, $$: $$,
     fmtFecha: fmtFecha, fmtFechaLarga: fmtFechaLarga, fmtCuando: fmtCuando, fmtSello: fmtSello,
     fmtHoras: fmtHoras, diasDe: diasDe, plural: plural,
-    pill: pill, who: who, avisoRow: avisoRow, lista: lista, vacioHTML: vacioHTML,
+    pill: pill, who: who, avisoRow: avisoRow, lista: lista, vacioHTML: vacioHTML, ICO_ESTADO: ICO_ESTADO,
     seccion: seccion, opciones: opciones,
     toast: toast, abrirSheet: abrirSheet, cerrarSheet: cerrarSheet,
     confirmar: confirmar, pedirTexto: pedirTexto, descargar: descargar,

@@ -31,7 +31,10 @@
     return cont.dataset.hecho !== '0';
   }
 
+  /* En el iPhone vibra con el truco del interruptor (ios.js); en Android,
+     con navigator.vibrate. */
   function vibrar(ms) {
+    if (global.Ios) { global.Ios.vibrar(); return; }
     if (navigator.vibrate) { try { navigator.vibrate(ms); } catch (e) {} }
   }
 

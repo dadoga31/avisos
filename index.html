@@ -1,15 +1,21 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-vista="raiz">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Avisos · Gestión de instalaciones</title>
 <meta name="description" content="Gestión de avisos para instaladores de sistemas de seguridad. Funciona sin conexión.">
-<meta name="theme-color" content="#101215" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<!-- iOS pinta la barra de estado como una franja de este color y la página
+     empieza debajo. ios.js lo ajusta al tema de la app y lo oscurece con la
+     hoja abierta, para que la franja y la página parezcan una sola pieza. -->
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- «default», no «black-translucent»: ese pone la hora y la batería en
+     blanco, y en modo claro no se leen. -->
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Avisos">
 <meta name="format-detection" content="telephone=no">
 <link rel="manifest" href="manifest.webmanifest">
@@ -19,59 +25,73 @@
 </head>
 <body>
 
-<div class="app" id="app">
+<div class="ambient" aria-hidden="true"></div>
 
-  <header class="topbar" id="topbar">
-    <div class="topbar__row">
-      <button class="iconbtn topbar__back" id="btnBack" type="button" aria-label="Volver" hidden>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
-      </button>
-      <div class="topbar__titles">
-        <h1 class="topbar__title" id="topTitle">Agenda</h1>
-        <p class="topbar__sub" id="topSub"></p>
-      </div>
-      <div class="topbar__actions" id="topActions"></div>
-    </div>
-  </header>
-
-  <main class="view" id="view" tabindex="-1"></main>
-
-  <button class="fab" id="fab" type="button" aria-label="Nuevo aviso">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+<header class="navbar" id="navbar">
+  <button class="circulo navbar__atras" id="btnBack" type="button" aria-label="Volver" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>
   </button>
+  <div class="navbar__centro" aria-hidden="true">
+    <span class="navbar__titulo" id="navTitle"></span>
+    <span class="navbar__sub" id="navSub"></span>
+  </div>
+  <div class="navbar__acciones" id="topActions"></div>
+</header>
 
-  <nav class="tabbar" id="tabbar" aria-label="Secciones">
-    <a class="tab" href="#/agenda" data-tab="agenda">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="1"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-      <span>Agenda</span>
-    </a>
-    <a class="tab" href="#/avisos" data-tab="avisos">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
-      <span>Avisos</span>
+<main class="contenido" id="app">
+  <div class="cabecera">
+    <h1 class="titulo-grande" id="topTitle">Agenda</h1>
+    <p class="subtitulo" id="topSub"></p>
+  </div>
+  <div class="view" id="view" tabindex="-1"></div>
+</main>
+
+<!-- Difuminado del contenido al pasar bajo las barras, como en iOS 26 -->
+<div class="borde borde--arriba" aria-hidden="true"></div>
+<div class="borde borde--abajo" aria-hidden="true"></div>
+
+<nav class="tabbar" id="tabbar" aria-label="Secciones">
+  <span class="tab-lente tab-lente--fuera" id="lente" aria-hidden="true"></span>
+  <a class="tab" href="#/agenda" data-tab="agenda">
+    <span class="tab__ico">
+      <svg class="hueco" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+      <svg class="lleno" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" stroke="none" fill-rule="evenodd" d="M7 5h10a3.5 3.5 0 0 1 3.5 3.5V17a3.5 3.5 0 0 1-3.5 3.5H7A3.5 3.5 0 0 1 3.5 17V8.5A3.5 3.5 0 0 1 7 5ZM6.6 11.4h2.3v2.3H6.6ZM10.85 11.4h2.3v2.3h-2.3ZM15.1 11.4h2.3v2.3h-2.3ZM6.6 15.6h2.3v2.3H6.6ZM10.85 15.6h2.3v2.3h-2.3Z"/><path d="M8 3v3.5M16 3v3.5"/></svg>
+    </span>
+    <span>Agenda</span>
+  </a>
+  <a class="tab" href="#/avisos" data-tab="avisos">
+    <span class="tab__ico">
+      <svg class="hueco" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.5" cy="6.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="17.5" r="1.1" fill="currentColor" stroke="none"/></svg>
+      <svg class="lleno" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" stroke="none" fill-rule="evenodd" d="M6.5 3.5h11a4 4 0 0 1 4 4v9a4 4 0 0 1-4 4h-11a4 4 0 0 1-4-4v-9a4 4 0 0 1 4-4ZM10 7.6h7.3v1.8H10ZM10 11.1h7.3v1.8H10ZM10 14.6h7.3v1.8H10ZM7 7.5a1 1 0 1 0 0 2a1 1 0 1 0 0-2ZM7 11a1 1 0 1 0 0 2a1 1 0 1 0 0-2ZM7 14.5a1 1 0 1 0 0 2a1 1 0 1 0 0-2Z"/></svg>
       <em class="tab__badge" id="badgeAbiertos" hidden></em>
-    </a>
-    <a class="tab" href="#/historico" data-tab="historico">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4z"/><path d="M2.5 4h19v3h-19z"/><path d="m9 13 2 2 4-4"/></svg>
-      <span>Hechos</span>
-    </a>
-    <a class="tab" href="#/equipo" data-tab="equipo">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.4 6-5.4s6 2.1 6 5.4"/><path d="M16 5.5a3 3 0 010 5.4M17.5 20c0-2.6-1-4.3-2.5-5.2"/></svg>
-      <span>Equipo</span>
-    </a>
-    <a class="tab" href="#/ajustes" data-tab="ajustes">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.6M12 18.6v2.6M4.5 4.5l1.9 1.9M17.6 17.6l1.9 1.9M2.8 12h2.6M18.6 12h2.6M4.5 19.5l1.9-1.9M17.6 6.4l1.9-1.9"/></svg>
-      <span>Ajustes</span>
-    </a>
-  </nav>
-
-</div>
+    </span>
+    <span>Avisos</span>
+  </a>
+  <button class="tab-mas" id="fab" type="button" aria-label="Nuevo aviso">
+    <span class="mas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>
+  </button>
+  <a class="tab" href="#/historico" data-tab="historico">
+    <span class="tab__ico">
+      <svg class="hueco" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m8.2 12.3 2.6 2.6 5.1-5.3"/></svg>
+      <svg class="lleno" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" stroke="none" fill-rule="evenodd" d="M3.5 12a8.5 8.5 0 1 0 17 0a8.5 8.5 0 1 0-17 0ZM7.3 13.1l3.5 3.5 6-6.2-1.6-1.6-4.4 4.6-1.9-1.9Z"/></svg>
+    </span>
+    <span>Hechos</span>
+  </a>
+  <a class="tab" href="#/ajustes" data-tab="ajustes">
+    <span class="tab__ico">
+      <svg class="hueco" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7h2.9M11.6 7h8.9M3.5 17h8.9M17.6 17h2.9"/><circle cx="9" cy="7" r="2.6"/><circle cx="15" cy="17" r="2.6"/></svg>
+      <svg class="lleno" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7h2.9M11.6 7h8.9M3.5 17h8.9M17.6 17h2.9"/><circle cx="9" cy="7" r="2.6" fill="currentColor"/><circle cx="15" cy="17" r="2.6" fill="currentColor"/></svg>
+    </span>
+    <span>Ajustes</span>
+  </a>
+</nav>
 
 <div class="sheet" id="sheet" hidden>
   <div class="sheet__scrim" data-close></div>
   <div class="sheet__panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
-    <div class="sheet__head">
+    <div class="sheet__head" id="sheetHead">
       <h2 id="sheetTitle">·</h2>
-      <button class="iconbtn" type="button" data-close aria-label="Cerrar">
+      <button class="iconbtn sheet__cerrar" type="button" data-close aria-label="Cerrar">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
     </div>
@@ -87,6 +107,7 @@
 <script src="assets/js/store.js"></script>
 <script src="assets/js/ics.js"></script>
 <script src="assets/js/correo.js"></script>
+<script src="assets/js/ios.js"></script>
 <script src="assets/js/ui.js"></script>
 <script src="assets/js/swipe.js"></script>
 <script src="assets/js/visor.js"></script>

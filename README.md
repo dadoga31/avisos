@@ -20,8 +20,8 @@ ficheros:
 - `vercel.json` — cabeceras de caché. `sw.js`, `index.html` y el manifiesto se
   piden siempre al servidor (si se quedaran en caché, el móvil no vería nunca
   una versión nueva); el resto de `assets/` se guarda una hora.
-- `.vercelignore` — deja fuera del despliegue `android/`, `tools/`, `.github/`
-  y el README, que no forman parte de la web.
+- `.vercelignore` — deja fuera del despliegue `android/`, `tools/`, `.github/`,
+  `tests/`, el README y el `CLAUDE.md`, que no forman parte de la web.
 
 ### Cómo llega una versión nueva al móvil
 
@@ -43,6 +43,15 @@ no toca los avisos, los técnicos ni las fotos: eso vive en IndexedDB, aparte.
 
 > Al tocar los ficheros, **sube `VERSION` en `sw.js`**. Es lo que dispara todo
 > lo anterior: sin ese cambio, los móviles ya instalados siguen con lo suyo.
+
+### Si al actualizar a la 2.0 la hora y la batería salen en blanco
+
+La 2.0 cambia cómo se pinta la barra de estado: ahora es una franja del color
+de la app, con la hora en negro en modo claro. Si el iPhone guardó la forma
+antigua al instalarla, puede que la hora y la batería salgan en blanco y no se
+lean. Se arregla volviendo a añadir la app a la pantalla de inicio, **pero
+antes exporta una copia** (Ajustes → *Copia completa*): al quitar el icono, el
+iPhone puede borrar los datos que la app guarda en él. Después la importas.
 
 ### Instalarla en el iPhone
 
@@ -73,19 +82,32 @@ funcionen el modo sin conexión y la instalación.
 
 ## Qué hace
 
+**Aspecto**
+
+Se parece a una app de Apple (iOS 26): título grande que se recoge al bajar,
+barra de pestañas flotante de cristal con el **+** en el centro, hoja que sube
+desde abajo y se cierra arrastrándola, avisos flotantes arriba y un poco de
+vibración al tocar. Lo que una web no puede copiar de una app nativa, no se
+promete: el cristal es una aproximación (desenfoque y brillo, no refracción
+real), el radio de las esquinas de la pantalla se deduce del modelo, la
+vibración solo funciona desde iOS 18 y no se puede volver atrás deslizando
+desde el borde (para eso está el botón de volver).
+
 **Agenda (pantalla de inicio)**
-- Contadores de vencidos, hoy, próximos 7 días y sin asignar; cada uno abre la
-  lista ya filtrada.
+- Una tarjeta con lo que queda para **hoy** en grande, un anillo con lo ya
+  hecho y accesos a vencidos, próximos 7 días y sin asignar (cada uno abre la
+  lista ya filtrada). Su color avisa: rojizo si hay algo vencido, violeta y
+  naranja si hay urgentes, azul si va todo en orden.
 - Los avisos agrupados en *Vencidos · Hoy · Mañana · Próximos 7 días · Sin fecha*.
 - **Gestos sobre cada aviso** (también en la lista de Avisos):
   - Deslizar a la **izquierda** lo marca como hecho: aparece el panel verde, al
     pasar el umbral vibra y la fila se va deslizándose y encogiendo.
   - Deslizar a la **derecha** despliega *En curso* y *Cancelar*.
   - Todo cambio hecho con un gesto sale con un **Deshacer** en el aviso flotante.
-  - La **banda de color** del borde izquierdo y la píldora indican el estado:
-    gris pendiente, azul programado, ámbar en curso, violeta en espera, verde
-    resuelto, gris claro cancelado. La prioridad alta o urgente se marca aparte
-    con su etiqueta.
+  - El **icono de color** de cada fila y el nombre del estado lo indican: gris
+    pendiente, azul claro programado, naranja en curso, violeta en espera,
+    verde resuelto, gris claro cancelado. La prioridad alta o urgente se marca
+    aparte con su etiqueta.
   - Los avisos ya cerrados no se deslizan, y el desplazamiento vertical de la
     lista sigue funcionando con normalidad.
 
@@ -101,8 +123,8 @@ funcionen el modo sin conexión y la instalación.
   (alarma, CCTV, control de accesos, incendios, portero, otros).
 - Estado en un toque: pendiente → programado → en curso → en espera → resuelto
   / cancelado.
-- Prioridad (baja, normal, alta, urgente); las altas y urgentes se marcan con
-  una banda de color en la lista.
+- Prioridad (baja, normal, alta, urgente); las altas y urgentes llevan su
+  etiqueta de color en la lista.
 - Cliente con **llamar**, **WhatsApp** y **cómo llegar** (abre el mapa).
 - Fecha y hora, duración prevista y reprogramación rápida (hoy / mañana / +1 semana).
 - Técnico asignado, con la carga de trabajo de cada uno a la vista.
@@ -124,11 +146,10 @@ funcionen el modo sin conexión y la instalación.
 - Buscador y filtros de resueltos / cancelados.
 - Deslizar a la derecha un aviso cerrado lo **reabre** como pendiente.
 
-**Equipo**
-- Alta de técnicos con teléfono y color; se ve cuántos avisos abiertos y
-  vencidos lleva cada uno. Al borrar un técnico sus avisos quedan sin asignar.
-
 **Ajustes**
+- **Equipo**, la primera fila: alta de técnicos con teléfono y color; se ve
+  cuántos avisos abiertos y vencidos lleva cada uno. Al borrar un técnico sus
+  avisos quedan sin asignar.
 - Tema automático / claro / oscuro.
 - Prefijo de la numeración de referencias.
 - Exportación al calendario del móvil, con recordatorio configurable.
@@ -461,11 +482,13 @@ sincronizar contra estas mismas estructuras.
 index.html               Estructura de la interfaz
 manifest.webmanifest     Datos de instalación de la PWA
 sw.js                    Service worker (funcionamiento sin conexión)
-assets/css/app.css       Estilos (tema claro y oscuro)
+assets/css/app.css       Estilos: el sistema de diseño iOS 26 (tema claro y oscuro)
 assets/js/fallos.js      Registro de errores (Ajustes → Si algo falla)
 assets/js/db.js          Capa sobre IndexedDB
 assets/js/store.js       Modelo de datos y reglas de negocio
 assets/js/ics.js         Generación de archivos .ics para el calendario
+assets/js/ios.js         Lo que la hace parecer nativa: esquinas, vibración, luz al tocar,
+                         aparición de bloques, barra de estado, lente de pestaña, hoja
 assets/js/ui.js          Formato, componentes, hoja inferior, avisos flotantes
 assets/js/swipe.js       Gestos de deslizamiento sobre las filas de aviso
 assets/js/visor.js       Visor a pantalla completa de fotos y adjuntos
@@ -481,6 +504,9 @@ android/                 Proyecto de la app Android (WebView + widget)
 .github/workflows/       Compilación del APK (solo a mano, Run workflow)
 vercel.json              Cabeceras de caché del despliegue
 .vercelignore            Lo que no se publica en la web
+tests/                   Pruebas con un iPhone emulado (cd tests && npm install && npm test)
+                         y capturas de cada pantalla (node tests/capturas.js)
+CLAUDE.md                Cómo se trabaja en el código y el sistema de diseño
 ```
 
 No hay dependencias ni proceso de compilación: son ficheros estáticos.
@@ -491,9 +517,11 @@ No hay dependencias ni proceso de compilación: son ficheros estáticos.
   `assets/js/store.js`.
 - **Estados**: lista `ESTADOS` en el mismo fichero (`abierto: true/false` marca
   si el aviso sigue vivo). Si añades uno nuevo, dale color en `app.css`
-  (`.pill--<id>`).
-- **Colores de la app**: variables `--accent`, `--ink`, etc., al principio de
-  `assets/css/app.css`. Los colores de estado son las variables `--st-*`.
+  (`.e-<id>` y `.pill--<id>`) y un icono en `ICO_ESTADO` de `assets/js/ui.js`.
+- **Colores de la app**: variables al principio de `assets/css/app.css`. El
+  color de las acciones es `--tint` (azul del sistema); los de estado son
+  `--green`, `--orange`, `--purple`, `--cyan` y `--gray`, cada uno con su
+  versión `-t` para texto, que se lee mejor sobre fondo claro.
 - **Sensibilidad de los gestos**: constantes `ANCHO_ACCIONES`, `UMBRAL_MIN` y
   `UMBRAL_PROP` al principio de `assets/js/swipe.js`.
 

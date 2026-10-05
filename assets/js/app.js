@@ -2,7 +2,7 @@
 (function (global) {
   'use strict';
 
-  var APP_VERSION = '1.8.1';
+  var APP_VERSION = '2.0.0';
   global.APP_VERSION = APP_VERSION;
 
   var S = global.Store, U = global.UI, V = global.Views;
@@ -10,10 +10,15 @@
   var elView = document.getElementById('view');
   var elTitle = document.getElementById('topTitle');
   var elSub = document.getElementById('topSub');
+  var elNavTitle = document.getElementById('navTitle');
+  var elNavSub = document.getElementById('navSub');
   var elBack = document.getElementById('btnBack');
   var elActions = document.getElementById('topActions');
   var elFab = document.getElementById('fab');
   var elTabbar = document.getElementById('tabbar');
+  var raiz = document.documentElement;
+  var mirarTitulo = function () {};
+  var tabActual = null;
 
   var rutaActual = '';
   var scrolls = {};
@@ -37,12 +42,14 @@
     var s = r.seg;
     switch (s[0]) {
       case 'avisos':  return { vista: V.avisos(r.params), tab: 'avisos' };
-      case 'aviso':   return { vista: V.detalle({ id: s[1] }), tab: 'avisos', sinFab: true };
-      case 'nuevo':   return { vista: V.formulario(null, Atajos.deObjeto(r.params)), tab: null, sinFab: true };
-      case 'editar':  return { vista: V.formulario({ id: s[1] }), tab: null, sinFab: true };
-      case 'historico': return { vista: V.historico(), tab: 'historico', sinFab: true };
-      case 'equipo':  return { vista: V.equipo(), tab: 'equipo', sinFab: true };
-      case 'ajustes': return { vista: V.ajustes(), tab: 'ajustes', sinFab: true };
+      case 'aviso':   return { vista: V.detalle({ id: s[1] }), tab: 'avisos' };
+      /* En los formularios la barra de pestañas estorba: tienen sus botones. */
+      case 'nuevo':   return { vista: V.formulario(null, Atajos.deObjeto(r.params)), tab: null, sinBarra: true };
+      case 'editar':  return { vista: V.formulario({ id: s[1] }), tab: null, sinBarra: true };
+      case 'historico': return { vista: V.historico(), tab: 'historico' };
+      /* Equipo vive dentro de Ajustes, como una página más de Configuración. */
+      case 'equipo':  return { vista: V.equipo(), tab: 'ajustes' };
+      case 'ajustes': return { vista: V.ajustes(), tab: 'ajustes' };
       default:        return { vista: V.agenda(), tab: 'agenda' };
     }
   }
@@ -94,9 +101,15 @@
     }
     var v = res.vista;
 
+    /* Las pantallas de primer nivel llevan título grande; las que se abren
+       desde ellas (con «volver»), el título pequeño en la barra. */
+    raiz.setAttribute('data-vista', v.atras ? 'apilada' : 'raiz');
+    if (res.sinBarra) raiz.setAttribute('data-sin-barra', ''); else raiz.removeAttribute('data-sin-barra');
     elTitle.textContent = v.titulo || 'Avisos';
     elSub.textContent = v.sub || '';
     elSub.hidden = !v.sub;
+    elNavTitle.textContent = v.titulo || 'Avisos';
+    elNavSub.textContent = v.sub || '';
     elBack.hidden = !v.atras;
     elBack.dataset.atras = v.atras || '';
     elActions.innerHTML = v.acciones || '';
@@ -106,13 +119,24 @@
       if (t.dataset.tab === res.tab) t.setAttribute('aria-current', 'page');
       else t.removeAttribute('aria-current');
     });
-    elFab.hidden = !!res.sinFab;
+    global.Ios.lente(tabActual !== null && tabActual !== res.tab);
+    tabActual = res.tab;
 
     if (v.mount) v.mount(elView);
     conectarFilas(elView);
     conectarAcciones(r);
+    global.Ios.segmentados(elView);
+    /* Al entrar en una pantalla sus bloques aparecen y sus cifras cuentan;
+       si es la misma que se vuelve a pintar, se quedan quietos. */
+    if (!mismaRuta) {
+      global.Ios.aparecer(elView);
+      global.Ios.contar(elView);
+    } else {
+      global.Ios.contar(elView, { sinAnimar: true });
+    }
 
     global.scrollTo(0, scrollPrevio);
+    mirarTitulo();
     rutaActual = clave;
 
     if (opts.mantenerFoco) {
@@ -167,6 +191,7 @@
     var t = S.state.ajustes.tema || 'auto';
     if (t === 'auto') document.documentElement.removeAttribute('data-theme');
     else document.documentElement.setAttribute('data-theme', t);
+    global.Ios.barraEstado();
   }
 
   /* ---------- eventos globales ---------- */
@@ -179,7 +204,22 @@
       else location.hash = elBack.dataset.atras || '#/agenda';
     });
 
-    elFab.addEventListener('click', function () { location.hash = '#/nuevo'; });
+    elFab.addEventListener('click', function () { global.Ios.vibrar(); location.hash = '#/nuevo'; });
+
+    U.$$('.tab', elTabbar).forEach(function (t) {
+      t.addEventListener('click', function () {
+        if (t.getAttribute('aria-current') !== 'page') global.Ios.vibrar();
+      });
+    });
+
+    /* Con el tema en automático, la barra de estado sigue al sistema. */
+    if (global.matchMedia) {
+      var mq = global.matchMedia('(prefers-color-scheme: dark)');
+      var alCambiar = function () { global.Ios.barraEstado(); };
+      if (mq.addEventListener) mq.addEventListener('change', alCambiar);
+      else if (mq.addListener) mq.addListener(alCambiar);
+    }
+    global.addEventListener('resize', function () { global.Ios.lente(false); });
 
     U.$$('[data-close]', document.getElementById('sheet')).forEach(function (n) {
       n.addEventListener('click', U.cerrarSheet);
@@ -265,6 +305,10 @@
   /* ---------- arranque ---------- */
 
   function arrancar() {
+    global.Ios.esquinas();
+    global.Ios.luz();
+    global.Ios.barraEstado();
+    mirarTitulo = global.Ios.vigilarTitulo();
     S.load().then(function () {
       aplicarTema();
       conectarChasis();
