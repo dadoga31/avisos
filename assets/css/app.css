@@ -307,6 +307,11 @@ svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.8; 
   --tabbar-radius:calc(var(--screen-radius) - var(--tabbar-gap));
 }
 :root[data-screen-corners] .tabbar{ left:var(--tabbar-gap); right:var(--tabbar-gap); max-width:none }
+/* Ventana corta (fallo de iOS 26, ver ios.js): el borde de abajo de la web no
+   es el de la pantalla, así que no hay esquina con la que casar. La barra se
+   pega abajo todo lo posible para que el hueco sea solo el que iOS deja fuera. */
+:root.vp-corta{ --tabbar-gap:8px; --tabbar-radius:32px; --safe-bottom:0px }
+:root.vp-corta .tabbar{ left:12px; right:12px }
 
 .tab, .tab-mas{ position:relative; z-index:1 }
 .tab{

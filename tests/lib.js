@@ -71,7 +71,9 @@ async function abrir(base, opts) {
   var m = MODELOS[opts.modelo || 'iphone-15'];
   var nav = await lanzar();
   var ctx = await nav.newContext({
-    viewport: { width: m.width, height: m.height },
+    /* altoVentana: la web más corta que la pantalla, como en el fallo de
+       iOS 26 (WebKit 301108) con la app instalada. */
+    viewport: { width: m.width, height: opts.altoVentana || m.height },
     screen: { width: m.width, height: m.height },
     deviceScaleFactor: m.dpr,
     isMobile: true,
@@ -89,6 +91,12 @@ async function abrir(base, opts) {
     });
   }
   var page = await ctx.newPage();
+  /* margenes: { top, bottom } — los márgenes seguros de un iPhone, por
+     ejemplo con la barra de estado translúcida (top: 59). */
+  if (opts.margenes) {
+    var cdp = await ctx.newCDPSession(page);
+    await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets: opts.margenes });
+  }
   page.errores = [];
   page.on('console', function (msg) {
     if (msg.type() === 'error') page.errores.push(msg.text());

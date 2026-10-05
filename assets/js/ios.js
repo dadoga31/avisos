@@ -68,6 +68,89 @@
     doc.setAttribute('data-screen-corners', '');
   }
 
+  /* ---------- ventana corta (fallo de iOS 26) ----------
+     WebKit 301108: con la app instalada, iOS 26 a veces le da a la web una
+     ventana más corta que la pantalla, justo lo que mide la barra de estado.
+     La franja de abajo queda fuera de la web (no se puede pintar) y lo fijo
+     abajo, como la barra de pestañas, sube con ella. Se arregla solo al rato.
+     Lo dispara sobre todo la barra de estado «black-translucent», e iOS la
+     lee solo al añadir la app a la pantalla de inicio: una app instalada con
+     ella la conserva aunque la página ya pida «default». */
+
+  var ventanaEstado = { corta: false, translucida: false, reintentos: 0, alto: 0, pantalla: 0 };
+
+  function insetArriba() {
+    var p = document.createElement('div');
+    p.style.cssText = 'position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top,0px)';
+    document.body.appendChild(p);
+    var v = parseFloat(getComputedStyle(p).paddingTop) || 0;
+    p.remove();
+    return v;
+  }
+
+  function escribiendo() {
+    var a = document.activeElement;
+    return !!(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName));
+  }
+
+  function medirVentana() {
+    var vertical = screen.height > screen.width && global.innerHeight > global.innerWidth;
+    var pantalla = Math.max(screen.height, screen.width);
+    var arriba = insetArriba();
+    /* Con la barra translúcida la web empieza bajo la barra de estado y debe
+       llegar al borde de abajo; con «default» empieza debajo de ella (que no
+       pasa de 60 puntos). Lo que falte de más es la ventana corta. */
+    var translucida = arriba > 20;
+    var falta = pantalla - global.innerHeight - (translucida ? 0 : 60);
+    ventanaEstado.translucida = translucida;
+    ventanaEstado.alto = global.innerHeight;
+    ventanaEstado.pantalla = pantalla;
+    ventanaEstado.corta = esIOS() && instalada() && vertical && falta > 20;
+    doc.classList.toggle('vp-corta', ventanaEstado.corta);
+    return ventanaEstado;
+  }
+
+  /* Quitar viewport-fit=cover y ponerlo dos fotogramas después hace que
+     WebKit vuelva a medir la ventana y los márgenes seguros. */
+  function reencajar(hecho) {
+    var meta = document.querySelector('meta[name="viewport"]');
+    var original = meta && meta.getAttribute('content');
+    if (!original || original.indexOf('viewport-fit=cover') === -1) { if (hecho) hecho(); return; }
+    ventanaEstado.reintentos++;
+    meta.setAttribute('content', original.replace(/,\s*viewport-fit=cover/, ''));
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        meta.setAttribute('content', original);
+        setTimeout(function () { if (hecho) hecho(); }, 300);
+      });
+    });
+  }
+
+  /* Al abrir la app y al volver a ella: si la ventana viene corta, se le pide
+     a WebKit que la mida otra vez; y mientras siga corta, la barra baja todo
+     lo que puede. Nunca mientras se escribe: tocar el viewport movería la
+     página con el teclado abierto. */
+  function vigilarVentana(alCambiar) {
+    function comprobar() {
+      if (escribiendo()) return;
+      var antes = ventanaEstado.corta;
+      if (!medirVentana().corta) { if (antes && alCambiar) alCambiar(); return; }
+      reencajar(function () { medirVentana(); if (alCambiar) alCambiar(); });
+    }
+    comprobar();
+    global.addEventListener('pageshow', comprobar);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') setTimeout(comprobar, 150);
+    });
+    /* Cuando iOS la corrige por su cuenta, avisa con un resize. */
+    global.addEventListener('resize', function () {
+      if (escribiendo()) return;
+      var antes = ventanaEstado.corta;
+      medirVentana();
+      if (antes !== ventanaEstado.corta && alCambiar) alCambiar();
+    });
+  }
+
   /* ---------- vibración ---------- */
 
   var gatillo = null;
@@ -336,6 +419,7 @@
   global.Ios = {
     esIOS: esIOS, instalada: instalada, sinMovimiento: sinMovimiento,
     esquinas: esquinas, vibrar: vibrar, luz: luz,
+    vigilarVentana: vigilarVentana, ventana: function () { return ventanaEstado; },
     aparecer: aparecer, contar: contar, barraEstado: barraEstado,
     vigilarTitulo: vigilarTitulo, lente: lente, segmentados: segmentados,
     arrastrarHoja: arrastrarHoja, radioPantalla: radioPantalla

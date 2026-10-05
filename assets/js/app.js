@@ -2,7 +2,7 @@
 (function (global) {
   'use strict';
 
-  var APP_VERSION = '2.1.1';
+  var APP_VERSION = '2.1.2';
   global.APP_VERSION = APP_VERSION;
 
   var S = global.Store, U = global.UI, V = global.Views;
@@ -313,6 +313,9 @@
 
   function arrancar() {
     global.Ios.esquinas();
+    /* Si iOS abre la app con la ventana corta, se intenta recolocar; la lente
+       se vuelve a medir cuando la ventana cambia. */
+    global.Ios.vigilarVentana(function () { global.Ios.lente(false); });
     global.Ios.luz();
     global.Ios.barraEstado();
     mirarTitulo = global.Ios.vigilarTitulo();

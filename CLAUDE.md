@@ -125,5 +125,14 @@ compilar: tokens y componentes en `assets/css/app.css`, comportamiento en
   una hora: dos versiones seguidas se mezclaban. Ahora el service worker pide
   todo con `cache: 'reload'` y `vercel.json` pone `no-cache` en `assets/` (los
   dos hacen falta: lo prueba `tests/actualizar.test.js`). No subas esa caché.
+- 2.1.2: barra de pestañas subida al abrir la app y que «se corregía sola».
+  Es WebKit 301108 (iOS 26): con la app instalada, iOS a veces da a la web una
+  ventana más corta que la pantalla; la franja de abajo queda fuera de la web
+  y no se puede pintar. Lo dispara la barra de estado `black-translucent`, e
+  iOS la lee solo al instalar: quien instaló antes de la 2.0 la conserva.
+  `Ios.vigilarVentana()` lo detecta, quita y pone `viewport-fit=cover` para
+  que WebKit vuelva a medir y, si sigue corta, pega la barra abajo
+  (`.vp-corta`). Ajustes enseña la barra de estado y la ventana que ve el
+  iPhone. Lo simula `tests/ventana.test.js` (márgenes seguros por CDP).
 - El estado de los workflows que devuelve la API de GitHub puede ir con
   retraso. Para saber si una APK está bien, bájala y mira su `APP_VERSION`.

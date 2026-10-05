@@ -1410,8 +1410,27 @@
         control: '<input class="en-fila" id="prefijo" value="' + esc(S.state.ajustes.prefijoRef || 'AV') + '" maxlength="6" autocapitalize="characters" autocomplete="off">' }),
       'El próximo aviso será <b>' + esc(S.siguienteRef()) + '</b>.');
 
+    /* Lo que iOS le ha dado a la app instalada: si la barra de estado es la
+       antigua (translúcida), iOS 26 puede abrirla con la ventana corta y la
+       barra de pestañas subida; solo se cambia volviendo a instalarla. */
+    var diag = '', pieDiag = '';
+    if (global.Ios && Ios.esIOS() && Ios.instalada()) {
+      var vt = Ios.ventana();
+      diag =
+        fila({ estatica: true, icono: 'movil', color: COLOR.gris, titulo: 'Barra de estado', attrs: ' data-diag="barra"',
+          valor: vt.translucida ? 'Antigua' : 'Normal' }) +
+        fila({ estatica: true, icono: 'movil', color: vt.corta ? COLOR.naranja : COLOR.gris, titulo: 'Pantalla', attrs: ' data-diag="ventana"',
+          valor: vt.corta ? 'Más corta' : 'Completa' });
+      if (vt.translucida) {
+        pieDiag = ' <b>Tu app se instaló con la barra de estado antigua</b>, y con ella iOS 26 a veces la abre más ' +
+          'corta y con la barra de abajo subida. Para quitarlo del todo: haz una <b>Copia completa</b>, quita la app ' +
+          'de la pantalla de inicio, vuelve a añadirla desde Safari e importa la copia.';
+      }
+    }
+
     html += bloque('Instalación y versión',
       fila({ estatica: true, icono: 'movil', color: COLOR.azul, titulo: 'Versión', valor: '<b>' + esc(global.APP_VERSION || '1.0.0') + '</b>' }) +
+      diag +
       '<li hidden id="filaInstalar"><button class="fila fila--accion" id="btnInstalar" type="button" hidden>' +
         '<span class="fila__icono" style="--c:' + COLOR.azul + '">' + ICON.mas + '</span>' +
         '<span class="fila__main"><span class="fila__titulo">Añadir a la pantalla de inicio</span></span></button></li>' +
@@ -1419,7 +1438,7 @@
       fila({ icono: 'actualizar', color: COLOR.verde, titulo: 'Buscar una versión nueva', attrs: ' data-buscar-version' }) +
       fila({ icono: 'reinstalar', color: COLOR.naranja, titulo: 'Reinstalar la app', attrs: ' data-reinstalar' }),
       'Reinstalar vacía lo que la app tiene guardado del propio programa y lo vuelve a bajar. ' +
-      '<b>Los avisos, los técnicos y las fotos no se tocan.</b> Úsalo si algo se queda a medias.');
+      '<b>Los avisos, los técnicos y las fotos no se tocan.</b> Úsalo si algo se queda a medias.' + pieDiag);
 
     html += U.seccion('Si algo falla', seccionFallos());
 
