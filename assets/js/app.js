@@ -2,7 +2,7 @@
 (function (global) {
   'use strict';
 
-  var APP_VERSION = '2.1.0';
+  var APP_VERSION = '2.1.1';
   global.APP_VERSION = APP_VERSION;
 
   var S = global.Store, U = global.UI, V = global.Views;
@@ -187,6 +187,7 @@
   function actualizarBadge() {
     var n = S.resumen().vencidos;
     var b = document.getElementById('badgeAgenda');
+    if (!b) return;
     b.textContent = n > 99 ? '99+' : n;
     b.hidden = !n;
   }

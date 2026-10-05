@@ -120,5 +120,10 @@ compilar: tokens y componentes en `assets/css/app.css`, comportamiento en
   `display` lo anulaban.
 - En el iPhone las descargas no llegan a ningún sitio con la app instalada:
   los archivos salen por `navigator.share({files})`.
+- 2.1.0: página de una versión con `.js` de otra. El service worker guardaba lo
+  que le daba la caché HTTP del navegador, y Vercel dejaba guardar `assets/`
+  una hora: dos versiones seguidas se mezclaban. Ahora el service worker pide
+  todo con `cache: 'reload'` y `vercel.json` pone `no-cache` en `assets/` (los
+  dos hacen falta: lo prueba `tests/actualizar.test.js`). No subas esa caché.
 - El estado de los workflows que devuelve la API de GitHub puede ir con
   retraso. Para saber si una APK está bien, bájala y mira su `APP_VERSION`.

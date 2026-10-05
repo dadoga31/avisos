@@ -17,9 +17,9 @@ El repositorio está conectado a Vercel: **cada push a la rama por defecto
 despliega la versión nueva**, sin compilar nada. La configuración vive en dos
 ficheros:
 
-- `vercel.json` — cabeceras de caché. `sw.js`, `index.html` y el manifiesto se
-  piden siempre al servidor (si se quedaran en caché, el móvil no vería nunca
-  una versión nueva); el resto de `assets/` se guarda una hora.
+- `vercel.json` — cabeceras de caché. Todo se comprueba con el servidor cada
+  vez (`no-cache`): si el móvil guardara algo por su cuenta, podría mezclar
+  ficheros de dos versiones. Para ir sin cobertura ya está el service worker.
 - `.vercelignore` — deja fuera del despliegue `android/`, `tools/`, `.github/`,
   `tests/`, el README y el `CLAUDE.md`, que no forman parte de la web.
 

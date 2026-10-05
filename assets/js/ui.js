@@ -239,7 +239,7 @@
   };
   /* Los avisos que cuentan un problema llevan otro icono que los que
      confirman que algo se ha hecho. */
-  var PROBLEMA = /^(no |error|el buzón falla|ponle|escribe|falta|añade técnicos)/i;
+  var PROBLEMA = /^(no |error|ha fallado|el buzón falla|ponle|escribe|falta|añade técnicos)/i;
 
   function toast(msg, opts) {
     opts = opts || {};

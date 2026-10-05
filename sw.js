@@ -1,7 +1,7 @@
 /* sw.js — caché de la aplicación para que funcione sin conexión.
    Sirve lo guardado al instante y refresca por detrás; cuando hay una
    versión nueva lista, se avisa a la página para que lo diga. */
-var VERSION = 'avisos-v2.1.0';
+var VERSION = 'avisos-v2.1.1';
 var SHELL = [
   './',
   './index.html',
@@ -30,7 +30,12 @@ var SHELL = [
 
 self.addEventListener('install', function (e) {
   e.waitUntil(
-    caches.open(VERSION).then(function (c) { return c.addAll(SHELL); })
+    /* Todo se pide a la red, saltándose la caché HTTP del navegador: si no,
+       con dos versiones publicadas seguidas se guardaba la página nueva con
+       los .js de la anterior, y la app se rompía (fallo de la 2.1.0). */
+    caches.open(VERSION).then(function (c) {
+      return c.addAll(SHELL.map(function (u) { return new Request(u, { cache: 'reload' }); }));
+    })
     /* Sin skipWaiting: la página avisa y el usuario decide cuándo pasar a
        la versión nueva, para no cambiarle el suelo mientras trabaja. */
   );
