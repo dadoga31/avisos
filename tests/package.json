@@ -1,0 +1,11 @@
+{
+  "name": "avisos-pruebas",
+  "private": true,
+  "description": "Pruebas de la app con un iPhone emulado. No forman parte de la web.",
+  "scripts": {
+    "test": "node run.js"
+  },
+  "devDependencies": {
+    "playwright-core": "1.56.1"
+  }
+}
