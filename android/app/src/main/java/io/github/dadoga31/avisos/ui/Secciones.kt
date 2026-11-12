@@ -23,6 +23,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Alarm
+import androidx.compose.material.icons.rounded.Backup
+import androidx.compose.material.icons.rounded.SettingsBackupRestore
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ChevronRight
@@ -280,6 +282,8 @@ fun EquipoPantalla(
 class AccionesAjustes(
     val cambiar: ((Ajustes) -> Ajustes) -> Unit = {},
     val abrirCorreo: () -> Unit = {},
+    val guardarCopia: () -> Unit = {},
+    val recuperarCopia: () -> Unit = {},
     val ejemplo: () -> Unit = {},
     val borrarTodo: () -> Unit = {}
 )
@@ -361,6 +365,18 @@ fun AjustesPantalla(ajustes: Ajustes, avisos: List<Aviso>, estadoCorreo: String?
         CabeceraSeccion("Datos")
         Grupo(
             listOf(
+                { f ->
+                    FilaSimple(
+                        f, Icons.Rounded.Backup, "Guardar copia de seguridad",
+                        "Avisos, técnicos, notas, fotos y adjuntos en un archivo", alPulsar = acciones.guardarCopia
+                    )
+                },
+                { f ->
+                    FilaSimple(
+                        f, Icons.Rounded.SettingsBackupRestore, "Recuperar una copia",
+                        "También las de la app anterior · añade lo que falte", alPulsar = acciones.recuperarCopia
+                    )
+                },
                 { f -> FilaSimple(f, Icons.Rounded.Science, "Cargar avisos de ejemplo", "Seis avisos y dos técnicos para probar", alPulsar = acciones.ejemplo) },
                 { f -> FilaSimple(f, Icons.Rounded.DeleteSweep, "Borrar todos los avisos", "${avisos.size} guardados en este móvil", alPulsar = { borrar = true }) }
             )

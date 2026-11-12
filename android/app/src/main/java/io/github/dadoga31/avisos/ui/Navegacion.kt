@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -126,11 +128,19 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
             }
             composable("ajustes") {
                 val correo by produceState<String?>(null) { value = withContext(Dispatchers.IO) { estadoCorreo(contexto) } }
+                val guardar = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+                    uri?.let { vm.exportar(it) }
+                }
+                val recuperar = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+                    uri?.let { vm.importar(it) }
+                }
                 AjustesPantalla(
                     ajustes, avisos, correo,
                     AccionesAjustes(
                         cambiar = { vm.cambiarAjustes(it) },
                         abrirCorreo = { nav.navigate("correo") },
+                        guardarCopia = { guardar.launch("avisos-$hoy.json") },
+                        recuperarCopia = { recuperar.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) },
                         ejemplo = { vm.datosDeEjemplo(); irASeccion(Seccion.AGENDA) },
                         borrarTodo = { vm.borrarTodos() }
                     )

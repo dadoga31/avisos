@@ -82,6 +82,51 @@ class Repositorio(
         avisarCambio()
     }
 
+    // ---------- copia de seguridad ----------
+
+    data class Recuperado(val avisos: Int, val tecnicos: Int, val ficheros: Int)
+
+    /** La copia entera en el formato «avisos-backup», con los adjuntos dentro. */
+    suspend fun exportar(): String = CopiaSeguridad.exportar(dao.todosAhora(), dao.tecnicosAhora(), ajustes.actual, leer = { adj ->
+        carpeta?.let { File(it, adj.ruta) }?.takeIf { it.exists() }?.readBytes()
+    })
+
+    /**
+     * Añade lo que falte de una copia (nativa o de la web): los avisos y
+     * técnicos que ya están no se tocan. La numeración sigue por la más alta.
+     */
+    suspend fun importar(c: ContenidoCopia): Recuperado {
+        val r = cerrojo.withLock {
+            val idsA = dao.todosAhora().map { it.id }.toSet()
+            val idsT = dao.tecnicosAhora().map { it.id }.toSet()
+            val nuevosT = c.tecnicos.filter { it.id !in idsT }
+            nuevosT.forEach { dao.guardarTecnico(it) }
+            val conocidos = idsT + nuevosT.map { it.id } + Tecnico.YO
+            val porAviso = c.ficheros.groupBy { it.avisoId }
+            var ficheros = 0
+            val nuevosA = c.avisos.filter { it.id !in idsA }.map { a ->
+                var b = if (a.asignadoA.isNotEmpty() && a.asignadoA !in conocidos) a.copy(asignadoA = "") else a
+                val fs = porAviso[a.id].orEmpty()
+                if (carpeta != null && fs.isNotEmpty()) {
+                    val dir = File(carpeta, "adjuntos/${a.id}").apply { mkdirs() }
+                    b = b.copy(adjuntos = fs.mapIndexed { i, f ->
+                        val nombre = f.nombre.replace(Regex("[\\\\/:*?\"<>|]"), "_")
+                        val destino = File(dir, "$i-$nombre").apply { writeBytes(f.datos) }
+                        ficheros++
+                        Adjunto(f.id.ifEmpty { nuevoId("f") }, nombre, f.mime, destino.length(), "adjuntos/${a.id}/${destino.name}")
+                    })
+                }
+                b
+            }
+            dao.guardarVarios(nuevosA)
+            val (_, siguiente) = Reglas.siguienteRef(ajustes.actual.prefijoRef, maxOf(ajustes.actual.contadorRef, c.contadorRef), dao.todosAhora())
+            ajustes.cambiar { it.copy(contadorRef = siguiente - 1, correoIgnorados = (it.correoIgnorados + c.correoIgnorados).distinct()) }
+            Recuperado(nuevosA.size, nuevosT.size, ficheros)
+        }
+        avisarCambio()
+        return r
+    }
+
     /** ¿Ya hay un aviso hecho con este correo? */
     suspend fun yaConvertido(claves: List<String>) = claves.isNotEmpty() && dao.cuantosConCorreo(claves) > 0
 

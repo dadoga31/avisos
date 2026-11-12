@@ -90,6 +90,32 @@ class AvisosVM(app: Application) : AndroidViewModel(app) {
 
     fun borrarTecnico(id: String) = viewModelScope.launch { repo.borrarTecnico(id) }
     fun borrarTodos() = viewModelScope.launch { repo.borrarTodos() }
+
+    /** Guarda la copia en el archivo que eligió el usuario (Drive, Descargas…). */
+    fun exportar(uri: android.net.Uri) = viewModelScope.launch(Dispatchers.IO) {
+        val texto = runCatching {
+            val json = repo.exportar()
+            avisosApp.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(json.toByteArray()) }
+            val n = avisos.value.size
+            if (n == 1) "Copia guardada: 1 aviso" else "Copia guardada: $n avisos"
+        }.getOrElse { "No se pudo guardar la copia: ${it.message ?: "error"}" }
+        mensajes.tryEmit(texto)
+    }
+
+    /** Recupera una copia (de esta app o de la web): añade lo que falte. */
+    fun importar(uri: android.net.Uri) = viewModelScope.launch(Dispatchers.IO) {
+        val texto = runCatching {
+            val json = avisosApp.contentResolver.openInputStream(uri)!!.use { it.readBytes().toString(Charsets.UTF_8) }
+            val r = repo.importar(io.github.dadoga31.avisos.datos.CopiaSeguridad.leer(json))
+            if (r.avisos == 0 && r.tecnicos == 0) "La copia no trae nada nuevo: todo estaba ya"
+            else buildList {
+                add(if (r.avisos == 1) "1 aviso" else "${r.avisos} avisos")
+                if (r.tecnicos > 0) add(if (r.tecnicos == 1) "1 técnico" else "${r.tecnicos} técnicos")
+                if (r.ficheros > 0) add(if (r.ficheros == 1) "1 archivo" else "${r.ficheros} archivos")
+            }.joinToString(", ", prefix = "Recuperados: ")
+        }.getOrElse { if (it is IllegalArgumentException) it.message ?: "Copia no válida" else "No se pudo leer la copia: ${it.message ?: "error"}" }
+        mensajes.tryEmit(texto)
+    }
     fun datosDeEjemplo() = viewModelScope.launch { repo.datosDeEjemplo() }
     fun cambiarAjustes(f: (Ajustes) -> Ajustes) {
         val antes = almacen.actual.recordatorio

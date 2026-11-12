@@ -1,0 +1,244 @@
+{
+ "formato": "avisos-backup",
+ "version": 1,
+ "exportado": "2026-11-12T18:19:01.304Z",
+ "ajustes": {
+  "tema": "auto",
+  "prefijoRef": "AV",
+  "contadorRef": 6,
+  "verCerrados": false,
+  "recordatorio": 30,
+  "pistaGestos": true,
+  "correoIgnorados": []
+ },
+ "tecnicos": [
+  {
+   "id": "tc_mwdvggmq5b16ec3c0a78",
+   "nombre": "Yo",
+   "telefono": "",
+   "color": "#c2410c"
+  },
+  {
+   "id": "tc_mwdvggmqb4a4d866349d",
+   "nombre": "Marcos Rey",
+   "telefono": "600112233",
+   "color": "#0e7490"
+  },
+  {
+   "id": "tc_mwdvggmqefe6dd67fb0e",
+   "nombre": "Laura Pinto",
+   "telefono": "600445566",
+   "color": "#15803d"
+  }
+ ],
+ "avisos": [
+  {
+   "id": "av_mwdvggmw94decdc1a3b0",
+   "ref": "AV-0001",
+   "titulo": "Central de alarma en fallo de comunicación",
+   "tipo": "averia",
+   "sistema": "alarma",
+   "prioridad": "urgente",
+   "estado": "pendiente",
+   "origen": "correo",
+   "correo": {
+    "messageId": "<abc@empresa.es>",
+    "uid": "77",
+    "de": "ana@farmacia.es"
+   },
+   "cliente": {
+    "nombre": "Farmacia Centro",
+    "direccion": "C/ Mayor 14, Bajo",
+    "telefono": "911234567",
+    "contacto": "Ana"
+   },
+   "fecha": "2026-11-11",
+   "hora": "09:30",
+   "duracion": "",
+   "asignadoA": "tc_mwdvggmq5b16ec3c0a78",
+   "descripcion": "La central pierde conexión con la CRA por la noche. Revisar módulo GPRS y cableado.",
+   "notas": [],
+   "materiales": [],
+   "horas": [],
+   "creado": "2026-11-12T18:19:01.302Z",
+   "actualizado": "2026-11-12T18:19:01.304Z",
+   "cerrado": ""
+  },
+  {
+   "id": "av_mwdvggmw872081942989",
+   "ref": "AV-0002",
+   "titulo": "Sustitución de 2 cámaras exteriores",
+   "tipo": "instalacion",
+   "sistema": "cctv",
+   "prioridad": "alta",
+   "estado": "programado",
+   "origen": "manual",
+   "correo": null,
+   "cliente": {
+    "nombre": "Naves Logísticas Sur",
+    "direccion": "Pol. Ind. El Prado, nave 7",
+    "telefono": "915556677",
+    "contacto": "Jefe de planta"
+   },
+   "fecha": "2026-11-12",
+   "hora": "11:00",
+   "duracion": "",
+   "asignadoA": "tc_mwdvggmqb4a4d866349d",
+   "descripcion": "Cambio de dos domos por bullet 4MP. Llevar escalera y latiguillos.",
+   "notas": [],
+   "materiales": [],
+   "horas": [],
+   "creado": "2026-11-12T18:19:01.304Z",
+   "actualizado": "2026-11-12T18:19:01.304Z",
+   "cerrado": ""
+  },
+  {
+   "id": "av_mwdvggmw6709ff20aa29",
+   "ref": "AV-0003",
+   "titulo": "Mantenimiento anual del sistema de incendios",
+   "tipo": "mantenimiento",
+   "sistema": "incendios",
+   "prioridad": "normal",
+   "estado": "en_curso",
+   "origen": "manual",
+   "correo": null,
+   "cliente": {
+    "nombre": "Colegio San Pablo",
+    "direccion": "Av. de la Paz 3",
+    "telefono": "913334455",
+    "contacto": "Conserjería"
+   },
+   "fecha": "2026-11-12",
+   "hora": "16:00",
+   "duracion": "",
+   "asignadoA": "tc_mwdvggmq5b16ec3c0a78",
+   "descripcion": "Revisión de detectores y pulsadores. Firmar parte al terminar.",
+   "notas": [
+    {
+     "id": "n_mwdvggmw7addbe567cb7",
+     "ts": "2026-11-12T18:19:01.304Z",
+     "texto": "Revisada la primera planta, faltan sótano y azotea."
+    }
+   ],
+   "materiales": [],
+   "horas": [],
+   "creado": "2026-11-12T18:19:01.304Z",
+   "actualizado": "2026-11-12T18:19:01.304Z",
+   "cerrado": ""
+  },
+  {
+   "id": "av_mwdvggmwc5f32d18d3df",
+   "ref": "AV-0004",
+   "titulo": "Lector de acceso no lee tarjetas",
+   "tipo": "averia",
+   "sistema": "accesos",
+   "prioridad": "alta",
+   "estado": "programado",
+   "origen": "manual",
+   "correo": null,
+   "cliente": {
+    "nombre": "Gimnasio Atlas",
+    "direccion": "C/ Deportes 22",
+    "telefono": "917778899",
+    "contacto": "Recepción"
+   },
+   "fecha": "2026-11-13",
+   "hora": "08:00",
+   "duracion": "",
+   "asignadoA": "tc_mwdvggmqefe6dd67fb0e",
+   "descripcion": "Lector de la puerta principal intermitente. Posible fuente o cableado Wiegand.",
+   "notas": [],
+   "materiales": [],
+   "horas": [],
+   "creado": "2026-11-12T18:19:01.304Z",
+   "actualizado": "2026-11-12T18:19:01.304Z",
+   "cerrado": ""
+  },
+  {
+   "id": "av_mwdvggmw6036a921cd59",
+   "ref": "AV-0005",
+   "titulo": "Presupuesto de videoportero para 12 viviendas",
+   "tipo": "presupuesto",
+   "sistema": "interfono",
+   "prioridad": "baja",
+   "estado": "pendiente",
+   "origen": "manual",
+   "correo": null,
+   "cliente": {
+    "nombre": "Comunidad C/ Olmo 8",
+    "direccion": "C/ Olmo 8",
+    "telefono": "600998877",
+    "contacto": "Presidente"
+   },
+   "fecha": "2026-11-16",
+   "hora": "",
+   "duracion": "",
+   "asignadoA": "",
+   "descripcion": "Tomar medidas del portal y pasar oferta con dos opciones.",
+   "notas": [],
+   "materiales": [],
+   "horas": [],
+   "creado": "2026-11-12T18:19:01.304Z",
+   "actualizado": "2026-11-12T18:19:01.304Z",
+   "cerrado": ""
+  },
+  {
+   "id": "av_mwdvggmw2be801a4edf9",
+   "ref": "AV-0006",
+   "titulo": "Ampliación de 4 detectores volumétricos",
+   "tipo": "instalacion",
+   "sistema": "alarma",
+   "prioridad": "normal",
+   "estado": "resuelto",
+   "origen": "manual",
+   "correo": null,
+   "cliente": {
+    "nombre": "Joyería Duarte",
+    "direccion": "Plaza del Sol 1",
+    "telefono": "912223344",
+    "contacto": "Sr. Duarte"
+   },
+   "fecha": "2026-11-06",
+   "hora": "10:00",
+   "duracion": "",
+   "asignadoA": "tc_mwdvggmqb4a4d866349d",
+   "descripcion": "Ampliación realizada y probada con la CRA.",
+   "notas": [
+    {
+     "id": "n_mwdvggmwf7fa69179863",
+     "ts": "2026-11-12T18:19:01.304Z",
+     "texto": "Trabajo terminado y firmado por el cliente."
+    }
+   ],
+   "materiales": [
+    {
+     "id": "m_mwdvggmwb897bf19a910",
+     "desc": "Detector PIR grado 2",
+     "cantidad": 4
+    }
+   ],
+   "horas": [
+    {
+     "id": "h_mwdvggmw23f4a3a2b0d7",
+     "fecha": "2026-11-06",
+     "horas": 3.5,
+     "tecnicoId": "tc_mwdvggmqb4a4d866349d"
+    }
+   ],
+   "creado": "2026-11-12T18:19:01.304Z",
+   "actualizado": "2026-11-12T18:19:01.304Z",
+   "cerrado": "2026-11-12T18:19:01.304Z"
+  }
+ ],
+ "fotos": [
+  {
+   "id": "f_web1",
+   "avisoId": "av_mwdvggmw2be801a4edf9",
+   "ts": "2026-11-12T18:19:01.304Z",
+   "nombre": "parte firmado.jpg",
+   "mime": "image/jpeg",
+   "origen": "dispositivo",
+   "data": "data:image/jpeg;base64,SlBFR0RFUFJVRUJB"
+  }
+ ]
+}
