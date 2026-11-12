@@ -25,6 +25,33 @@ móvil **Android**, instalada con la APK de este repo.
   de iPhone describe el código que hay, no el que se quiere. No añadas nada
   nuevo de iOS (Liquid Glass, Atajos, barra de estado de Safari, etc.).
 
+## App nativa (`android/`)
+
+- Kotlin + Jetpack Compose + Material 3 (BOM 2024.12.01, M3 1.3.1), Room 2.6.1
+  con KSP, AGP 8.5.2, compileSdk 34, minSdk 26. Las versiones van atadas a esa
+  cadena de herramientas: no las subas sin necesidad.
+- `datos/`: `Modelo.kt` (mismos campos y valores que la web, para poder
+  importar sus copias), `BaseDatos.kt` (Room), `Reglas.kt` (reglas puras:
+  grupos de la Agenda, siguiente aviso, búsqueda, referencias, textos),
+  `Repositorio.kt` (todo cambio pasa por aquí: referencia, cierre, inicio,
+  widget) y `Ajustes.kt`. `ui/`: `Tema.kt` (paleta de `diseno/tokens2.css` y
+  colores de estado), `Armazon.kt` (menú flotante + botón de la pantalla),
+  `Agenda.kt`, `Ficha.kt`, `Formulario.kt`, `Secciones.kt` (Hechos, Equipo,
+  Ajustes), `Navegacion.kt`. `correo/` y `WidgetAvisos.java` vienen de antes.
+- Las pantallas no tienen estado propio de datos: reciben avisos y acciones.
+  Así se prueban y se capturan sin base de datos.
+- Pruebas: `cd android && ./gradlew testDebugUnitTest`. `ReglasTest` (JVM),
+  `RepositorioTest` (Robolectric + Room en memoria) y `CapturasTest`
+  (Roborazzi): deja en `diseno/capturas-app/` cada pantalla en claro y oscuro a
+  tamaño Pixel 7. Tras un cambio visual, mira esas capturas.
+- Al publicar una APK nueva sube `versionCode` y `versionName` en
+  `app/build.gradle`. Se firma con `keystore/depuracion.keystore`, la de
+  siempre: con otra firma Android no deja actualizar la app instalada.
+- Fase 2, pendiente: correo → aviso (portar `assets/js/correo.js`;
+  `ServicioCorreo` ya guarda los correos en `AlmacenCorreo` mientras tanto),
+  configurar la cuenta desde Ajustes, notificaciones con acciones y
+  recordatorios, fotos, copia de seguridad (y leer la de la app web), widget.
+
 ## Rama y despliegue
 
 - Se trabaja **solo** en `claude/app-gestion-avisos-408zhn`. Es la rama por

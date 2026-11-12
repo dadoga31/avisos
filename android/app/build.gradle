@@ -1,33 +1,22 @@
 plugins {
     id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
+    id 'com.google.devtools.ksp'
 }
 
-/* La web es la misma que se publica en GitHub Pages: se copia tal cual
-   dentro de la app para que funcione sin red y sin servidor. */
-def raizWeb = rootProject.file('..')
-def destinoWeb = layout.buildDirectory.dir('webAssets').get().asFile
-
-tasks.register('copiarWeb', Copy) {
-    from(raizWeb) {
-        include 'index.html'
-        include 'manifest.webmanifest'
-        include 'assets/**'
-        exclude '.git/**'
-        exclude 'android/**'
-    }
-    into new File(destinoWeb, 'www')
-}
-
+/* App nativa: Kotlin + Jetpack Compose + Material 3. El diseño aprobado está
+   en diseno/ (maquetas, paleta e icono). */
 android {
     namespace 'io.github.dadoga31.avisos'
     compileSdk 34
 
     defaultConfig {
         applicationId 'io.github.dadoga31.avisos'
-        minSdk 24
+        minSdk 26
         targetSdk 34
-        versionCode 6
-        versionName '1.5.1'
+        versionCode 7
+        versionName '3.0.0'
     }
 
     signingConfigs {
@@ -50,15 +39,18 @@ android {
         }
     }
 
-    sourceSets {
-        main {
-            assets.srcDirs += [destinoWeb]
-        }
+    buildFeatures {
+        compose true
+        buildConfig true
     }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
     }
 
     /* Los dos jars de JavaMail traen la misma licencia y el mismo pom, y
@@ -75,8 +67,23 @@ android {
                 'META-INF/NOTICE.md',
                 'META-INF/NOTICE.txt',
                 'META-INF/DEPENDENCIES',
-                'META-INF/maven/**'
+                'META-INF/maven/**',
+                'META-INF/AL2.0',
+                'META-INF/LGPL2.1'
             ]
+        }
+    }
+
+    /* Pruebas en la JVM con Robolectric: reglas de negocio y capturas de las
+       pantallas de verdad (Roborazzi), sin emulador. */
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+            all {
+                systemProperty 'roborazzi.test.record', 'true'
+                systemProperty 'roborazzi.output.dir', rootProject.file('../diseno/capturas-app').absolutePath
+                maxHeapSize = '2g'
+            }
         }
     }
 
@@ -89,17 +96,25 @@ android {
     }
 }
 
-tasks.named('preBuild') { dependsOn 'copiarWeb' }
-
-tasks.configureEach { tarea ->
-    if (tarea.name.startsWith('merge') && tarea.name.endsWith('Assets')) {
-        tarea.dependsOn 'copiarWeb'
-    }
+ksp {
+    arg('room.schemaLocation', "$projectDir/schemas")
 }
 
 dependencies {
-    implementation 'androidx.webkit:webkit:1.11.0'
-    implementation 'androidx.core:core:1.13.1'
+    implementation platform('androidx.compose:compose-bom:2024.12.01')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.material:material-icons-extended'
+    implementation 'androidx.activity:activity-compose:1.9.3'
+    implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.8.7'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7'
+    implementation 'androidx.navigation:navigation-compose:2.8.5'
+    implementation 'androidx.core:core-ktx:1.13.1'
+
+    implementation 'androidx.room:room-runtime:2.6.1'
+    implementation 'androidx.room:room-ktx:2.6.1'
+    ksp 'androidx.room:room-compiler:2.6.1'
 
     // Lectura del buzón: IMAP con IDLE, POP3 y análisis de los mensajes
     implementation 'com.sun.mail:android-mail:1.6.7'
@@ -107,4 +122,15 @@ dependencies {
 
     // Contraseña del correo en el almacén cifrado del sistema
     implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
+
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.14.1'
+    testImplementation 'androidx.test:core-ktx:1.6.1'
+    testImplementation 'androidx.compose.ui:ui-test-junit4'
+    testImplementation 'io.github.takahirom.roborazzi:roborazzi:1.36.0'
+    testImplementation 'io.github.takahirom.roborazzi:roborazzi-compose:1.36.0'
+    testImplementation 'io.github.takahirom.roborazzi:roborazzi-junit-rule:1.36.0'
 }
