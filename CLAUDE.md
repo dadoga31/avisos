@@ -14,6 +14,13 @@ móvil **Android**, instalada con la APK de este repo.
   servicio de correo, el widget y las notificaciones (Java en `android/`) se
   aprovechan.
 - Los avisos de la APK web actual no se migran: el usuario acepta perderlos.
+- El diseño aprobado está en `diseno/`: maquetas Material 3 Expressive con
+  menú flotante, paleta, icono (escudo con ✓) y los criterios de uso que tiene
+  que cumplir. Léelo antes de escribir una pantalla.
+- Se compila aquí: el entorno «avisos» instala el Android SDK al arrancar
+  (`/root/android-sdk`, y escribe `android/local.properties`). Luego
+  `cd android && ./gradlew assembleRelease`. El workflow `apk.yml` además
+  publica la release `apk`: no lo lances sin que el usuario lo pida.
 - Mientras dure la reescritura, lo que se cuenta abajo sobre la web y el diseño
   de iPhone describe el código que hay, no el que se quiere. No añadas nada
   nuevo de iOS (Liquid Glass, Atajos, barra de estado de Safari, etc.).

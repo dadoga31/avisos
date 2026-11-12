@@ -13,6 +13,11 @@ var CAMPANA = 'M54,40.8 C48.2,40.8 44.2,45.3 44.2,51.2 V57.6 C44.2,58.6 43.9,59.
   'H65.1 C66.2,64.2 66.8,63 66.1,62.1 L64.7,60.3 C64.1,59.5 63.8,58.6 63.8,57.6 V51.2 C63.8,45.3 59.8,40.8 54,40.8 Z ' +
   'M50.6,66.6 H57.4 C57.4,68.5 55.9,70 54,70 C52.1,70 50.6,68.5 50.6,66.6 Z';
 var GLIFO = ESCUDO + ' ' + CAMPANA;          // con evenOdd, la campana queda hueca
+/* Contorno del ✓ (trazo de 6,5 con puntas redondas) dibujado como figura: con evenOdd queda hueco. */
+var CHECK = 'M42.202,57.298 L48.702,63.798 A3.25,3.25 0 0 0 53.298,63.798 L66.298,50.798 A3.25,3.25 0 0 0 61.702,46.202 L51,56.904 L46.798,52.702 A3.25,3.25 0 0 0 42.202,57.298 Z';
+var GLIFO_B = ESCUDO + ' ' + CHECK;
+var ELEGIDA = 'B';                            // la que va en la app
+var GLIFO_ELEGIDO = ELEGIDA === 'B' ? GLIFO_B : GLIFO;
 var ESCALA = 0.9;                             // peso visual dentro de la zona segura
 var C1 = '#FF9A4D', C2 = '#E5530A';          // degradado naranja (marca: #F27427)
 
@@ -28,7 +33,7 @@ var PROPUESTAS = {
   },
   B: function () {   // naranja con escudo y check
     return defs() + '<rect width="108" height="108" fill="url(#g)"/><rect width="108" height="108" fill="url(#h)"/>' +
-      grupo('<path fill="#fff" d="' + ESCUDO + '"/><path fill="none" stroke="url(#g)" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" d="M44.5,55 L51,61.5 L64,48.5"/>');
+      grupo('<path fill="#fff" fill-rule="evenodd" d="' + GLIFO_B + '"/>');
   },
   C: function () {   // oscuro con escudo-campana naranja
     return defs() + '<rect width="108" height="108" fill="#16181D"/>' +
@@ -40,11 +45,11 @@ function svg(k, forma, tam) {
   return '<svg width="' + tam + '" height="' + tam + '" viewBox="18 18 72 72" style="display:block;border-radius:' + (forma === 'circulo' ? '50%' : '28%') + '">' + PROPUESTAS[k]() + '</svg>';
 }
 function silueta(tam, color) {
-  return '<svg width="' + tam + '" height="' + tam + '" viewBox="22.5 23.25 63 63"><path fill="' + color + '" fill-rule="evenodd" d="' + GLIFO + '"/></svg>';
+  return '<svg width="' + tam + '" height="' + tam + '" viewBox="22.5 23.25 63 63"><path fill="' + color + '" fill-rule="evenodd" d="' + GLIFO_ELEGIDO + '"/></svg>';
 }
 function tematico(tam) {
   return '<svg width="' + tam + '" height="' + tam + '" viewBox="18 18 72 72" style="display:block;border-radius:50%"><rect x="0" y="0" width="108" height="108" fill="#D3E3FD"/>' +
-    grupo('<path fill="#0B2A5C" fill-rule="evenodd" d="' + GLIFO + '"/>') + '</svg>';
+    grupo('<path fill="#0B2A5C" fill-rule="evenodd" d="' + GLIFO_ELEGIDO + '"/>') + '</svg>';
 }
 
 var FUENTES = '@font-face{font-family:Roboto;font-weight:400;src:url(file://' + DIR + '/node_modules/@fontsource/roboto/files/roboto-latin-400-normal.woff2)}' +
@@ -61,7 +66,7 @@ function hoja() {
   }
   function inicio(tematica) {
     var celdas = otras.slice(0, 3).map(function (o) { return app(o[0], o[1], o[2], tematica); }).join('') +
-      '<div class="app">' + (tematica ? tematico(60) : svg('A', 'circulo', 60)) + '<span>Avisos</span></div>' +
+      '<div class="app">' + (tematica ? tematico(60) : svg(ELEGIDA, 'circulo', 60)) + '<span>Avisos</span></div>' +
       otras.slice(3).map(function (o) { return app(o[0], o[1], o[2], tematica); }).join('');
     return '<div class="home"><div class="sbar"><span>9:41</span></div><div class="grid">' + celdas + '</div></div>';
   }
@@ -84,14 +89,14 @@ function hoja() {
     '.ntf .ac{grid-column:2;display:flex;gap:6px;margin-top:10px}.ntf .ac span{height:34px;border-radius:17px;background:#f0f0f3;color:#C65500;font-size:14px;font-weight:500;padding:0 12px;display:flex;align-items:center}' +
     '.dk{background:#1c1c1f}.dk .st{color:#e6e6ea}.dk .ntf{background:#2a2a2e;color:#eee}.dk .ntf p{color:#c8c8cc}.dk .ntf .ap{color:#a9a9b0}.dk .ntf .ac span{background:#38383d;color:#FFB691}' +
     '</style></head><body>' +
-    '<h1>Icono nuevo de Avisos</h1><p class="n">Lienzo adaptable de Android (se recorta en círculo, gota o cuadrado según el móvil). Recomiendo la A: la silueta es la misma en el icono y en las notificaciones.</p>' +
+    '<h1>Icono nuevo de Avisos</h1><p class="n">Lienzo adaptable de Android (se recorta en círculo, gota o cuadrado según el móvil). Elegida la B. La notificación usa la misma silueta que el icono.</p>' +
     '<div class="props">' + ['A', 'B', 'C'].map(function (k) {
       var txt = { A: 'Escudo con campana, en naranja. Seguridad + aviso. Se reconoce también en la silueta de la notificación.',
-        B: 'Escudo con ✓, en naranja. Más cercano al de ahora, pero el ✓ dice «hecho», no «aviso».',
+        B: 'Escudo con ✓, en naranja. Seguridad y trabajo hecho; el más cercano al icono de antes.',
         C: 'La A sobre fondo oscuro, como el icono actual. Menos llamativo en un fondo de pantalla oscuro.' }[k];
-      return '<div class="prop' + (k === 'A' ? ' rec' : '') + '"><div class="par">' + svg(k, 'circulo', 120) + svg(k, 'cuadrado', 96) + '</div><b>' + k + (k === 'A' ? ' · recomendada' : '') + '</b><small>' + txt + '</small></div>';
+      return '<div class="prop' + (k === ELEGIDA ? ' rec' : '') + '"><div class="par">' + svg(k, 'circulo', 120) + svg(k, 'cuadrado', 96) + '</div><b>' + k + (k === ELEGIDA ? ' · elegida' : '') + '</b><small>' + txt + '</small></div>';
     }).join('') + '</div>' +
-    '<h2>La A en el móvil</h2><div class="fila">' +
+    '<h2>La ' + ELEGIDA + ' en el móvil</h2><div class="fila">' +
     '<div>' + inicio(false) + '<div class="cap">Pantalla de inicio</div></div>' +
     '<div>' + inicio(true) + '<div class="cap">Iconos temáticos (Android 13+): toma el color del fondo</div></div>' +
     '<div><div class="panel"><div class="st">9:41 ' + silueta(18, '#1b1b1f') + '</div>' +
@@ -122,13 +127,13 @@ function xmlGlifo(comentario, color) {
   return '<?xml version="1.0" encoding="utf-8"?>\n<!-- ' + comentario + ' -->\n' +
     '<vector xmlns:android="http://schemas.android.com/apk/res/android"\n    android:width="108dp"\n    android:height="108dp"\n    android:viewportWidth="108"\n    android:viewportHeight="108">\n' +
     '    <group\n        android:pivotX="54"\n        android:pivotY="54"\n        android:scaleX="' + ESCALA + '"\n        android:scaleY="' + ESCALA + '">\n' +
-    '        <path\n            android:fillColor="' + color + '"\n            android:fillType="evenOdd"\n            android:pathData="' + GLIFO + '" />\n    </group>\n</vector>\n';
+    '        <path\n            android:fillColor="' + color + '"\n            android:fillType="evenOdd"\n            android:pathData="' + GLIFO_ELEGIDO + '" />\n    </group>\n</vector>\n';
 }
 function xmlPequeno(comentario, color, extra) {
   return '<?xml version="1.0" encoding="utf-8"?>\n<!-- ' + comentario + ' -->\n' +
     '<vector xmlns:android="http://schemas.android.com/apk/res/android"\n    android:width="24dp"\n    android:height="24dp"\n    android:viewportWidth="63"\n    android:viewportHeight="63"' + (extra || '') + '>\n' +
     '    <group\n        android:translateX="-22.5"\n        android:translateY="-23.25">\n' +
-    '        <path\n            android:fillColor="' + color + '"\n            android:fillType="evenOdd"\n            android:pathData="' + GLIFO + '" />\n    </group>\n</vector>\n';
+    '        <path\n            android:fillColor="' + color + '"\n            android:fillType="evenOdd"\n            android:pathData="' + GLIFO_ELEGIDO + '" />\n    </group>\n</vector>\n';
 }
 
 async function main() {
@@ -136,10 +141,10 @@ async function main() {
   fs.mkdirSync(path.join(res, 'drawable'), { recursive: true });
   fs.mkdirSync(path.join(res, 'mipmap-xxhdpi'), { recursive: true });
   fs.writeFileSync(path.join(res, 'drawable', 'ic_launcher_background.xml'), xmlFondo());
-  fs.writeFileSync(path.join(res, 'drawable', 'ic_launcher_foreground.xml'), xmlGlifo('Escudo con campana: la campana queda hueca (evenOdd) y deja ver el fondo.', '#FFFFFF'));
+  fs.writeFileSync(path.join(res, 'drawable', 'ic_launcher_foreground.xml'), xmlGlifo('Escudo con ✓: el ✓ queda hueco (evenOdd) y deja ver el fondo.', '#FFFFFF'));
   fs.writeFileSync(path.join(res, 'drawable', 'ic_launcher_monochrome.xml'), xmlGlifo('Capa para los iconos temáticos (Android 13+): el sistema la tiñe.', '#FFFFFF'));
   fs.writeFileSync(path.join(res, 'drawable', 'ic_notificacion.xml'), xmlPequeno('Icono de notificación: la misma silueta. Android la pinta de un color; el naranja lo pone setColor.', '#FFFFFF', '\n    android:tint="#FFFFFF"'));
-  fs.writeFileSync(path.join(res, 'drawable', 'ic_escudo.xml'), xmlPequeno('Escudo con campana en naranja, para el widget.', '#FFF27427'));
+  fs.writeFileSync(path.join(res, 'drawable', 'ic_escudo.xml'), xmlPequeno('Escudo con ✓ en naranja, para el widget.', '#FFF27427'));
 
   var b = await chromium.launch();
   var p = await b.newPage({ viewport: { width: 1244, height: 900 }, deviceScaleFactor: 1.5 });
@@ -154,7 +159,7 @@ async function main() {
   for (var forma of [['ic_launcher', '22%'], ['ic_launcher_round', '50%']]) {
     var q = await b.newPage({ viewport: { width: 192, height: 192 }, deviceScaleFactor: 1 });
     await q.setContent('<body style="margin:0;background:transparent"><div style="width:176px;height:176px;margin:8px;border-radius:' + forma[1] + ';overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,.25)">' +
-      '<svg width="176" height="176" viewBox="18 18 72 72" style="display:block">' + PROPUESTAS.A() + '</svg></div></body>');
+      '<svg width="176" height="176" viewBox="18 18 72 72" style="display:block">' + PROPUESTAS[ELEGIDA]() + '</svg></div></body>');
     await q.screenshot({ path: path.join(res, 'mipmap-xxhdpi', forma[0] + '.png'), omitBackground: true });
     await q.close();
   }

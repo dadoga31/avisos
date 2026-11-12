@@ -30,11 +30,13 @@ y el icono. Las capturas están en `capturas/`.
      pastilla de color, en una hoja.
   5. Lo urgente te encuentra: notificaciones con acciones (Me lo quedo,
      Llamar, Ver; Ir, Empezar, Retrasar).
-- **Icono**: escudo con campana, blanco sobre degradado naranja (propuesta A
-  de `capturas/icono.png`). La notificación usa la misma silueta: Android la
+- **Icono**: escudo blanco con ✓ hueco sobre degradado naranja (propuesta B
+  de `capturas/icono.png`, elegida por el usuario). El ✓ es un hueco de verdad
+  (`evenOdd`), no un trazo del color del fondo: el lanzador mueve las capas por
+  separado y se notaría. La notificación usa la misma silueta: Android la
   pinta de un color y el naranja lo pone `setColor`. Ya está en
   `android/app/src/main/res` (adaptable, temático, notificación, widget y PNG
-  para Android 7).
+  para Android 7). Para cambiar de propuesta: `ELEGIDA` en `icono.js`.
 
 ## Volver a generarlas
 
