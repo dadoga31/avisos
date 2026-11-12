@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="fondo">#131313</color>
+    <color name="fondo">#28282B</color>
 
-    <color name="widget_fondo">#1F1F1F</color>
-    <color name="widget_item">#2A2A2A</color>
-    <color name="widget_texto">#E2E2E2</color>
-    <color name="widget_suave">#CBC5C4</color>
-    <color name="widget_primario">#FFB691</color>
-    <color name="widget_sobre_primario">#552000</color>
-    <color name="widget_tonal">#5C4033</color>
-    <color name="widget_sobre_tonal">#FFDBCB</color>
-    <color name="widget_alerta">#FFB4AB</color>
-    <color name="widget_alerta_fondo">#93000A</color>
+    <color name="widget_fondo">#28282B</color>
+    <color name="widget_item">#313135</color>
+    <color name="widget_texto">#F9F9F9</color>
+    <color name="widget_suave">#A6A6AD</color>
+    <color name="widget_primario">#FF4200</color>
+    <color name="widget_sobre_primario">#141416</color>
+    <color name="widget_acento_texto">#FF7A45</color>
+    <color name="widget_tonal">#F9F9F9</color>
+    <color name="widget_sobre_tonal">#28282B</color>
+    <color name="widget_alerta">#FFD9C9</color>
+    <color name="widget_alerta_fondo">#5A1E08</color>
 </resources>

@@ -1,9 +1,12 @@
 package io.github.dadoga31.avisos.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,9 +43,10 @@ import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +54,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -91,8 +96,8 @@ fun iconoSistema(s: Sistema): ImageVector = when (s) {
 
 /** Forma de un elemento de lista agrupada: esquinas grandes por fuera, pequeñas por dentro. */
 fun formaEnGrupo(indice: Int, total: Int): Shape {
-    val g = 20.dp
-    val p = 4.dp
+    val g = 18.dp
+    val p = 6.dp
     return when {
         total == 1 -> RoundedCornerShape(g)
         indice == 0 -> RoundedCornerShape(topStart = g, topEnd = g, bottomStart = p, bottomEnd = p)
@@ -101,15 +106,22 @@ fun formaEnGrupo(indice: Int, total: Int): Shape {
     }
 }
 
+/** Tarjeta de la app: fondo de elemento y línea fina (aquí no hay sombras). */
+@Composable
+fun Modifier.tarjeta(forma: Shape): Modifier {
+    val s = LocalColores.current.superficies
+    return this.clip(forma).background(s.item).border(1.dp, s.borde, forma)
+}
+
 /** Lista agrupada a mano: para pocos elementos dentro de una columna con scroll. */
 @Composable
 fun Grupo(elementos: List<@Composable (Shape) -> Unit>, modifier: Modifier = Modifier) {
-    Column(modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        elementos.forEachIndexed { i, e -> e(formaEnGrupo(i, elementos.size)) }
+    Column(modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        elementos.forEachIndexed { i, e -> Box(Modifier.entrada(i)) { e(formaEnGrupo(i, elementos.size)) } }
     }
 }
 
-/** Fila de lista con fondo de elemento y su forma en el grupo. */
+/** Fila de lista con su forma en el grupo; encoge al pulsar. */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun Elemento(
@@ -119,15 +131,17 @@ fun Elemento(
     alMantener: (() -> Unit)? = null,
     contenido: @Composable RowScope.() -> Unit
 ) {
+    val i = remember { MutableInteractionSource() }
+    val toca = alPulsar != null || alMantener != null
     Row(
         modifier
             .fillMaxWidth()
-            .clip(forma)
-            .background(LocalColores.current.superficies.item)
+            .then(if (toca) Modifier.presionable(i) else Modifier)
+            .tarjeta(forma)
             .then(
                 when {
-                    alMantener != null -> Modifier.combinedClickable(onClick = alPulsar ?: {}, onLongClick = alMantener)
-                    alPulsar != null -> Modifier.clickable(onClick = alPulsar)
+                    alMantener != null -> Modifier.combinedClickable(i, LocalIndication.current, onClick = alPulsar ?: {}, onLongClick = alMantener)
+                    alPulsar != null -> Modifier.clickable(i, LocalIndication.current, onClick = alPulsar)
                     else -> Modifier
                 }
             )
@@ -166,18 +180,23 @@ fun FilaSimple(
     }
 }
 
+/** Cabecera de sección técnica: mayúsculas monoespaciadas y la cuenta a la derecha. */
 @Composable
 fun CabeceraSeccion(titulo: String, modifier: Modifier = Modifier, alerta: Boolean = false, extra: String = "") {
+    val s = LocalColores.current.superficies
     Row(
-        modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 20.dp, bottom = 8.dp),
-        verticalAlignment = Alignment.Bottom
+        modifier.fillMaxWidth().padding(start = 28.dp, end = 28.dp, top = 22.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        if (alerta) {
+            Box(Modifier.padding(end = 8.dp).size(6.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
+        }
         Text(
-            titulo, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall,
-            color = if (alerta) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+            titulo.uppercase(), Modifier.weight(1f), style = EstiloEtiqueta,
+            color = if (alerta) s.acentoTexto else MaterialTheme.colorScheme.onSurfaceVariant
         )
         if (extra.isNotEmpty()) {
-            Text(extra, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(extra.uppercase(), style = EstiloEtiqueta, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -185,18 +204,32 @@ fun CabeceraSeccion(titulo: String, modifier: Modifier = Modifier, alerta: Boole
 @Composable
 fun TituloGrande(titulo: String, subtitulo: String = "", modifier: Modifier = Modifier) {
     Column(modifier.padding(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 16.dp)) {
-        Text(titulo, style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Medium))
+        Text(titulo, style = MaterialTheme.typography.headlineLarge)
         if (subtitulo.isNotEmpty()) {
-            Text(subtitulo, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(subtitulo, Modifier.padding(top = 2.dp), style = EstiloMono, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
+/**
+ * Recuadro del estado: fondo tenue, línea y el icono en su color. Lo que
+ * está en curso va relleno de naranja y respira.
+ */
 @Composable
 fun CirculoEstado(e: Estado, tam: Int = 40) {
     val c = LocalColores.current.de(e)
-    Box(Modifier.size(tam.dp).clip(CircleShape).background(c.fondo), contentAlignment = Alignment.Center) {
-        Icon(iconoEstado(e), e.nombre, tint = c.sobreFondo, modifier = Modifier.size((tam * 0.55f).dp))
+    val fondo by animateColorAsState(c.fondo, Muelles.suave(), label = "fondo")
+    val forma = RoundedCornerShape((tam * 0.3f).dp)
+    Box(
+        Modifier
+            .size(tam.dp)
+            .pulso(c.color, activo = e == Estado.EN_CURSO, radio = tam * 0.3f)
+            .clip(forma)
+            .background(fondo)
+            .border(1.dp, c.color.copy(alpha = if (e == Estado.EN_CURSO) 0f else 0.28f), forma),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(iconoEstado(e), e.nombre, tint = c.sobreFondo, modifier = Modifier.size((tam * 0.5f).dp))
     }
 }
 
@@ -205,7 +238,7 @@ fun Avatar(tecnico: Tecnico?, tam: Int = 28) {
     val oscuro = LocalColores.current.superficies.oscuro
     if (tecnico == null) {
         Box(
-            Modifier.size(tam.dp).clip(CircleShape).border(1.5.dp, MaterialTheme.colorScheme.outline, CircleShape),
+            Modifier.size(tam.dp).clip(CircleShape).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(Icons.Rounded.Person, "Sin asignar", tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size((tam * 0.6f).dp))
@@ -215,30 +248,33 @@ fun Avatar(tecnico: Tecnico?, tam: Int = 28) {
     val (fondo, letra) = colorTecnico(tecnico.color, oscuro)
     Box(Modifier.size(tam.dp).clip(CircleShape).background(fondo), contentAlignment = Alignment.Center) {
         Text(
-            tecnico.iniciales, color = letra, fontWeight = FontWeight.Medium,
-            fontSize = (tam * 0.38f).sp, maxLines = 1
+            tecnico.iniciales, color = letra, fontFamily = Mono, fontWeight = FontWeight.SemiBold,
+            fontSize = (tam * 0.36f).sp, maxLines = 1
         )
     }
 }
 
+/** URGENTE en naranja relleno; ALTA con línea. El resto no lleva marca. */
 @Composable
 fun EtiquetaPrioridad(p: Prioridad) {
-    val (fondo, letra) = when (p) {
-        Prioridad.URGENTE -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
-        Prioridad.ALTA -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
-        else -> return
-    }
-    Surface(color = fondo, shape = RoundedCornerShape(6.dp)) {
-        Text(
-            p.nombre, Modifier.padding(horizontal = 6.dp, vertical = 2.dp), color = letra,
-            style = MaterialTheme.typography.labelSmall
+    val forma = RoundedCornerShape(6.dp)
+    when (p) {
+        Prioridad.URGENTE -> Text(
+            "URGENTE", Modifier.clip(forma).background(MaterialTheme.colorScheme.primary).padding(horizontal = 6.dp, vertical = 1.dp),
+            style = EstiloEtiqueta.copy(fontSize = 10.sp, letterSpacing = 0.8.sp), color = MaterialTheme.colorScheme.onPrimary
         )
+        Prioridad.ALTA -> Text(
+            "ALTA", Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, forma).padding(horizontal = 6.dp, vertical = 1.dp),
+            style = EstiloEtiqueta.copy(fontSize = 10.sp, letterSpacing = 0.8.sp), color = MaterialTheme.colorScheme.tertiary
+        )
+        else -> Unit
     }
 }
 
 /**
  * Fila de aviso en tres líneas: título y hora; cliente, tipo y sistema;
- * estado, referencia y prioridad. A la derecha, el técnico.
+ * estado, referencia y prioridad. A la derecha, la hora y el técnico.
+ * El título es el que viaja hasta la ficha al abrirla.
  */
 @Composable
 fun FilaAviso(
@@ -253,50 +289,53 @@ fun FilaAviso(
 ) {
     val e = aviso.estadoE
     val c = LocalColores.current.de(e)
+    val i = remember { MutableInteractionSource() }
+    val cerrado = !aviso.abierto
     Row(
         modifier
             .fillMaxWidth()
-            .clip(forma)
-            .background(LocalColores.current.superficies.item)
-            .clickable(onClick = alPulsar)
-            .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+            .presionable(i)
+            .tarjeta(forma)
+            .clickable(i, LocalIndication.current, onClick = alPulsar)
+            .padding(start = 14.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         CirculoEstado(e)
         Column(Modifier.weight(1f)) {
             Text(
-                aviso.titulo.ifBlank { "(sin título)" }, style = MaterialTheme.typography.titleMedium,
-                maxLines = 2, overflow = TextOverflow.Ellipsis
+                aviso.titulo.ifBlank { "(sin título)" }, Modifier.compartido("titulo-${aviso.id}"),
+                style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                textDecoration = if (e == Estado.CANCELADO) TextDecoration.LineThrough else null,
+                color = if (cerrado) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
             )
             val linea2 = listOf(aviso.cliente.nombre, aviso.tipoE.nombre, aviso.sistemaE.nombre).filter { it.isNotBlank() }
             Text(
-                linea2.joinToString(" · "), style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis
+                linea2.joinToString(" · "), Modifier.padding(top = 2.dp), style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis
             )
             Row(
-                Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(textoEstado ?: e.nombre, color = c.color, style = MaterialTheme.typography.labelMedium)
+                Text((textoEstado ?: e.nombre).uppercase(), color = c.texto, style = EstiloEtiqueta)
                 if (aviso.ref.isNotEmpty()) {
-                    Text("·", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
-                    Text(aviso.ref, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
+                    Text(aviso.ref, color = MaterialTheme.colorScheme.onSurfaceVariant, style = EstiloEtiqueta)
                 }
                 EtiquetaPrioridad(aviso.prioridadE)
             }
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                cuando, style = MaterialTheme.typography.labelMedium,
-                color = if (alerta) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                cuando, style = EstiloMono.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
+                color = if (alerta) LocalColores.current.superficies.acentoTexto else MaterialTheme.colorScheme.onSurface
             )
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(16.dp))
             Avatar(tecnico)
         }
     }
 }
 
-/** Contenedor de pantalla de primer nivel: fondo de página y relleno arriba. */
+/** Contenedor de pantalla de primer nivel: fondo de página. */
 @Composable
 fun Pagina(modifier: Modifier = Modifier, contenido: @Composable ColumnScope.() -> Unit) {
     Column(modifier.background(LocalColores.current.superficies.pagina), content = contenido)

@@ -46,7 +46,12 @@ class MainActivity : ComponentActivity() {
             }
             AvisosTema(ajustes.tema, ajustes.materialYou) {
                 val ruta by rutaPedida.collectAsStateWithLifecycle()
-                AppAvisos(vm, ruta) { rutaPedida.value = null }
+                /* Con «Quitar animaciones» del móvil, la app también se queda quieta. */
+                androidx.compose.runtime.CompositionLocalProvider(
+                    io.github.dadoga31.avisos.ui.LocalMovimiento provides io.github.dadoga31.avisos.ui.movimientoDelSistema()
+                ) {
+                    AppAvisos(vm, ruta) { rutaPedida.value = null }
+                }
             }
         }
 

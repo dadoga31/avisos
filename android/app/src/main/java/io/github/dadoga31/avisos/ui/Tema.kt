@@ -5,6 +5,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -15,62 +17,153 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.shape.RoundedCornerShape
+import io.github.dadoga31.avisos.R
 import io.github.dadoga31.avisos.datos.Estado
 import io.github.dadoga31.avisos.datos.Tema
 
-/* Paleta de diseno/tokens2.css: fondos neutros y naranja de la marca solo en
-   las acciones. Los estados llevan su propio color. */
+/*
+ * Paleta del usuario: Off-White #F9F9F9, Matte Black #28282B y Red Orange
+ * #FF4200. La interfaz es neutra (grises) y el naranja va en las acciones y
+ * en lo que está «en marcha». Contraste:
+ *  - #FF4200 sobre el Off-White da 3,3:1 y con letra blanca encima 3,5:1:
+ *    no vale para texto pequeño. Los botones naranjas llevan letra casi negra
+ *    (5,3:1) y el texto naranja pequeño usa [Superficies.acentoTexto], un
+ *    punto más oscuro en claro (4,5:1) y más claro en oscuro.
+ */
+
+val RedOrange = Color(0xFFFF4200)
+val OffWhite = Color(0xFFF9F9F9)
+val MatteBlack = Color(0xFF28282B)
+private val Tinta = Color(0xFF141416)
 
 private val Claro = lightColorScheme(
-    primary = Color(0xFFC65500), onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFFFDBCB), onPrimaryContainer = Color(0xFF793100),
-    secondary = Color(0xFF765849), onSecondary = Color(0xFFFFFFFF),
-    secondaryContainer = Color(0xFFFFDBCB), onSecondaryContainer = Color(0xFF5C4033),
-    tertiary = Color(0xFF656031), onTertiary = Color(0xFFFFFFFF),
-    tertiaryContainer = Color(0xFFECE4AA), onTertiaryContainer = Color(0xFF4C481C),
-    error = Color(0xFFBA1A1A), onError = Color(0xFFFFFFFF),
-    errorContainer = Color(0xFFFFDAD6), onErrorContainer = Color(0xFF93000A),
-    background = Color(0xFFEEEEEE), onBackground = Color(0xFF1B1B1B),
-    surface = Color(0xFFF9F9F9), onSurface = Color(0xFF1B1B1B),
-    surfaceVariant = Color(0xFFE2E2E2), onSurfaceVariant = Color(0xFF494645),
-    outline = Color(0xFF7A7675), outlineVariant = Color(0xFFCBC5C4),
-    inverseSurface = Color(0xFF303030), inverseOnSurface = Color(0xFFF1F1F1), inversePrimary = Color(0xFFFFB691),
-    surfaceContainerLowest = Color(0xFFFFFFFF), surfaceContainerLow = Color(0xFFF3F3F3),
-    surfaceContainer = Color(0xFFEEEEEE), surfaceContainerHigh = Color(0xFFE8E8E8),
-    surfaceContainerHighest = Color(0xFFE2E2E2), surfaceDim = Color(0xFFDADADA), surfaceBright = Color(0xFFF9F9F9)
+    primary = RedOrange, onPrimary = Tinta,
+    primaryContainer = Color(0xFFFFE3D6), onPrimaryContainer = Color(0xFF6B1D00),
+    /* Lo seleccionado (fichas, menú, botones tonales) va en Matte Black. */
+    secondary = MatteBlack, onSecondary = OffWhite,
+    secondaryContainer = MatteBlack, onSecondaryContainer = OffWhite,
+    tertiary = Color(0xFF9A6200), onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFFFF0D2), onTertiaryContainer = Color(0xFF5C3A00),
+    error = Color(0xFFD63800), onError = Color.White,
+    errorContainer = Color(0xFFFFE3D6), onErrorContainer = Color(0xFF6B1D00),
+    background = OffWhite, onBackground = MatteBlack,
+    surface = OffWhite, onSurface = MatteBlack,
+    surfaceVariant = Color(0xFFEDEDEF), onSurfaceVariant = Color(0xFF6B6B72),
+    outline = Color(0xFFA3A3AA), outlineVariant = Color(0xFFE4E4E7),
+    inverseSurface = MatteBlack, inverseOnSurface = OffWhite, inversePrimary = RedOrange,
+    surfaceContainerLowest = Color.White, surfaceContainerLow = Color(0xFFF4F4F5),
+    surfaceContainer = Color(0xFFEFEFF0), surfaceContainerHigh = Color(0xFFE9E9EB),
+    surfaceContainerHighest = Color(0xFFE3E3E6), surfaceDim = Color(0xFFDCDCDF), surfaceBright = OffWhite,
+    scrim = Color.Black
 )
 
 private val Oscuro = darkColorScheme(
-    primary = Color(0xFFFFB691), onPrimary = Color(0xFF552000),
-    primaryContainer = Color(0xFF793100), onPrimaryContainer = Color(0xFFFFDBCB),
-    secondary = Color(0xFFE6BEAC), onSecondary = Color(0xFF432A1E),
-    secondaryContainer = Color(0xFF5C4033), onSecondaryContainer = Color(0xFFFFDBCB),
-    tertiary = Color(0xFFCFC890), onTertiary = Color(0xFF353107),
-    tertiaryContainer = Color(0xFF4C481C), onTertiaryContainer = Color(0xFFECE4AA),
-    error = Color(0xFFFFB4AB), onError = Color(0xFF690005),
-    errorContainer = Color(0xFF93000A), onErrorContainer = Color(0xFFFFDAD6),
-    background = Color(0xFF131313), onBackground = Color(0xFFE2E2E2),
-    surface = Color(0xFF131313), onSurface = Color(0xFFE2E2E2),
-    surfaceVariant = Color(0xFF353535), onSurfaceVariant = Color(0xFFCBC5C4),
-    outline = Color(0xFF94908E), outlineVariant = Color(0xFF494645),
-    inverseSurface = Color(0xFFE2E2E2), inverseOnSurface = Color(0xFF303030), inversePrimary = Color(0xFF9E4200),
-    surfaceContainerLowest = Color(0xFF0E0E0E), surfaceContainerLow = Color(0xFF1B1B1B),
-    surfaceContainer = Color(0xFF1F1F1F), surfaceContainerHigh = Color(0xFF2A2A2A),
-    surfaceContainerHighest = Color(0xFF353535), surfaceDim = Color(0xFF131313), surfaceBright = Color(0xFF393939)
+    primary = RedOrange, onPrimary = Tinta,
+    primaryContainer = Color(0xFF5A1E08), onPrimaryContainer = Color(0xFFFFD9C9),
+    secondary = OffWhite, onSecondary = MatteBlack,
+    secondaryContainer = OffWhite, onSecondaryContainer = MatteBlack,
+    tertiary = Color(0xFFFFB020), onTertiary = Tinta,
+    tertiaryContainer = Color(0xFF4A3410), onTertiaryContainer = Color(0xFFFFD58A),
+    error = Color(0xFFFF7A45), onError = Tinta,
+    errorContainer = Color(0xFF5A1E08), onErrorContainer = Color(0xFFFFD9C9),
+    background = MatteBlack, onBackground = OffWhite,
+    surface = MatteBlack, onSurface = OffWhite,
+    surfaceVariant = Color(0xFF3A3A3F), onSurfaceVariant = Color(0xFFA6A6AD),
+    outline = Color(0xFF6E6E75), outlineVariant = Color(0xFF3D3D42),
+    inverseSurface = OffWhite, inverseOnSurface = MatteBlack, inversePrimary = RedOrange,
+    surfaceContainerLowest = Color(0xFF1E1E21), surfaceContainerLow = Color(0xFF2D2D31),
+    surfaceContainer = Color(0xFF313135), surfaceContainerHigh = Color(0xFF38383C),
+    surfaceContainerHighest = Color(0xFF424247), surfaceDim = Color(0xFF1E1E21), surfaceBright = Color(0xFF46464B),
+    scrim = Color.Black
 )
 
-/** Colores de un estado: el del texto, y el fondo y el contenido de su círculo. */
+// ---------------------------------------------------------------- tipografía
+
+/** Geométrica y técnica: títulos, cifras, etiquetas y botones. */
+val SpaceGrotesk = FontFamily(
+    Font(R.font.space_grotesk_regular, FontWeight.Normal),
+    Font(R.font.space_grotesk_medium, FontWeight.Medium),
+    Font(R.font.space_grotesk_semibold, FontWeight.SemiBold),
+    Font(R.font.space_grotesk_bold, FontWeight.Bold)
+)
+
+/** Monoespaciada: referencias, horas y cantidades (las cifras no bailan). */
+val Mono = FontFamily(
+    Font(R.font.jetbrains_mono_regular, FontWeight.Normal),
+    Font(R.font.jetbrains_mono_medium, FontWeight.Medium),
+    Font(R.font.jetbrains_mono_semibold, FontWeight.SemiBold)
+)
+
+private fun g(tam: Int, alto: Int, peso: FontWeight, espacio: Double = 0.0) =
+    TextStyle(fontFamily = SpaceGrotesk, fontSize = tam.sp, lineHeight = alto.sp, fontWeight = peso, letterSpacing = espacio.sp)
+
+private val Base = Typography()
+
+val Tipografia = Typography(
+    displayLarge = g(57, 64, FontWeight.Medium, -1.5),
+    displayMedium = g(45, 52, FontWeight.Medium, -1.0),
+    displaySmall = g(36, 44, FontWeight.Medium, -0.8),
+    headlineLarge = g(34, 40, FontWeight.SemiBold, -0.8),
+    headlineMedium = g(28, 36, FontWeight.Medium, -0.5),
+    headlineSmall = g(24, 32, FontWeight.Medium, -0.3),
+    titleLarge = g(22, 28, FontWeight.Medium, -0.2),
+    titleMedium = g(16, 22, FontWeight.SemiBold, -0.1),
+    titleSmall = g(14, 20, FontWeight.SemiBold, 0.0),
+    bodyLarge = Base.bodyLarge,
+    bodyMedium = Base.bodyMedium,
+    bodySmall = Base.bodySmall,
+    labelLarge = g(14, 20, FontWeight.SemiBold, 0.1),
+    labelMedium = g(12, 16, FontWeight.Medium, 0.2),
+    labelSmall = g(11, 16, FontWeight.Medium, 0.3)
+)
+
+/** Etiqueta técnica en mayúsculas («SIGUIENTE · 11:00», cabeceras de sección). */
+val EstiloEtiqueta = TextStyle(fontFamily = Mono, fontSize = 11.sp, lineHeight = 14.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.2.sp)
+
+/** Cifras y referencias en las filas. */
+val EstiloMono = TextStyle(fontFamily = Mono, fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium)
+
+val Formas = Shapes(
+    extraSmall = RoundedCornerShape(8.dp),
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(16.dp),
+    large = RoundedCornerShape(22.dp),
+    extraLarge = RoundedCornerShape(28.dp)
+)
+
+// ---------------------------------------------------------------- colores propios
+
+/**
+ * Colores de un estado. [color]: la marca (iconos, rellenos, barras).
+ * [texto]: para texto pequeño con contraste suficiente. [fondo]/[sobreFondo]:
+ * el recuadro del icono del estado.
+ */
 @Immutable
-data class ColorEstado(val color: Color, val fondo: Color, val sobreFondo: Color)
+data class ColorEstado(val color: Color, val texto: Color, val fondo: Color, val sobreFondo: Color)
 
 @Immutable
 data class Superficies(
     /** Fondo de las pantallas. */
     val pagina: Color,
-    /** Fondo de las filas y tarjetas. */
+    /** Fondo de filas y tarjetas. */
     val item: Color,
-    /** Cápsulas flotantes (menú, barra de acciones). */
+    /** Cápsulas flotantes (menú, barra de acciones), con desenfoque detrás. */
     val flotante: Color,
+    /** Línea fina de filas y tarjetas: aquí no hay sombras. */
+    val borde: Color,
+    /** La tarjeta del siguiente aviso: oscura en los dos modos. */
+    val heroe: Color,
+    val sobreHeroe: Color,
+    val sobreHeroeSuave: Color,
+    /** Naranja para texto pequeño (el puro no llega al contraste mínimo). */
+    val acentoTexto: Color,
     val oscuro: Boolean
 )
 
@@ -79,41 +172,50 @@ data class ColoresAvisos(val estados: Map<Estado, ColorEstado>, val superficies:
     fun de(e: Estado) = estados.getValue(e)
 }
 
+private fun estado(color: Color, texto: Color, oscuro: Boolean) =
+    ColorEstado(color, texto, color.copy(alpha = if (oscuro) 0.16f else 0.10f), color)
+
 private val EstadosClaro = mapOf(
-    Estado.PENDIENTE to ColorEstado(Color(0xFF5C5E64), Color(0xFFE0E2E8), Color(0xFF191C20)),
-    Estado.PROGRAMADO to ColorEstado(Color(0xFF006B5F), Color(0xFF92F4E3), Color(0xFF00201C)),
-    Estado.EN_CURSO to ColorEstado(Color(0xFF3F5E98), Color(0xFFD8E2FF), Color(0xFF001A41)),
-    Estado.EN_ESPERA to ColorEstado(Color(0xFF6C5293), Color(0xFFECDCFF), Color(0xFF260A4B)),
-    Estado.RESUELTO to ColorEstado(Color(0xFF2B6A3C), Color(0xFFAFF3B7), Color(0xFF00210A)),
-    Estado.CANCELADO to ColorEstado(Color(0xFF5C5F5F), Color(0xFFE1E3E3), Color(0xFF191C1D))
+    Estado.PENDIENTE to estado(Color(0xFF8A8A91), Color(0xFF6B6B72), false),
+    Estado.PROGRAMADO to estado(MatteBlack, MatteBlack, false),
+    Estado.EN_CURSO to ColorEstado(RedOrange, Color(0xFFD63800), RedOrange, Tinta),
+    Estado.EN_ESPERA to estado(Color(0xFFE09A00), Color(0xFF9A6200), false),
+    Estado.RESUELTO to estado(Color(0xFF1F9D55), Color(0xFF157A41), false),
+    Estado.CANCELADO to estado(Color(0xFFA0A0A6), Color(0xFF7A7A80), false)
 )
 
 private val EstadosOscuro = mapOf(
-    Estado.PENDIENTE to ColorEstado(Color(0xFFC4C6CC), Color(0xFF44474C), Color(0xFFE0E2E8)),
-    Estado.PROGRAMADO to ColorEstado(Color(0xFF76D7C7), Color(0xFF005048), Color(0xFF92F4E3)),
-    Estado.EN_CURSO to ColorEstado(Color(0xFFADC6FF), Color(0xFF24467F), Color(0xFFD8E2FF)),
-    Estado.EN_ESPERA to ColorEstado(Color(0xFFD6BAFF), Color(0xFF533A79), Color(0xFFECDCFF)),
-    Estado.RESUELTO to ColorEstado(Color(0xFF93D69D), Color(0xFF0E5226), Color(0xFFAFF3B7)),
-    Estado.CANCELADO to ColorEstado(Color(0xFFC4C7C7), Color(0xFF444748), Color(0xFFE1E3E3))
+    Estado.PENDIENTE to estado(Color(0xFF9C9CA3), Color(0xFFA6A6AD), true),
+    Estado.PROGRAMADO to estado(OffWhite, OffWhite, true),
+    Estado.EN_CURSO to ColorEstado(RedOrange, Color(0xFFFF7A45), RedOrange, Tinta),
+    Estado.EN_ESPERA to estado(Color(0xFFFFB020), Color(0xFFFFB020), true),
+    Estado.RESUELTO to estado(Color(0xFF3DDC84), Color(0xFF3DDC84), true),
+    Estado.CANCELADO to estado(Color(0xFF6E6E75), Color(0xFF8A8A91), true)
 )
 
-val LocalColores = staticCompositionLocalOf {
-    ColoresAvisos(EstadosClaro, Superficies(Color(0xFFEEEEEE), Color.White, Color.White, false))
-}
+private val SuperficiesClaro = Superficies(
+    pagina = OffWhite, item = Color.White, flotante = Color.White.copy(alpha = 0.78f), borde = Color(0xFFE6E6E9),
+    heroe = MatteBlack, sobreHeroe = OffWhite, sobreHeroeSuave = Color(0xFFA6A6AD),
+    acentoTexto = Color(0xFFD63800), oscuro = false
+)
 
-/** Colores de técnicos para los avatares (fondo, letra), en claro y oscuro. */
+private val SuperficiesOscuro = Superficies(
+    pagina = MatteBlack, item = Color(0xFF313135), flotante = Color(0xFF1E1E21).copy(alpha = 0.72f), borde = Color(0xFF3D3D42),
+    heroe = Color(0xFF1C1C1F), sobreHeroe = OffWhite, sobreHeroeSuave = Color(0xFFA6A6AD),
+    acentoTexto = Color(0xFFFF7A45), oscuro = true
+)
+
+val LocalColores = staticCompositionLocalOf { ColoresAvisos(EstadosClaro, SuperficiesClaro) }
+
+/** Avatares de técnicos: sobrios, con la inicial en mono. */
 fun colorTecnico(indice: Int, oscuro: Boolean): Pair<Color, Color> {
     val claros = listOf(
-        Color(0xFFFFDBCB) to Color(0xFF793100), Color(0xFF92F4E3) to Color(0xFF00201C),
-        Color(0xFFECDCFF) to Color(0xFF260A4B), Color(0xFFD8E2FF) to Color(0xFF001A41),
-        Color(0xFFAFF3B7) to Color(0xFF00210A), Color(0xFFFFD9E2) to Color(0xFF3E001D),
-        Color(0xFFECE4AA) to Color(0xFF4C481C), Color(0xFFCDE5FF) to Color(0xFF001D32)
+        MatteBlack to OffWhite, RedOrange to Tinta, Color(0xFF6B6B72) to Color.White, Color(0xFFE3E3E6) to MatteBlack,
+        Color(0xFF1F9D55) to Color.White, Color(0xFFE09A00) to Tinta, Color(0xFF3A3A3F) to OffWhite, Color(0xFFFFE3D6) to Color(0xFF6B1D00)
     )
     val oscuros = listOf(
-        Color(0xFF793100) to Color(0xFFFFDBCB), Color(0xFF005048) to Color(0xFF92F4E3),
-        Color(0xFF533A79) to Color(0xFFECDCFF), Color(0xFF24467F) to Color(0xFFD8E2FF),
-        Color(0xFF0E5226) to Color(0xFFAFF3B7), Color(0xFF7B2949) to Color(0xFFFFD9E2),
-        Color(0xFF4C481C) to Color(0xFFECE4AA), Color(0xFF004B73) to Color(0xFFCDE5FF)
+        OffWhite to MatteBlack, RedOrange to Tinta, Color(0xFFA6A6AD) to Tinta, Color(0xFF46464B) to OffWhite,
+        Color(0xFF3DDC84) to Tinta, Color(0xFFFFB020) to Tinta, Color(0xFF5A5A61) to OffWhite, Color(0xFF5A1E08) to Color(0xFFFFD9C9)
     )
     val l = if (oscuro) oscuros else claros
     return l[((indice % l.size) + l.size) % l.size]
@@ -135,10 +237,10 @@ fun AvisosTema(tema: Tema = Tema.AUTO, materialYou: Boolean = false, contenido: 
         oscuro -> Oscuro
         else -> Claro
     }
-    val superficies = if (oscuro) Superficies(esquema.surface, esquema.surfaceContainerHigh, esquema.surfaceContainerHighest, true)
-    else Superficies(esquema.surfaceContainer, esquema.surfaceContainerLowest, esquema.surfaceContainerLowest, false)
-    CompositionLocalProvider(LocalColores provides ColoresAvisos(if (oscuro) EstadosOscuro else EstadosClaro, superficies)) {
-        MaterialTheme(colorScheme = esquema) {
+    CompositionLocalProvider(
+        LocalColores provides ColoresAvisos(if (oscuro) EstadosOscuro else EstadosClaro, if (oscuro) SuperficiesOscuro else SuperficiesClaro)
+    ) {
+        MaterialTheme(colorScheme = esquema, typography = Tipografia, shapes = Formas) {
             /* Sin esto, el texto que no está dentro de un Surface sale negro también en oscuro. */
             CompositionLocalProvider(LocalContentColor provides esquema.onSurface, content = contenido)
         }

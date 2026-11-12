@@ -19,7 +19,7 @@ var GLIFO_B = ESCUDO + ' ' + CHECK;
 var ELEGIDA = 'B';                            // la que va en la app
 var GLIFO_ELEGIDO = ELEGIDA === 'B' ? GLIFO_B : GLIFO;
 var ESCALA = 0.9;                             // peso visual dentro de la zona segura
-var C1 = '#FF9A4D', C2 = '#E5530A';          // degradado naranja (marca: #F27427)
+var C1 = '#FF5A1F', C2 = '#F23D00';          // Red Orange #FF4200, con un degradado mínimo
 
 function defs() {
   return '<defs><linearGradient id="g" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="108" y2="108"><stop offset="0" stop-color="' + C1 + '"/><stop offset="1" stop-color="' + C2 + '"/></linearGradient>' +
@@ -33,7 +33,7 @@ var PROPUESTAS = {
   },
   B: function () {   // naranja con escudo y check
     return defs() + '<rect width="108" height="108" fill="url(#g)"/><rect width="108" height="108" fill="url(#h)"/>' +
-      grupo('<path fill="#fff" fill-rule="evenodd" d="' + GLIFO_B + '"/>');
+      grupo('<path fill="#F9F9F9" fill-rule="evenodd" d="' + GLIFO_B + '"/>');
   },
   C: function () {   // oscuro con escudo-campana naranja
     return defs() + '<rect width="108" height="108" fill="#16181D"/>' +
@@ -141,10 +141,10 @@ async function main() {
   fs.mkdirSync(path.join(res, 'drawable'), { recursive: true });
   fs.mkdirSync(path.join(res, 'mipmap-xxhdpi'), { recursive: true });
   fs.writeFileSync(path.join(res, 'drawable', 'ic_launcher_background.xml'), xmlFondo());
-  fs.writeFileSync(path.join(res, 'drawable', 'ic_launcher_foreground.xml'), xmlGlifo('Escudo con ✓: el ✓ queda hueco (evenOdd) y deja ver el fondo.', '#FFFFFF'));
+  fs.writeFileSync(path.join(res, 'drawable', 'ic_launcher_foreground.xml'), xmlGlifo('Escudo con ✓: el ✓ queda hueco (evenOdd) y deja ver el fondo.', '#F9F9F9'));
   fs.writeFileSync(path.join(res, 'drawable', 'ic_launcher_monochrome.xml'), xmlGlifo('Capa para los iconos temáticos (Android 13+): el sistema la tiñe.', '#FFFFFF'));
   fs.writeFileSync(path.join(res, 'drawable', 'ic_notificacion.xml'), xmlPequeno('Icono de notificación: la misma silueta. Android la pinta de un color; el naranja lo pone setColor.', '#FFFFFF', '\n    android:tint="#FFFFFF"'));
-  fs.writeFileSync(path.join(res, 'drawable', 'ic_escudo.xml'), xmlPequeno('Escudo con ✓ en naranja, para el widget.', '#FFF27427'));
+  fs.writeFileSync(path.join(res, 'drawable', 'ic_escudo.xml'), xmlPequeno('Escudo con ✓ en naranja, para el widget.', '#FFFF4200'));
 
   var b = await chromium.launch();
   var p = await b.newPage({ viewport: { width: 1244, height: 900 }, deviceScaleFactor: 1.5 });

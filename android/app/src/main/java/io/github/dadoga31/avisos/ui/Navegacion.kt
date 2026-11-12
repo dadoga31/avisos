@@ -30,6 +30,19 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavGraphBuilder
+import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import io.github.dadoga31.avisos.datos.Aviso
@@ -40,6 +53,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Rutas: agenda, hechos, equipo, ajustes (con menú) y aviso/{id}, nuevo, editar/{id}. */
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
     val avisos by vm.avisos.collectAsStateWithLifecycle()
@@ -97,11 +111,17 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
         snackbar = snackbar,
         mostrarMenu = seccion != null
     ) {
+      SharedTransitionLayout {
+       CompositionLocalProvider(LocalCompartido provides this) {
         NavHost(
             nav, startDestination = "agenda",
-            enterTransition = { fadeIn() }, exitTransition = { fadeOut() }
+            /* Entre secciones: fundido con un zoom mínimo. */
+            enterTransition = { fadeIn(tween(240)) + scaleIn(tween(320), initialScale = 0.985f) },
+            exitTransition = { fadeOut(tween(160)) },
+            popEnterTransition = { fadeIn(tween(240)) + scaleIn(tween(320), initialScale = 0.985f) },
+            popExitTransition = { fadeOut(tween(160)) }
         ) {
-            composable("agenda") {
+            destino("agenda") {
                 AgendaPantalla(
                     avisos, tecnicos, ajustes, ahora,
                     AccionesAgenda(
@@ -115,8 +135,8 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                     )
                 )
             }
-            composable("hechos") { HechosPantalla(avisos, tecnicos, ahora) { nav.navigate("aviso/$it") } }
-            composable("equipo") {
+            destino("hechos") { HechosPantalla(avisos, tecnicos, ahora) { nav.navigate("aviso/$it") } }
+            destino("equipo") {
                 EquipoPantalla(
                     avisos, tecnicos, ahora,
                     alAbrir = { nav.navigate("aviso/$it") },
@@ -126,7 +146,7 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                     nuevoAbierto = nuevoTecnico, alCerrarNuevo = { nuevoTecnico = false }
                 )
             }
-            composable("ajustes") {
+            destino("ajustes") {
                 val correo by produceState<String?>(null) { value = withContext(Dispatchers.IO) { estadoCorreo(contexto) } }
                 val guardar = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
                     uri?.let { vm.exportar(it) }
@@ -146,10 +166,11 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                     )
                 )
             }
-            composable(
+            /* La ficha entra con fundido mientras su título viaja desde la fila. */
+            destino(
                 "aviso/{id}",
-                enterTransition = { slideInHorizontally { it / 4 } + fadeIn() },
-                popExitTransition = { slideOutHorizontally { it / 4 } + fadeOut() }
+                entrar = { fadeIn(tween(300)) + slideInVertically(Muelles.suave()) { it / 14 } },
+                salir = { fadeOut(tween(220)) + slideOutVertically(Muelles.suave()) { it / 14 } }
             ) { e ->
                 val id = e.arguments?.getString("id")
                 val a = avisos.firstOrNull { it.id == id }
@@ -198,8 +219,8 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                     )
                 }
             }
-            composable("correo") { CorreoRuta(vm, ajustes.correoIgnorados) { nav.popBackStack() } }
-            composable("nuevo") {
+            destino("correo", entrar = entrarLado, salir = salirLado) { CorreoRuta(vm, ajustes.correoIgnorados) { nav.popBackStack() } }
+            destino("nuevo", entrar = entrarLado, salir = salirLado) {
                 val inicial = remember { vm.nuevo() }
                 FormularioPantalla(
                     inicial, esNuevo = true, tecnicos = tecnicos, clientes = Reglas.clientesConocidos(avisos), hoy = hoy,
@@ -212,7 +233,7 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                     alCerrar = { nav.popBackStack() }
                 )
             }
-            composable("editar/{id}") { e ->
+            destino("editar/{id}", entrar = entrarLado, salir = salirLado) { e ->
                 val id = e.arguments?.getString("id")
                 val inicial = remember(id, cargado) { avisos.firstOrNull { it.id == id } }
                 if (inicial != null) {
@@ -224,7 +245,29 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                 }
             }
         }
+       }
+      }
     }
+}
+
+private val entrarLado: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition =
+    { slideInHorizontally(Muelles.suave()) { it / 3 } + fadeIn(tween(220)) }
+private val salirLado: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition =
+    { slideOutHorizontally(Muelles.suave()) { it / 3 } + fadeOut(tween(180)) }
+
+/**
+ * Un destino de la navegación que pasa a sus pantallas el ámbito de la
+ * animación (para la ficha que crece desde la fila) y el momento en que se
+ * abrió (para la entrada escalonada). [salir] es la salida al volver atrás.
+ */
+private fun NavGraphBuilder.destino(
+    ruta: String,
+    entrar: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition)? = null,
+    salir: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition)? = null,
+    contenido: @Composable AnimatedContentScope.(NavBackStackEntry) -> Unit
+) = composable(ruta, enterTransition = entrar, popExitTransition = salir) { e ->
+    val inicio = remember { System.currentTimeMillis() }
+    CompositionLocalProvider(LocalAnimado provides this, LocalInicioPantalla provides inicio) { contenido(e) }
 }
 
 /** Una línea para Ajustes: la cuenta y cómo va. */

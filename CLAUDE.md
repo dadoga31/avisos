@@ -75,6 +75,24 @@ móvil **Android**, instalada con la APK de este repo.
   `adjuntos/<aviso>/`. La cámara va por `TakePicture` con un fichero en
   `cache/camara/` (FileProvider): sin permiso de cámara. Si alguna librería
   metiera `CAMERA` en el manifiesto, habría que pedirlo antes de abrirla.
+- Estilo (3.4.0), pedido por el usuario: minimalista y «tech futurista» con
+  su paleta Off-White #F9F9F9, Matte Black #28282B y Red Orange #FF4200. La
+  interfaz es neutra; el naranja va en acciones y en lo que está en curso.
+  #FF4200 no llega al contraste mínimo para texto pequeño (3,3:1 sobre el
+  Off-White): los botones naranjas llevan letra casi negra y el texto naranja
+  pequeño usa `Superficies.acentoTexto`. Space Grotesk (títulos, cifras,
+  botones) y JetBrains Mono (referencias, horas, etiquetas en mayúsculas), en
+  `res/font` con su licencia OFL en `android/licencias-fuentes/`. Líneas finas
+  en vez de sombras (`Modifier.tarjeta`). Menú y barra de la ficha de cristal
+  con Haze 1.0.2 (desenfoque en Android 12+, translúcido antes).
+- Movimiento (`ui/Movimiento.kt`): muelles comunes, pulsar que encoge,
+  entrada escalonada solo al abrir la pantalla, cifras que cuentan, el pulso
+  de lo que está en curso, el indicador del menú que se desliza, vibración al
+  pasar el umbral del deslizamiento y la ficha que crece desde su fila
+  (`Modifier.compartido`, título con la misma clave en la fila y la ficha).
+  Atrás predictivo activado. `LocalMovimiento` lo apaga todo: con «Quitar
+  animaciones» del sistema y en las capturas (el pulso es infinito y si no la
+  captura no termina).
 - Widget (3.3.0): `WidgetAvisos.vistas` lo pinta con lo que deja
   `AvisosApp.publicarResumen` (hoy, vencidos, hechos, siguiente). Cada
   refresco de Android (30 min) llama a `AvisosApp.recalcular` para que no se

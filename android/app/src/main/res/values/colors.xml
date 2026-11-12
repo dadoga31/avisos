@@ -1,18 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Fondo de la ventana: el de las pantallas de la app, para que no destelle al abrir. -->
-    <color name="fondo">#EEEEEE</color>
-    <color name="acento">#F27427</color>
+    <!-- Paleta: Off-White #F9F9F9, Matte Black #28282B y Red Orange #FF4200. -->
+    <!-- Fondo de la ventana: el de las pantallas, para que no destelle al abrir. -->
+    <color name="fondo">#F9F9F9</color>
+    <color name="acento">#FF4200</color>
 
-    <!-- Widget: los mismos colores que la app (diseno/tokens2.css). -->
     <color name="widget_fondo">#FFFFFF</color>
-    <color name="widget_item">#F3F3F3</color>
-    <color name="widget_texto">#1B1B1B</color>
-    <color name="widget_suave">#494645</color>
-    <color name="widget_primario">#C65500</color>
-    <color name="widget_sobre_primario">#FFFFFF</color>
-    <color name="widget_tonal">#FFDBCB</color>
-    <color name="widget_sobre_tonal">#5C4033</color>
-    <color name="widget_alerta">#BA1A1A</color>
-    <color name="widget_alerta_fondo">#FFDAD6</color>
+    <color name="widget_item">#F4F4F5</color>
+    <color name="widget_texto">#28282B</color>
+    <color name="widget_suave">#6B6B72</color>
+    <color name="widget_primario">#FF4200</color>
+    <color name="widget_sobre_primario">#141416</color>
+    <!-- Naranja para texto pequeño: el puro no llega al contraste mínimo. -->
+    <color name="widget_acento_texto">#D63800</color>
+    <color name="widget_tonal">#28282B</color>
+    <color name="widget_sobre_tonal">#F9F9F9</color>
+    <color name="widget_alerta">#D63800</color>
+    <color name="widget_alerta_fondo">#FFE3D6</color>
 </resources>

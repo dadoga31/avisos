@@ -114,7 +114,7 @@
             android:id="@+id/widget_siguiente_cabecera"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/widget_primario"
+            android:textColor="@color/widget_acento_texto"
             android:textSize="11sp"
             android:textStyle="bold"
             android:letterSpacing="0.05"

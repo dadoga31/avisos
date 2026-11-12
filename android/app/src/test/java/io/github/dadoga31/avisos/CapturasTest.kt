@@ -103,7 +103,12 @@ class CapturasTest {
     private fun foto(nombre: String, contenido: @Composable () -> Unit) {
         for (tema in listOf(Tema.CLARO, Tema.OSCURO)) {
             captureRoboImage(File(dir, "$nombre-${tema.id}.png").path) {
-                AvisosTema(tema) { Movil(contenido) }
+                AvisosTema(tema) {
+                    /* Quietas: el pulso de «en curso» es infinito y no dejaría terminar la captura. */
+                    androidx.compose.runtime.CompositionLocalProvider(io.github.dadoga31.avisos.ui.LocalMovimiento provides false) {
+                        Movil(contenido)
+                    }
+                }
             }
         }
     }

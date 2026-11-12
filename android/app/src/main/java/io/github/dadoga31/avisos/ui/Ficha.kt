@@ -1,6 +1,10 @@
 package io.github.dadoga31.avisos.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.animation.togetherWith
+import dev.chrisbanes.haze.haze
+import dev.chrisbanes.haze.hazeChild
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -134,8 +138,9 @@ fun FichaPantalla(
     val e = aviso.estadoE
     val ce = LocalColores.current.de(e)
 
+    val cristal = remember { dev.chrisbanes.haze.HazeState() }
     Box(Modifier.fillMaxSize().background(LocalColores.current.superficies.pagina)) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Column(Modifier.fillMaxSize().haze(cristal).verticalScroll(rememberScrollState())) {
             Row(Modifier.statusBarsPadding().height(64.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = acciones.volver) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Volver") }
                 Text(aviso.ref.ifEmpty { "Aviso" }, Modifier.weight(1f).padding(start = 4.dp), style = MaterialTheme.typography.titleLarge)
@@ -157,7 +162,11 @@ fun FichaPantalla(
 
             Column(Modifier.padding(horizontal = 24.dp)) {
                 Surface(
-                    onClick = { hojaEstado = true }, shape = CircleShape, color = ce.fondo, contentColor = ce.sobreFondo
+                    onClick = { hojaEstado = true }, shape = CircleShape,
+                    color = androidx.compose.animation.animateColorAsState(ce.fondo, Muelles.suave(), label = "pastilla").value,
+                    contentColor = androidx.compose.animation.animateColorAsState(ce.sobreFondo, Muelles.suave(), label = "tinta").value,
+                    border = if (e == Estado.EN_CURSO) null else androidx.compose.foundation.BorderStroke(1.dp, ce.color.copy(alpha = 0.3f)),
+                    modifier = Modifier.pulso(ce.color, activo = e == Estado.EN_CURSO, radio = 20f)
                 ) {
                     Row(Modifier.height(40.dp).padding(start = 12.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(iconoEstado(e), null, Modifier.size(20.dp))
@@ -166,8 +175,8 @@ fun FichaPantalla(
                     }
                 }
                 Text(
-                    aviso.titulo.ifBlank { "(sin título)" }, Modifier.padding(top = 14.dp),
-                    style = MaterialTheme.typography.headlineSmall
+                    aviso.titulo.ifBlank { "(sin título)" }, Modifier.padding(top = 14.dp).compartido("titulo-${aviso.id}"),
+                    style = MaterialTheme.typography.headlineMedium
                 )
                 if (aviso.cliente.nombre.isNotBlank()) {
                     Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -311,7 +320,7 @@ fun FichaPantalla(
             Spacer(Modifier.height(140.dp))
         }
 
-        BarraAcciones(aviso, acciones, Modifier.align(Alignment.BottomCenter))
+        BarraAcciones(aviso, acciones, cristal, Modifier.align(Alignment.BottomCenter))
     }
 
     if (hojaEstado) {
@@ -430,12 +439,14 @@ private fun accionPrincipal(e: Estado): Triple<String, androidx.compose.ui.graph
 }
 
 @Composable
-private fun BarraAcciones(aviso: Aviso, acciones: AccionesFicha, modifier: Modifier) {
+private fun BarraAcciones(aviso: Aviso, acciones: AccionesFicha, cristal: dev.chrisbanes.haze.HazeState, modifier: Modifier) {
     val c = aviso.cliente
     val (texto, icono, destino) = accionPrincipal(aviso.estadoE)
-    Surface(
-        shape = CircleShape, color = LocalColores.current.superficies.flotante, shadowElevation = 8.dp,
-        modifier = modifier.navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 12.dp).fillMaxWidth()
+    val i = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    Box(
+        modifier.navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 12.dp).fillMaxWidth()
+            .clip(CircleShape).hazeChild(cristal, estiloCristal())
+            .border(1.dp, LocalColores.current.superficies.borde, CircleShape)
     ) {
         Row(Modifier.height(72.dp).padding(start = 8.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { acciones.llamar(c.telefono) }, enabled = c.telefono.isNotBlank()) { Icon(Icons.Rounded.Call, "Llamar") }
@@ -445,12 +456,23 @@ private fun BarraAcciones(aviso: Aviso, acciones: AccionesFicha, modifier: Modif
             IconButton(onClick = { acciones.irA(c.direccion) }, enabled = c.direccion.isNotBlank()) { Icon(Icons.Rounded.Navigation, "Cómo llegar") }
             Spacer(Modifier.weight(1f))
             Surface(
-                onClick = { acciones.estado(destino) }, shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary
+                onClick = { acciones.estado(destino) }, shape = CircleShape, interactionSource = i,
+                color = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.presionable(i, 0.95f)
             ) {
-                Row(Modifier.height(56.dp).padding(start = 18.dp, end = 22.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(icono, null)
-                    Text(texto, Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                /* El texto cambia con fundido y la pastilla se ajusta con muelle. */
+                androidx.compose.animation.AnimatedContent(
+                    Triple(texto, icono, destino), label = "accion",
+                    transitionSpec = {
+                        (androidx.compose.animation.fadeIn() + androidx.compose.animation.slideInVertically { it / 2 }) togetherWith
+                            (androidx.compose.animation.fadeOut() + androidx.compose.animation.slideOutVertically { -it / 2 }) using
+                            androidx.compose.animation.SizeTransform(clip = false) { _, _ -> Muelles.suave() }
+                    }
+                ) { (t, ic, _) ->
+                    Row(Modifier.height(56.dp).padding(start = 18.dp, end = 22.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(ic, null)
+                        Text(t, Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleMedium)
+                    }
                 }
             }
         }
@@ -480,8 +502,12 @@ fun HojaEstado(aviso: Aviso, alElegir: (Estado) -> Unit) {
             ) {
                 CirculoEstado(e)
                 Column(Modifier.weight(1f)) {
-                    Text(e.nombre, style = MaterialTheme.typography.bodyLarge)
-                    Text(e.explicacion, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    val tinta = if (sel) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
+                    Text(e.nombre, style = MaterialTheme.typography.bodyLarge, color = tinta)
+                    Text(
+                        e.explicacion, style = MaterialTheme.typography.bodyMedium,
+                        color = if (sel) tinta.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
                 if (sel) Icon(Icons.Rounded.Check, null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
             }

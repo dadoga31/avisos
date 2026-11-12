@@ -183,7 +183,8 @@ private fun Cifras(datos: List<Pair<String, String>>) {
             datos.forEachIndexed { i, (nombre, valor) ->
                 if (i > 0) VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                    Text(valor, style = MaterialTheme.typography.headlineMedium)
+                    val n = valor.toIntOrNull()
+                    if (n != null) Cifra(n, MaterialTheme.typography.headlineMedium) else Text(valor, style = MaterialTheme.typography.headlineMedium)
                     Text(nombre, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -313,8 +314,8 @@ fun AjustesPantalla(ajustes: Ajustes, avisos: List<Aviso>, estadoCorreo: String?
                                 Tema.entries.forEachIndexed { i, t ->
                                     SegmentedButton(
                                         selected = ajustes.tema == t, onClick = { acciones.cambiar { it.copy(tema = t) } },
-                                        shape = SegmentedButtonDefaults.itemShape(i, Tema.entries.size)
-                                    ) { Text(t.nombre, maxLines = 1) }
+                                        shape = SegmentedButtonDefaults.itemShape(i, Tema.entries.size), icon = {}
+                                    ) { Text(t.nombre, maxLines = 1, style = MaterialTheme.typography.labelMedium) }
                                 }
                             }
                         }
