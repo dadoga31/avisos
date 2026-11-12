@@ -128,4 +128,41 @@ class ReglasTest {
         assertEquals("34600112233", Reglas.telefonoWhatsApp("600 11 22 33"))
         assertEquals("34600112233", Reglas.telefonoWhatsApp("+34 600112233"))
     }
+
+    @Test
+    fun `recordatorio solo para los mios o sin asignar, abiertos, sin empezar y con hora`() {
+        val z = ZoneOffset.UTC
+        val base = av("a", "2026-11-12", "11:00", estado = Estado.PROGRAMADO, asignado = Tecnico.YO)
+        assertEquals(java.time.Instant.parse("2026-11-12T10:40:00Z"), Reglas.momentoRecordatorio(base, 20, z))
+        assertEquals(java.time.Instant.parse("2026-11-12T10:40:00Z"), Reglas.momentoRecordatorio(base.copy(asignadoA = ""), 20, z))
+        assertNull(Reglas.momentoRecordatorio(base.copy(asignadoA = "laura"), 20, z))
+        assertNull(Reglas.momentoRecordatorio(base.copy(estado = Estado.EN_CURSO.id), 20, z))
+        assertNull(Reglas.momentoRecordatorio(base.copy(estado = Estado.RESUELTO.id), 20, z))
+        assertNull(Reglas.momentoRecordatorio(base.copy(hora = ""), 20, z))
+        assertNull(Reglas.momentoRecordatorio(base, 0, z))
+    }
+
+    @Test
+    fun `pendientes son los que aun no han saltado, por orden`() {
+        val z = ZoneOffset.UTC
+        val ahora = java.time.Instant.parse("2026-11-12T09:41:00Z")
+        val lista = listOf(
+            av("tarde", "2026-11-12", "16:00", asignado = Tecnico.YO),
+            av("pasado", "2026-11-12", "09:50", asignado = Tecnico.YO),   // saltaba a las 09:30
+            av("once", "2026-11-12", "11:00"),
+            av("manana", "2026-11-13", "08:00", asignado = Tecnico.YO)
+        )
+        assertEquals(listOf("once", "tarde", "manana"), Reglas.recordatoriosPendientes(lista, 20, ahora, z).map { it.first.id })
+    }
+
+    @Test
+    fun `texto del recordatorio`() {
+        val z = ZoneOffset.UTC
+        val a = av("a", "2026-11-12", "11:00").copy(titulo = "Sustitución de 2 cámaras", cliente = Cliente(nombre = "Naves Logísticas Sur"))
+        assertEquals(
+            "En 20 min · Naves Logísticas Sur" to "11:00 · Sustitución de 2 cámaras",
+            Reglas.textoRecordatorio(a, java.time.Instant.parse("2026-11-12T10:40:00Z"), z)
+        )
+        assertEquals("Ahora · Naves Logísticas Sur", Reglas.textoRecordatorio(a, java.time.Instant.parse("2026-11-12T11:05:00Z"), z).first)
+    }
 }

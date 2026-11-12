@@ -2,6 +2,8 @@ package io.github.dadoga31.avisos.ui
 
 import android.os.Build
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Alarm
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ChevronRight
@@ -285,6 +288,7 @@ class AccionesAjustes(
 fun AjustesPantalla(ajustes: Ajustes, avisos: List<Aviso>, estadoCorreo: String?, acciones: AccionesAjustes) {
     var prefijo by remember { mutableStateOf(false) }
     var borrar by remember { mutableStateOf(false) }
+    var antelacion by remember { mutableStateOf(false) }
     val (siguiente, _) = Reglas.siguienteRef(ajustes.prefijoRef, ajustes.contadorRef, avisos)
 
     Column(
@@ -327,6 +331,13 @@ fun AjustesPantalla(ajustes: Ajustes, avisos: List<Aviso>, estadoCorreo: String?
         CabeceraSeccion("Avisos")
         Grupo(
             listOf(
+                { f ->
+                    FilaSimple(
+                        f, Icons.Rounded.Alarm, "Recordatorio antes de la cita",
+                        if (ajustes.recordatorio <= 0) "Sin recordatorio" else "${ajustes.recordatorio} minutos antes · tus avisos y los sin asignar",
+                        alPulsar = { antelacion = true }
+                    )
+                },
                 { f -> FilaSimple(f, Icons.Rounded.Tag, "Numeración", "El próximo será $siguiente", alPulsar = { prefijo = true }) },
                 { f ->
                     FilaSimple(f, Icons.Rounded.SwipeLeft, "Pista de deslizar", "Recordatorio en la Agenda") {
@@ -360,6 +371,31 @@ fun AjustesPantalla(ajustes: Ajustes, avisos: List<Aviso>, estadoCorreo: String?
         androidx.compose.foundation.layout.Spacer(Modifier.height(EspacioMenu))
     }
 
+    if (antelacion) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { antelacion = false },
+            title = { Text("Recordatorio") },
+            text = {
+                Column {
+                    listOf(0, 10, 20, 30, 60).forEach { m ->
+                        Row(
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                .clickable { acciones.cambiar { it.copy(recordatorio = m) }; antelacion = false }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            androidx.compose.material3.RadioButton(
+                                selected = ajustes.recordatorio == m,
+                                onClick = { acciones.cambiar { it.copy(recordatorio = m) }; antelacion = false }
+                            )
+                            Text(if (m == 0) "Sin recordatorio" else if (m == 60) "1 hora antes" else "$m minutos antes")
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { antelacion = false }) { Text("Cerrar") } }
+        )
+    }
     if (prefijo) {
         DialogoTexto(
             "Numeración", "Prefijo de la referencia", ajustes.prefijoRef,

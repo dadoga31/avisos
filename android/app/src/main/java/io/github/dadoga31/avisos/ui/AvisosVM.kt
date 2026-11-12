@@ -91,5 +91,10 @@ class AvisosVM(app: Application) : AndroidViewModel(app) {
     fun borrarTecnico(id: String) = viewModelScope.launch { repo.borrarTecnico(id) }
     fun borrarTodos() = viewModelScope.launch { repo.borrarTodos() }
     fun datosDeEjemplo() = viewModelScope.launch { repo.datosDeEjemplo() }
-    fun cambiarAjustes(f: (Ajustes) -> Ajustes) = almacen.cambiar(f)
+    fun cambiarAjustes(f: (Ajustes) -> Ajustes) {
+        val antes = almacen.actual.recordatorio
+        almacen.cambiar(f)
+        /* Otra antelación: las alarmas se vuelven a calcular. */
+        if (almacen.actual.recordatorio != antes) viewModelScope.launch { repo.avisarCambio() }
+    }
 }

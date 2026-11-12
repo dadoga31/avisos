@@ -143,6 +143,46 @@ object Reglas {
             .distinctBy { normalizar(it.cliente.nombre) }
             .map { it.cliente to it.ref }
 
+    // ---------- recordatorios ----------
+
+    /**
+     * Cuándo salta el recordatorio de un aviso, o null si no lleva: tiene que
+     * estar abierto y sin empezar, con fecha y hora, y ser mío o sin asignar
+     * (los de otros técnicos no avisan en este móvil).
+     */
+    fun momentoRecordatorio(a: Aviso, minutos: Int, zona: ZoneId = ZoneId.systemDefault()): Instant? {
+        if (minutos <= 0 || !a.abierto || a.estadoE == Estado.EN_CURSO) return null
+        if (a.asignadoA.isNotEmpty() && a.asignadoA != Tecnico.YO) return null
+        val cita = cita(a, zona) ?: return null
+        return cita.minusSeconds(minutos * 60L)
+    }
+
+    /** Fecha y hora del aviso como instante, o null si le falta alguna. */
+    fun cita(a: Aviso, zona: ZoneId = ZoneId.systemDefault()): Instant? {
+        if (a.fecha.isEmpty() || a.hora.isEmpty()) return null
+        val d = runCatching { LocalDate.parse(a.fecha) }.getOrNull() ?: return null
+        val h = runCatching { LocalTime.parse(a.hora) }.getOrNull() ?: return null
+        return d.atTime(h).atZone(zona).toInstant()
+    }
+
+    /** Los recordatorios que quedan por saltar, del más próximo al más lejano. */
+    fun recordatoriosPendientes(avisos: List<Aviso>, minutos: Int, ahora: Instant, zona: ZoneId = ZoneId.systemDefault()) =
+        avisos.mapNotNull { a -> momentoRecordatorio(a, minutos, zona)?.takeIf { it.isAfter(ahora) }?.let { a to it } }
+            .sortedBy { it.second }
+
+    /** Título y texto de la notificación: «En 20 min · Naves Logísticas Sur» y «11:00 · Sustitución…». */
+    fun textoRecordatorio(a: Aviso, ahora: Instant, zona: ZoneId = ZoneId.systemDefault()): Pair<String, String> {
+        val cita = cita(a, zona)
+        val faltan = cita?.let { Duration.between(ahora, it).toMinutes() }
+        val cuando = when {
+            faltan == null -> "Hoy"
+            faltan <= 0 -> "Ahora"
+            else -> "En " + minutos(faltan)
+        }
+        val quien = a.cliente.nombre.ifBlank { a.titulo }
+        return "$cuando · $quien" to listOf(a.hora, a.titulo).filter { it.isNotBlank() }.joinToString(" · ")
+    }
+
     // ---------- textos ----------
 
     fun horas(h: Double): String {

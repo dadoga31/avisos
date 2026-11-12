@@ -58,8 +58,16 @@ móvil **Android**, instalada con la APK de este repo.
 - La base de datos va por la versión 2. Cada cambio de esquema necesita su
   migración (aquí `AutoMigration`) y su prueba: quien actualiza no puede
   perder sus avisos.
-- Pendiente: recordatorios antes de la cita, fotos desde la cámara, copia de
-  seguridad (y leer la de la app web), widget rediseñado.
+- Recordatorios (3.2.0): `Recordatorios.reprogramar` pone una alarma exacta
+  por aviso mío o sin asignar, abierto, sin empezar y con fecha y hora
+  (`Reglas.momentoRecordatorio`). Se llama tras cada cambio de datos (desde
+  `AvisosApp`), al cambiar la antelación y desde `ReceptorHora` (arranque,
+  cambio de hora o zona, actualización). El receptor comprueba que la alarma
+  sigue valiendo antes de avisar. «Avisar en 15 min» usa otra alarma (otro
+  Uri): si compartiera la de siempre, el siguiente reprogramar la borraría.
+  Exacta gracias a `USE_EXACT_ALARM`, que vale porque la app no está en Play.
+- Pendiente: fotos desde la cámara, copia de seguridad (y leer la de la app
+  web), widget rediseñado.
 
 ## Rama y despliegue
 
