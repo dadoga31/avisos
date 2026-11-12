@@ -5,8 +5,9 @@
     <string name="error_archivo">No se pudo entregar el archivo</string>
     <string name="widget_titulo">Avisos</string>
     <string name="widget_nuevo">+  Nuevo aviso</string>
-    <string name="widget_sin_datos">Abre la app para ver los de hoy</string>
-    <string name="widget_descripcion">Crea un aviso al instante y mira los del día.</string>
+    <string name="widget_agenda">Agenda</string>
+    <string name="widget_sin_datos">Abre la app para ver lo de hoy</string>
+    <string name="widget_descripcion">Lo de hoy, el siguiente aviso y un botón para crear uno.</string>
     <string name="atajo_nuevo">Nuevo aviso</string>
     <string name="atajo_nuevo_corto">Nuevo</string>
     <string name="atajo_agenda">Agenda de hoy</string>

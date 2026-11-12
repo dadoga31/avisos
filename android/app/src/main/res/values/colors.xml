@@ -1,9 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="fondo">#FFFFFF</color>
-    <color name="tinta">#101215</color>
+    <!-- Fondo de la ventana: el de las pantallas de la app, para que no destelle al abrir. -->
+    <color name="fondo">#EEEEEE</color>
     <color name="acento">#F27427</color>
-    <color name="widget_fondo">#101215</color>
-    <color name="widget_texto">#F2F3F5</color>
-    <color name="widget_suave">#8B909A</color>
+
+    <!-- Widget: los mismos colores que la app (diseno/tokens2.css). -->
+    <color name="widget_fondo">#FFFFFF</color>
+    <color name="widget_item">#F3F3F3</color>
+    <color name="widget_texto">#1B1B1B</color>
+    <color name="widget_suave">#494645</color>
+    <color name="widget_primario">#C65500</color>
+    <color name="widget_sobre_primario">#FFFFFF</color>
+    <color name="widget_tonal">#FFDBCB</color>
+    <color name="widget_sobre_tonal">#5C4033</color>
+    <color name="widget_alerta">#BA1A1A</color>
+    <color name="widget_alerta_fondo">#FFDAD6</color>
 </resources>

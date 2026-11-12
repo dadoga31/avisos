@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Widget de la pantalla de inicio: lo de hoy de un vistazo, el siguiente
+     aviso (abre su ficha) y los dos botones de siempre. WidgetAvisos.java lo
+     rellena con lo que deja la app en las preferencias «avisos». -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_raiz"
+    android:id="@android:id/background"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -15,46 +18,150 @@
         android:gravity="center_vertical">
 
         <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
             android:src="@drawable/ic_escudo"
             android:contentDescription="@string/app_name" />
 
         <TextView
+            android:id="@+id/widget_fecha"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
             android:text="@string/widget_titulo"
-            android:textColor="@color/widget_texto"
-            android:textSize="14sp"
+            android:textColor="@color/widget_suave"
+            android:textSize="13sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/widget_vencidos"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_alerta"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:textColor="@color/widget_alerta"
+            android:textSize="12sp"
             android:textStyle="bold"
-            android:maxLines="1" />
+            android:maxLines="1"
+            android:visibility="gone" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/widget_resumen"
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/widget_numero"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="–"
+            android:textColor="@color/widget_texto"
+            android:textSize="40sp"
+            android:fontFamily="sans-serif-medium"
+            android:includeFontPadding="false"
+            android:maxLines="1" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_etiqueta"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/widget_sin_datos"
+                android:textColor="@color/widget_texto"
+                android:textSize="14sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/widget_hechos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/widget_suave"
+                android:textSize="12sp"
+                android:maxLines="1"
+                android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/widget_siguiente"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/widget_item"
+        android:orientation="vertical"
         android:gravity="center_vertical"
-        android:text="@string/widget_sin_datos"
-        android:textColor="@color/widget_suave"
-        android:textSize="13sp"
-        android:maxLines="2"
-        android:ellipsize="end" />
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:visibility="gone">
 
-    <TextView
-        android:id="@+id/widget_nuevo"
+        <TextView
+            android:id="@+id/widget_siguiente_cabecera"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/widget_primario"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.05"
+            android:maxLines="1" />
+
+        <TextView
+            android:id="@+id/widget_siguiente_texto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/widget_texto"
+            android:textSize="14sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="44dp"
-        android:layout_marginTop="6dp"
-        android:background="@drawable/widget_boton"
-        android:gravity="center"
-        android:text="@string/widget_nuevo"
-        android:textColor="@color/tinta"
-        android:textSize="15sp"
-        android:textStyle="bold"
-        android:maxLines="1" />
+        android:layout_height="40dp"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/widget_nuevo"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/widget_boton"
+            android:gravity="center"
+            android:text="@string/widget_nuevo"
+            android:textColor="@color/widget_sobre_primario"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1" />
+
+        <TextView
+            android:id="@+id/widget_agenda"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/widget_boton_tonal"
+            android:gravity="center"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="@string/widget_agenda"
+            android:textColor="@color/widget_sobre_tonal"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1" />
+    </LinearLayout>
 </LinearLayout>

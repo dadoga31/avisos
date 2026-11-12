@@ -66,8 +66,19 @@ móvil **Android**, instalada con la APK de este repo.
   sigue valiendo antes de avisar. «Avisar en 15 min» usa otra alarma (otro
   Uri): si compartiera la de siempre, el siguiente reprogramar la borraría.
   Exacta gracias a `USE_EXACT_ALARM`, que vale porque la app no está en Play.
-- Pendiente: fotos desde la cámara, copia de seguridad (y leer la de la app
-  web), widget rediseñado.
+- Copia de seguridad (3.3.0): `CopiaSeguridad` escribe y lee el formato de
+  la web («avisos-backup», ficheros en base64), versión 2 la nativa y 1 la
+  web; `Repositorio.importar` añade lo que falte. `CopiaTest` recupera una
+  copia real generada con `store.js` (`src/test/resources/copia-web.json`):
+  horas en lista, correo de origen, materiales y el «Yo» de la web.
+- Fotos (3.3.0): `Fotos` reduce a 1600 px, endereza por EXIF y guarda JPEG en
+  `adjuntos/<aviso>/`. La cámara va por `TakePicture` con un fichero en
+  `cache/camara/` (FileProvider): sin permiso de cámara. Si alguna librería
+  metiera `CAMERA` en el manifiesto, habría que pedirlo antes de abrirla.
+- Widget (3.3.0): `WidgetAvisos.vistas` lo pinta con lo que deja
+  `AvisosApp.publicarResumen` (hoy, vencidos, hechos, siguiente). Cada
+  refresco de Android (30 min) llama a `AvisosApp.recalcular` para que no se
+  quede con los datos de ayer. `WidgetTest` lo pinta en claro y oscuro.
 
 ## Rama y despliegue
 

@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="fondo">#0D0E11</color>
+    <color name="fondo">#131313</color>
+
+    <color name="widget_fondo">#1F1F1F</color>
+    <color name="widget_item">#2A2A2A</color>
+    <color name="widget_texto">#E2E2E2</color>
+    <color name="widget_suave">#CBC5C4</color>
+    <color name="widget_primario">#FFB691</color>
+    <color name="widget_sobre_primario">#552000</color>
+    <color name="widget_tonal">#5C4033</color>
+    <color name="widget_sobre_tonal">#FFDBCB</color>
+    <color name="widget_alerta">#FFB4AB</color>
+    <color name="widget_alerta_fondo">#93000A</color>
 </resources>
