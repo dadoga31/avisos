@@ -236,4 +236,29 @@ class CapturasTest {
         )
         FichaPantalla(a, tecnicos, ahora, AccionesFicha())
     }
+
+    /** La ficha entera (más alta que la pantalla) con fotos y un PDF. */
+    @Test
+    @Config(qualifiers = "w412dp-h1500dp-xhdpi")
+    fun fichaConFotos() {
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
+        val a = enCurso
+        val dir = File(ctx.filesDir, "adjuntos/${a.id}").apply { mkdirs() }
+        val colores = listOf(0xFF3F5E98.toInt() to 0xFFF27427.toInt(), 0xFF2B6A3C.toInt() to 0xFFE0E2E8.toInt(), 0xFF5C4033.toInt() to 0xFFFFDBCB.toInt())
+        val fotos = colores.mapIndexed { i, (fondo, forma) ->
+            val bmp = android.graphics.Bitmap.createBitmap(400, 400, android.graphics.Bitmap.Config.ARGB_8888)
+            android.graphics.Canvas(bmp).apply {
+                drawColor(fondo)
+                drawCircle(200f, 220f, 120f - i * 20, android.graphics.Paint().apply { color = forma; isAntiAlias = true })
+            }
+            val f = File(dir, "foto-$i.jpg").apply { outputStream().use { bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, it) } }
+            Adjunto("foto$i", f.name, "image/jpeg", f.length(), "adjuntos/${a.id}/${f.name}")
+        }
+        val conFotos = a.copy(adjuntos = fotos + Adjunto("pdf", "parte-de-trabajo.pdf", "application/pdf", 182_000, "x"))
+        foto("12-ficha-completa") {
+            androidx.compose.runtime.CompositionLocalProvider(io.github.dadoga31.avisos.ui.LocalMiniaturasAlMomento provides true) {
+                FichaPantalla(conFotos, tecnicos, ahora, AccionesFicha())
+            }
+        }
+    }
 }

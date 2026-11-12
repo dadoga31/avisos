@@ -83,6 +83,15 @@ class AvisosVM(app: Application) : AndroidViewModel(app) {
     fun duplicar(id: String, luego: (Aviso) -> Unit) = viewModelScope.launch { repo.duplicar(id)?.let(luego) }
     fun anadirNota(id: String, texto: String) = viewModelScope.launch { repo.anadirNota(id, texto) }
     fun borrarNota(id: String, notaId: String) = viewModelScope.launch { repo.borrarNota(id, notaId) }
+    /** Foto de la cámara o la galería: se reduce, se endereza y se guarda con el aviso. */
+    fun anadirFoto(id: String, uri: android.net.Uri, deCamara: Boolean) = viewModelScope.launch(Dispatchers.IO) {
+        val adj = runCatching { io.github.dadoga31.avisos.Fotos.guardar(avisosApp, id, uri) }.getOrNull()
+        if (adj != null) repo.anadirAdjunto(id, adj) else mensajes.tryEmit("No se pudo leer la foto")
+        if (deCamara) java.io.File(avisosApp.cacheDir, "camara").listFiles()?.forEach { it.delete() }
+    }
+
+    fun borrarAdjunto(id: String, adjuntoId: String) = viewModelScope.launch { repo.borrarAdjunto(id, adjuntoId) }
+
     fun sumarHoras(id: String, delta: Double) = viewModelScope.launch { repo.sumarHoras(id, delta) }
 
     fun guardarTecnico(nombre: String, telefono: String, id: String?) =

@@ -30,6 +30,10 @@ import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Apartment
 import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.PhotoCamera
+import androidx.compose.material.icons.rounded.PhotoLibrary
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.material.icons.rounded.PictureAsPdf
 import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.Call
@@ -102,7 +106,10 @@ class AccionesFicha(
     val llamar: (String) -> Unit = {},
     val whatsapp: (String) -> Unit = {},
     val irA: (String) -> Unit = {},
-    val abrirAdjunto: (io.github.dadoga31.avisos.datos.Adjunto) -> Unit = {}
+    val abrirAdjunto: (io.github.dadoga31.avisos.datos.Adjunto) -> Unit = {},
+    val borrarAdjunto: (io.github.dadoga31.avisos.datos.Adjunto) -> Unit = {},
+    val camara: () -> Unit = {},
+    val galeria: () -> Unit = {}
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -123,6 +130,7 @@ fun FichaPantalla(
     var pedirTecnico by remember { mutableStateOf(false) }
     var pedirNota by remember { mutableStateOf(false) }
     var confirmarBorrar by remember { mutableStateOf(false) }
+    var borrarAdj by remember { mutableStateOf<io.github.dadoga31.avisos.datos.Adjunto?>(null) }
     val e = aviso.estadoE
     val ce = LocalColores.current.de(e)
 
@@ -250,23 +258,42 @@ fun FichaPantalla(
                 Grupo(listOf { f -> FilaSimple(f, Icons.AutoMirrored.Rounded.Notes, aviso.descripcion) })
             }
 
-            if (aviso.adjuntos.isNotEmpty()) {
-                CabeceraSeccion("Adjuntos", extra = "${aviso.adjuntos.size}")
+            CabeceraSeccion("Fotos y adjuntos", extra = if (aviso.adjuntos.isEmpty()) "" else "${aviso.adjuntos.size}")
+            val fotos = aviso.adjuntos.filter { it.esImagen }
+            val otros = aviso.adjuntos.filterNot { it.esImagen }
+            if (fotos.isNotEmpty()) {
+                androidx.compose.foundation.lazy.LazyRow(
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 8.dp)
+                ) {
+                    items(fotos.size, key = { fotos[it].id }) { i ->
+                        val adj = fotos[i]
+                        Miniatura(adj, alPulsar = { acciones.abrirAdjunto(adj) }, alMantener = { borrarAdj = adj })
+                    }
+                }
+            }
+            if (otros.isNotEmpty()) {
                 Grupo(
-                    aviso.adjuntos.map<io.github.dadoga31.avisos.datos.Adjunto, @Composable (androidx.compose.ui.graphics.Shape) -> Unit> { adj ->
+                    otros.map<io.github.dadoga31.avisos.datos.Adjunto, @Composable (androidx.compose.ui.graphics.Shape) -> Unit> { adj ->
                         { f ->
                             FilaSimple(
-                                f,
-                                when {
-                                    adj.esImagen -> Icons.Rounded.Image
-                                    adj.esPdf -> Icons.Rounded.PictureAsPdf
-                                    else -> Icons.Rounded.AttachFile
-                                },
-                                adj.nombre, tamano(adj.tam), alPulsar = { acciones.abrirAdjunto(adj) }
+                                f, if (adj.esPdf) Icons.Rounded.PictureAsPdf else Icons.Rounded.AttachFile,
+                                adj.nombre, tamano(adj.tam), alPulsar = { acciones.abrirAdjunto(adj) }, alMantener = { borrarAdj = adj }
                             ) { Icon(Icons.AutoMirrored.Rounded.OpenInNew, "Abrir", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                         }
                     }
                 )
+            }
+            Row(
+                Modifier.padding(horizontal = 16.dp).padding(top = if (otros.isNotEmpty()) 8.dp else 0.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                androidx.compose.material3.FilledTonalButton(onClick = acciones.camara, modifier = Modifier.weight(1f).height(48.dp)) {
+                    Icon(Icons.Rounded.PhotoCamera, null, Modifier.size(20.dp)); Spacer(Modifier.size(8.dp)); Text("Cámara")
+                }
+                androidx.compose.material3.FilledTonalButton(onClick = acciones.galeria, modifier = Modifier.weight(1f).height(48.dp)) {
+                    Icon(Icons.Rounded.PhotoLibrary, null, Modifier.size(20.dp)); Spacer(Modifier.size(8.dp)); Text("Galería")
+                }
             }
 
             CabeceraSeccion("Notas")
@@ -330,9 +357,49 @@ fun FichaPantalla(
         DialogoTexto("Nota", "Qué has hecho o qué falta", variasLineas = true, textoAceptar = "Añadir",
             alAceptar = acciones.nota, alCerrar = { pedirNota = false })
     }
+    borrarAdj?.let { adj ->
+        DialogoConfirmar(
+            "¿Borrar ${adj.nombre}?", "Se borra de este móvil. No se puede deshacer.", "Borrar",
+            alAceptar = { acciones.borrarAdjunto(adj) }, alCerrar = { borrarAdj = null }
+        )
+    }
     if (confirmarBorrar) {
         DialogoConfirmar("¿Borrar ${aviso.ref}?", "Se borra el aviso con sus notas. No se puede deshacer.", "Borrar",
             alAceptar = acciones.borrar, alCerrar = { confirmarBorrar = false })
+    }
+}
+
+/** En las capturas las miniaturas se cargan al momento; en la app, en segundo plano. */
+val LocalMiniaturasAlMomento = androidx.compose.runtime.staticCompositionLocalOf { false }
+
+/** Las ya cargadas, para no volver a leerlas del disco al volver a la ficha. */
+private val cacheMiniaturas = android.util.LruCache<String, androidx.compose.ui.graphics.ImageBitmap>(32)
+
+/** Miniatura de una foto: tocar la abre, mantener pulsado pregunta si borrarla. */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+fun Miniatura(adj: io.github.dadoga31.avisos.datos.Adjunto, alPulsar: () -> Unit, alMantener: () -> Unit) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    fun cargar() = cacheMiniaturas.get(adj.ruta)
+        ?: io.github.dadoga31.avisos.Fotos.miniatura(java.io.File(ctx.filesDir, adj.ruta), 320)?.asImageBitmap()
+            ?.also { cacheMiniaturas.put(adj.ruta, it) }
+    val alMomento = LocalMiniaturasAlMomento.current
+    val img by androidx.compose.runtime.produceState(
+        if (alMomento) cargar() else cacheMiniaturas.get(adj.ruta), adj.ruta
+    ) {
+        if (value == null) value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { cargar() }
+    }
+    Box(
+        Modifier.size(104.dp).clip(RoundedCornerShape(16.dp)).background(LocalColores.current.superficies.item)
+            .combinedClickable(onClick = alPulsar, onLongClick = alMantener),
+        contentAlignment = Alignment.Center
+    ) {
+        val b = img
+        if (b != null) {
+            androidx.compose.foundation.Image(
+                b, adj.nombre, Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop
+            )
+        } else Icon(Icons.Rounded.Image, adj.nombre, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

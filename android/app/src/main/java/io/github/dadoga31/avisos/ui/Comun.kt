@@ -3,6 +3,7 @@ package io.github.dadoga31.avisos.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -109,11 +110,13 @@ fun Grupo(elementos: List<@Composable (Shape) -> Unit>, modifier: Modifier = Mod
 }
 
 /** Fila de lista con fondo de elemento y su forma en el grupo. */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun Elemento(
     forma: Shape,
     modifier: Modifier = Modifier,
     alPulsar: (() -> Unit)? = null,
+    alMantener: (() -> Unit)? = null,
     contenido: @Composable RowScope.() -> Unit
 ) {
     Row(
@@ -121,7 +124,13 @@ fun Elemento(
             .fillMaxWidth()
             .clip(forma)
             .background(LocalColores.current.superficies.item)
-            .then(if (alPulsar != null) Modifier.clickable(onClick = alPulsar) else Modifier)
+            .then(
+                when {
+                    alMantener != null -> Modifier.combinedClickable(onClick = alPulsar ?: {}, onLongClick = alMantener)
+                    alPulsar != null -> Modifier.clickable(onClick = alPulsar)
+                    else -> Modifier
+                }
+            )
             .heightIn(min = 56.dp)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -139,9 +148,10 @@ fun FilaSimple(
     subtitulo: String? = null,
     alPulsar: (() -> Unit)? = null,
     colorSubtitulo: Color = Color.Unspecified,
+    alMantener: (() -> Unit)? = null,
     final: (@Composable () -> Unit)? = null
 ) {
-    Elemento(forma, alPulsar = alPulsar) {
+    Elemento(forma, alPulsar = alPulsar, alMantener = alMantener) {
         if (icono != null) Icon(icono, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Column(Modifier.weight(1f)) {
             Text(titulo, style = MaterialTheme.typography.bodyLarge)

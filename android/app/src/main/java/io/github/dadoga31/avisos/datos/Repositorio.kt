@@ -152,6 +152,18 @@ class Repositorio(
         guardar(a.copy(notas = a.notas.filterNot { it.id == notaId }))
     }
 
+    suspend fun anadirAdjunto(id: String, adjunto: Adjunto) {
+        val a = dao.porId(id) ?: return
+        guardar(a.copy(adjuntos = a.adjuntos + adjunto))
+    }
+
+    suspend fun borrarAdjunto(id: String, adjuntoId: String) {
+        val a = dao.porId(id) ?: return
+        val adj = a.adjuntos.firstOrNull { it.id == adjuntoId } ?: return
+        carpeta?.let { File(it, adj.ruta).delete() }
+        guardar(a.copy(adjuntos = a.adjuntos - adj))
+    }
+
     suspend fun sumarHoras(id: String, delta: Double) {
         val a = dao.porId(id) ?: return
         guardar(a.copy(horas = maxOf(0.0, a.horas + delta)))

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <cache-path name="compartidos" path="compartidos/" />
+    <!-- Donde la cámara deja la foto antes de reducirla y guardarla con el aviso. -->
+    <cache-path name="camara" path="camara/" />
     <!-- Adjuntos de los avisos, para abrirlos con otra app (visor de PDF, galería). -->
     <files-path name="adjuntos" path="adjuntos/" />
 </paths>

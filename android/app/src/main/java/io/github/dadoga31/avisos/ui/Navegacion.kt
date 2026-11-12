@@ -156,6 +156,14 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                 if (a == null) {
                     if (cargado) LaunchedEffect(Unit) { nav.popBackStack() }
                 } else {
+                    var temporal by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<Uri?>(null) }
+                    val camara = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+                        val u = temporal
+                        if (ok && u != null) vm.anadirFoto(a.id, u, deCamara = true)
+                    }
+                    val galeria = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { u ->
+                        u?.let { vm.anadirFoto(a.id, it, deCamara = false) }
+                    }
                     FichaPantalla(
                         a, tecnicos, ahora,
                         AccionesFicha(
@@ -172,7 +180,20 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                             llamar = { llamar(contexto, it) },
                             whatsapp = { whatsapp(contexto, it) },
                             irA = { mapa(contexto, it) },
-                            abrirAdjunto = { abrirAdjunto(contexto, it) }
+                            abrirAdjunto = { abrirAdjunto(contexto, it) },
+                            borrarAdjunto = { vm.borrarAdjunto(a.id, it.id) },
+                            camara = {
+                                val f = java.io.File(contexto.cacheDir, "camara/foto-${System.currentTimeMillis()}.jpg")
+                                f.parentFile?.mkdirs()
+                                val u = androidx.core.content.FileProvider.getUriForFile(contexto, contexto.packageName + ".archivos", f)
+                                temporal = u
+                                try { camara.launch(u) } catch (_: ActivityNotFoundException) {
+                                    Toast.makeText(contexto, "No hay app de cámara", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            galeria = {
+                                galeria.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            }
                         )
                     )
                 }
