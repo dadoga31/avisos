@@ -143,6 +143,162 @@ object Reglas {
             .distinctBy { normalizar(it.cliente.nombre) }
             .map { it.cliente to it.ref }
 
+    // ---------- línea de tiempo de la Agenda ----------
+
+    /** Un aviso colocado en la línea del día: minutos desde las 00:00. */
+    data class Bloque(val aviso: Aviso, val inicio: Int, val fin: Int, val hecho: Boolean)
+
+    /** Horas previstas en minutos («1,5» → 90); una hora si no pone nada. */
+    fun duracionMin(a: Aviso): Int {
+        val h = a.duracion.replace(',', '.').trim().toDoubleOrNull() ?: return 60
+        return (h * 60).toInt().coerceIn(15, 12 * 60)
+    }
+
+    private fun minutosDe(hora: String): Int? = runCatching { LocalTime.parse(hora) }.getOrNull()?.let { it.hour * 60 + it.minute }
+
+    private fun horaLocal(iso: String, zona: ZoneId): LocalTime? = runCatching { Instant.parse(iso).atZone(zona).toLocalTime() }.getOrNull()
+
+    /**
+     * Lo que va en la línea de tiempo de [dia]: los abiertos con hora, el que
+     * está en curso (desde que se empezó, si no tiene hora) y lo hecho ese día.
+     * Lo cancelado no sale. El que está en curso llega al menos hasta [ahora] (pásalo solo para hoy).
+     */
+    fun linea(avisos: List<Aviso>, dia: LocalDate, ahora: LocalTime? = null, zona: ZoneId = ZoneId.systemDefault()): List<Bloque> {
+        val d = dia.toString()
+        val ahoraMin = ahora?.let { it.hour * 60 + it.minute }
+        return avisos.mapNotNull { a ->
+            when {
+                a.estadoE == Estado.CANCELADO -> null
+                a.estadoE == Estado.RESUELTO -> {
+                    val h = minutosDe(a.hora)
+                    val cierre = horaLocal(a.cerrado, zona)?.let { it.hour * 60 + it.minute }
+                    val trabajado = if (a.horas > 0) (a.horas * 60).toInt() else 30
+                    when {
+                        a.fecha == d && h != null -> Bloque(a, h, h + maxOf(trabajado, 30), true)
+                        diaDe(a.cerrado, zona) == dia && cierre != null -> Bloque(a, maxOf(0, cierre - trabajado), cierre, true)
+                        else -> null
+                    }
+                }
+                !a.abierto -> null
+                else -> {
+                    val h = minutosDe(a.hora)
+                    val desde = if (a.estadoE == Estado.EN_CURSO && diaDe(a.empezado, zona) == dia) horaLocal(a.empezado, zona) else null
+                    val inicio = when {
+                        a.fecha == d && h != null -> h
+                        desde != null -> desde.hour * 60 + desde.minute
+                        else -> return@mapNotNull null
+                    }
+                    var fin = inicio + duracionMin(a)
+                    if (a.estadoE == Estado.EN_CURSO && ahoraMin != null) fin = maxOf(fin, ahoraMin)
+                    Bloque(a, inicio, minOf(fin, 24 * 60), false)
+                }
+            }
+        }.sortedWith(compareBy<Bloque> { it.inicio }.thenBy { -it.aviso.prioridadE.peso })
+    }
+
+    /** Abiertos de [dia] sin hora (los que no están ya en la línea). */
+    fun sinHora(avisos: List<Aviso>, dia: LocalDate, zona: ZoneId = ZoneId.systemDefault()): List<Aviso> {
+        val enLinea = linea(avisos, dia, null, zona).map { it.aviso.id }.toSet()
+        return avisos.filter { it.abierto && it.fecha == dia.toString() && it.id !in enLinea }.sortedWith(porFecha)
+    }
+
+    /** Abiertos sin fecha: la bandeja que no es de ningún día. */
+    fun sinFecha(avisos: List<Aviso>): List<Aviso> =
+        avisos.filter { it.abierto && it.fecha.isEmpty() }.sortedWith(compareBy<Aviso> { -it.prioridadE.peso }.thenByDescending { it.creado })
+
+    /** Los siguientes después de [dia], para no perderlos de vista. */
+    fun proximos(avisos: List<Aviso>, dia: LocalDate, cuantos: Int = 4): List<Aviso> =
+        avisos.filter { it.abierto && it.fecha.isNotEmpty() && it.fecha > dia.toString() }.sortedWith(porFecha).take(cuantos)
+
+    /** Columna de cada bloque cuando se pisan, y cuántas columnas tiene su grupo. */
+    data class Carril(val bloque: Bloque, val columna: Int, val columnas: Int)
+
+    /** [minimo]: lo que ocupa como poco un bloque en pantalla, en minutos. */
+    fun carriles(bloques: List<Bloque>, minimo: (Bloque) -> Int = { 60 }): List<Carril> {
+        val fin = { b: Bloque -> maxOf(b.fin, b.inicio + minimo(b)) }
+        val res = mutableListOf<Carril>()
+        var grupo = mutableListOf<Pair<Bloque, Int>>()
+        var finGrupo = -1
+        val finesColumna = mutableListOf<Int>()
+        fun cerrar() {
+            val n = (grupo.maxOfOrNull { it.second } ?: -1) + 1
+            grupo.forEach { (b, c) -> res += Carril(b, c, n) }
+            grupo = mutableListOf(); finesColumna.clear()
+        }
+        for (b in bloques.sortedBy { it.inicio }) {
+            if (grupo.isNotEmpty() && b.inicio >= finGrupo) cerrar()
+            val libre = finesColumna.indexOfFirst { it <= b.inicio }
+            val col = if (libre >= 0) libre else finesColumna.size
+            if (libre >= 0) finesColumna[libre] = fin(b) else finesColumna += fin(b)
+            grupo += b to col
+            finGrupo = maxOf(finGrupo, fin(b))
+        }
+        if (grupo.isNotEmpty()) cerrar()
+        return res
+    }
+
+    /** Hechos frente a lo que había para [dia]. Para hoy es lo mismo que [progresoHoy]. */
+    fun progresoDia(avisos: List<Aviso>, dia: LocalDate, zona: ZoneId = ZoneId.systemDefault()): Progreso {
+        val hechos = avisos.count { it.estadoE == Estado.RESUELTO && (diaDe(it.cerrado, zona) == dia) }
+        val pendientes = avisos.count { it.abierto && it.fecha == dia.toString() }
+        return Progreso(hechos, hechos + pendientes)
+    }
+
+    // ---------- panel de Hechos ----------
+
+    enum class Periodo(val nombre: String) { SEMANA("7D"), MES("30D"), ANO("Año") }
+
+    data class Barra(val etiqueta: String, val horas: Double, val actual: Boolean)
+
+    data class Panel(
+        val horas: Double, val horasAntes: Double, val resueltos: Int, val cancelados: Int,
+        val barras: List<Barra>, val cerrados: List<Aviso>
+    ) {
+        val porAviso get() = if (resueltos == 0) 0.0 else horas / resueltos
+    }
+
+    private val LETRAS_DIA = listOf("L", "M", "X", "J", "V", "S", "D")
+    private val LETRAS_MES = listOf("E", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
+
+    /** Horas, cuentas y barras del periodo que acaba hoy, y las horas del periodo anterior. */
+    fun panel(avisos: List<Aviso>, periodo: Periodo, hoy: LocalDate, zona: ZoneId = ZoneId.systemDefault()): Panel {
+        val cerrados = avisos.filter { !it.abierto }.mapNotNull { a -> diaDe(a.cerrado, zona)?.let { a to it } }
+        val desde = when (periodo) {
+            Periodo.SEMANA -> hoy.minusDays(6)
+            Periodo.MES -> hoy.minusDays(29)
+            Periodo.ANO -> hoy.withDayOfMonth(1).minusMonths(11)
+        }
+        val antes = when (periodo) {
+            Periodo.SEMANA -> desde.minusDays(7)
+            Periodo.MES -> desde.minusDays(30)
+            Periodo.ANO -> desde.minusYears(1)
+        }
+        fun horas(d0: LocalDate, d1: LocalDate) =
+            cerrados.filter { (a, d) -> a.estadoE == Estado.RESUELTO && !d.isBefore(d0) && !d.isAfter(d1) }.sumOf { it.first.horas }
+        val dentro = cerrados.filter { (_, d) -> !d.isBefore(desde) && !d.isAfter(hoy) }
+        val barras = when (periodo) {
+            Periodo.ANO -> (0 until 12).map { n ->
+                val m = desde.plusMonths(n.toLong())
+                Barra(LETRAS_MES[m.monthValue - 1], horas(m, m.plusMonths(1).minusDays(1)), m.month == hoy.month && m.year == hoy.year)
+            }
+            else -> {
+                val dias = if (periodo == Periodo.SEMANA) 7 else 30
+                (0 until dias).map { n ->
+                    val d = desde.plusDays(n.toLong())
+                    val etiqueta = if (periodo == Periodo.SEMANA) LETRAS_DIA[d.dayOfWeek.value - 1] else "${d.dayOfMonth}"
+                    Barra(etiqueta, horas(d, d), d == hoy)
+                }
+            }
+        }
+        return Panel(
+            horas = horas(desde, hoy), horasAntes = horas(antes, desde.minusDays(1)),
+            resueltos = dentro.count { it.first.estadoE == Estado.RESUELTO },
+            cancelados = dentro.count { it.first.estadoE == Estado.CANCELADO },
+            barras = barras,
+            cerrados = dentro.sortedByDescending { it.first.cerrado }.map { it.first }
+        )
+    }
+
     // ---------- recordatorios ----------
 
     /**

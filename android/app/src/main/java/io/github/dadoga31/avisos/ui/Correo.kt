@@ -57,6 +57,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -144,12 +147,12 @@ fun CorreoPantalla(
     val dominio = f.usuario.substringAfter('@', "").trim()
 
     Column(
-        Modifier.fillMaxSize().background(LocalColores.current.superficies.pagina)
+        Modifier.fillMaxSize().fondoPagina()
             .statusBarsPadding().navigationBarsPadding().imePadding()
     ) {
-        Row(Modifier.height(64.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = acciones.volver) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Volver") }
-            Text("Correo de la empresa", Modifier.padding(start = 4.dp), style = MaterialTheme.typography.titleLarge)
+        Box(Modifier.fillMaxWidth().height(60.dp).padding(horizontal = 12.dp)) {
+            BotonRedondo(Icons.AutoMirrored.Rounded.ArrowBack, "Volver", acciones.volver, Modifier.align(Alignment.CenterStart))
+            Dato("Correo → aviso", Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.onSurface, tam = 12f, peso = androidx.compose.ui.text.font.FontWeight.SemiBold)
         }
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             if (estado.configurada) TarjetaEstado(estado, ahora, acciones)
@@ -289,41 +292,51 @@ private fun Segmentos(opciones: List<String>, elegida: Int, alElegir: (Int) -> U
 
 @Composable
 private fun TarjetaEstado(e: EstadoBuzon, ahora: Instant, acciones: AccionesCorreo) {
+    val s = LocalColores.current.superficies
     val bien = e.activo && e.error.isEmpty()
-    val (icono, titulo, color) = when {
-        e.error.isNotEmpty() -> Triple(Icons.Rounded.ErrorOutline, e.error, MaterialTheme.colorScheme.error)
-        !e.activo -> Triple(Icons.Rounded.Sync, "Conectando…", MaterialTheme.colorScheme.onSurfaceVariant)
-        e.caidas > 0 -> Triple(Icons.Rounded.Sync, "Reconectando…", MaterialTheme.colorScheme.onSurfaceVariant)
-        e.imap -> Triple(Icons.Rounded.MarkEmailUnread, "Escuchando en tiempo real", LocalColores.current.de(Estado.RESUELTO).color)
-        else -> Triple(Icons.Rounded.MarkEmailUnread, "Comprobando cada 5 minutos", LocalColores.current.de(Estado.RESUELTO).color)
+    val verde = Color(0xFF3DDC84)
+    val naranja = Color(0xFFFF6A33)
+    val (titulo, color) = when {
+        e.error.isNotEmpty() -> e.error to naranja
+        !e.activo -> "Conectando…" to s.sobreHeroeSuave
+        e.caidas > 0 -> "Reconectando…" to s.sobreHeroeSuave
+        e.imap -> "Escuchando en tiempo real" to verde
+        else -> "Comprobando cada 5 minutos" to verde
     }
     val hace = runCatching { Duration.between(Instant.parse(e.ultima), ahora).toMinutes() }.getOrNull()
-    Surface(
-        shape = RoundedCornerShape(28.dp), color = LocalColores.current.superficies.item,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth()
+    val forma = RoundedCornerShape(24.dp)
+    Column(
+        Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth().clip(forma).background(s.heroe)
+            .drawBehind {
+                drawCircle(
+                    androidx.compose.ui.graphics.Brush.radialGradient(
+                        listOf(color.copy(alpha = 0.30f), Color.Transparent),
+                        center = androidx.compose.ui.geometry.Offset(size.width * 0.95f, 0f), radius = size.width * 0.55f
+                    ),
+                    radius = size.width * 0.55f, center = androidx.compose.ui.geometry.Offset(size.width * 0.95f, 0f)
+                )
+            }
+            .padding(20.dp)
     ) {
-        Column(Modifier.padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Box(
-                    Modifier.size(44.dp).background(color.copy(alpha = 0.14f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) { Icon(icono, null, tint = color) }
-                Column(Modifier.weight(1f)) {
-                    Text(e.usuario, style = MaterialTheme.typography.titleMedium)
-                    Text(titulo, style = MaterialTheme.typography.bodyMedium, color = if (bien) color else MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            Text(
-                listOfNotNull(
-                    hace?.let { if (it < 1) "Comprobado ahora mismo" else "Comprobado hace " + Reglas.minutos(it) },
-                    when (e.pendientes) { 0 -> null; 1 -> "1 correo esperando"; else -> "${e.pendientes} correos esperando" }
-                ).joinToString(" · ").ifEmpty { "Todavía no ha comprobado el buzón" },
-                Modifier.padding(top = 12.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilledTonalButton(onClick = acciones.comprobar) { Icon(Icons.Rounded.Sync, null, Modifier.size(18.dp)); Spacer(Modifier.size(8.dp)); Text("Comprobar ahora") }
-                OutlinedButton(onClick = acciones.releer) { Text("Releer 20") }
-            }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PuntoVivo(color, vivo = bien)
+            Dato(titulo, color = color, peso = androidx.compose.ui.text.font.FontWeight.SemiBold)
+        }
+        Text(
+            e.usuario, Modifier.padding(top = 10.dp), color = s.sobreHeroe,
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+        )
+        Dato(
+            listOfNotNull(
+                if (e.imap) "IMAP" else "POP3",
+                hace?.let { if (it < 1) "comprobado ahora" else "comprobado hace " + Reglas.minutos(it) },
+                when (e.pendientes) { 0 -> null; 1 -> "1 correo esperando"; else -> "${e.pendientes} correos esperando" }
+            ).joinToString(" · "),
+            Modifier.padding(top = 6.dp), color = s.sobreHeroeSuave, tam = 9.5f
+        )
+        Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            BotonPildora("Comprobar ahora", null, acciones.comprobar, Modifier.weight(1.4f), alto = 46.dp)
+            BotonPildora("Releer 20", null, acciones.releer, Modifier.weight(1f), principal = false, alto = 46.dp)
         }
     }
 }

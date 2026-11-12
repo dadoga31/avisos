@@ -106,13 +106,13 @@ fun Modifier.entrada(indice: Int): Modifier {
 
 /** Una cifra que cuenta desde 0 hasta su valor la primera vez, y luego entre valores. */
 @Composable
-fun Cifra(valor: Int, estilo: TextStyle, color: Color = Color.Unspecified, sufijo: String = "") {
+fun Cifra(valor: Int, estilo: TextStyle, color: Color = Color.Unspecified, sufijo: String = "", relleno: Int = 0) {
     val activo = LocalMovimiento.current
     val a = remember { Animatable(if (activo) 0f else valor.toFloat()) }
     LaunchedEffect(valor) {
         if (activo) a.animateTo(valor.toFloat(), tween(650, easing = FastOutSlowInEasing)) else a.snapTo(valor.toFloat())
     }
-    Text("${a.value.toInt()}$sufijo", style = estilo, color = color)
+    Text(a.value.toInt().toString().padStart(relleno, '0') + sufijo, style = estilo, color = color)
 }
 
 /** Anillo que se expande y se desvanece detrás de lo que está «en marcha». */

@@ -32,18 +32,24 @@ móvil **Android**, instalada con la APK de este repo.
   cadena de herramientas: no las subas sin necesidad.
 - `datos/`: `Modelo.kt` (mismos campos y valores que la web, para poder
   importar sus copias), `BaseDatos.kt` (Room), `Reglas.kt` (reglas puras:
-  grupos de la Agenda, siguiente aviso, búsqueda, referencias, textos),
+  grupos, línea de tiempo y bandejas de la Agenda, panel de Hechos, siguiente
+  aviso, búsqueda, referencias, textos),
   `Repositorio.kt` (todo cambio pasa por aquí: referencia, cierre, inicio,
   widget) y `Ajustes.kt`. `ui/`: `Tema.kt` (paleta de `diseno/tokens2.css` y
-  colores de estado), `Armazon.kt` (menú flotante + botón de la pantalla),
-  `Agenda.kt`, `Ficha.kt`, `Formulario.kt`, `Secciones.kt` (Hechos, Equipo,
-  Ajustes), `Navegacion.kt`. `correo/` y `WidgetAvisos.java` vienen de antes.
+  colores de estado), `Piezas.kt` (rejilla de puntos, marca, botones
+  redondos, cifras, anillo, interruptor, segmentado, relojes), `Armazon.kt`
+  (dock flotante), `Agenda.kt`, `Ficha.kt`, `Formulario.kt`, `Secciones.kt`
+  (Hechos, Equipo, Ajustes), `Navegacion.kt`. `correo/` y `WidgetAvisos.java`
+  vienen de antes.
 - Las pantallas no tienen estado propio de datos: reciben avisos y acciones.
   Así se prueban y se capturan sin base de datos.
 - Pruebas: `cd android && ./gradlew testDebugUnitTest`. `ReglasTest` (JVM),
-  `RepositorioTest` (Robolectric + Room en memoria) y `CapturasTest`
-  (Roborazzi): deja en `diseno/capturas-app/` cada pantalla en claro y oscuro a
-  tamaño Pixel 7. Tras un cambio visual, mira esas capturas.
+  `RepositorioTest` (Robolectric + Room en memoria), `GestosTest` (Compose:
+  deslizar para cerrar, la línea de tiempo, la semana y el dock) y
+  `CapturasTest` (Roborazzi, con `-Proborazzi.test.record=true`): deja en
+  `diseno/capturas-app/` cada pantalla en claro y oscuro a tamaño Pixel 7.
+  Tras un cambio visual, mira esas capturas. Sin «ñ» ni tildes en los nombres
+  de las pruebas: el compilador no sabe escribir esas clases en disco.
 - Al publicar una APK nueva sube `versionCode` y `versionName` en
   `app/build.gradle`. Se firma con `keystore/depuracion.keystore`, la de
   siempre: con otra firma Android no deja actualizar la app instalada.
@@ -85,6 +91,32 @@ móvil **Android**, instalada con la APK de este repo.
   `res/font` con su licencia OFL en `android/licencias-fuentes/`. Líneas finas
   en vez de sombras (`Modifier.tarjeta`). Menú y barra de la ficha de cristal
   con Haze 1.0.2 (desenfoque en Android 12+, translúcido antes).
+- UI «tech minimal» (3.5.0): el usuario pidió cambiar la interfaz entera, no
+  solo los colores (la 3.4.0 seguía con las listas de siempre). Concepto
+  aprobado antes de escribirla. Fondo con rejilla de puntos fija
+  (`fondoPagina`), marca «■ SECCIÓN / extra» arriba, etiquetas en mono y
+  mayúsculas (`Dato`), cifras en fila con líneas (`FilaKpi`) y tarjetas
+  oscuras con halo para lo importante. Dock de solo iconos con el + naranja en
+  el centro (siempre crea un aviso; añadir técnico está en Equipo) y un punto
+  que se desliza bajo la sección.
+  - Agenda = línea de tiempo de un día (`Reglas.linea`, 72 dp por hora): lo
+    que está en curso llega hasta ahora, lo hecho ese día sale apagado, lo
+    cancelado no sale y lo que se pisa va en columnas (`Reglas.carriles`).
+    Debajo, «Sin hora» (`sinHora`), «Sin fecha» (`sinFecha`) y «Próximos»: así
+    todo aviso abierto sigue saliendo en algún sitio. Vencidos en una barra
+    arriba. El siguiente aviso lleva Llamar e Ir en su bloque (criterio 1).
+    Tocar una cifra o la lupa la convierte en búsqueda; Atrás cierra la
+    búsqueda y luego vuelve a hoy.
+  - Ficha = hoja de misión: pasos del estado (tocar abre la hoja), cronómetro
+    o cuenta atrás en tarjeta oscura (`Cronometro`, dígitos que ruedan),
+    rejilla de datos, acciones redondas, registro (alta, inicio, notas,
+    cierre) y abajo «Desliza para empezar / cerrar» (al 80 % vibra; con
+    TalkBack es un botón).
+  - Formulario en campos numerados 01–07, prioridad en barras de señal.
+  - Relojes: `ahoraVivo` da la hora al segundo; `LocalRelojVivo = false` la
+    congela en las capturas y en `GestosTest` (si no, nunca quedan quietas).
+  - Los avisos de ejemplo están pensados para la línea: en curso a las 09:00,
+    uno hecho a las 08:42, otro a las 11:30 y un vencido de ayer.
 - Movimiento (`ui/Movimiento.kt`): muelles comunes, pulsar que encoge,
   entrada escalonada solo al abrir la pantalla, cifras que cuentan, el pulso
   de lo que está en curso, el indicador del menú que se desliza, vibración al

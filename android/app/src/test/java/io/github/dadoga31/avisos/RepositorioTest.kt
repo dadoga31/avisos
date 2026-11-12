@@ -89,6 +89,6 @@ class RepositorioTest {
         repo.guardar(repo.nuevo().copy(titulo = "Primero"))
         repo.datosDeEjemplo()
         val refs = db.dao().todosAhora().map { it.ref }.sorted()
-        assertEquals((1..7).map { "AV-" + it.toString().padStart(4, '0') }, refs)
+        assertEquals((1..8).map { "AV-" + it.toString().padStart(4, '0') }, refs)
     }
 }

@@ -205,26 +205,32 @@ class Repositorio(
         dao.guardarTecnico(laura)
         val h = hoy()
         val ahora = ahora()
+        fun hace(segundos: Long) = Instant.now(reloj).minusSeconds(segundos).toString()
         fun av(
             titulo: String, tipo: Tipo, sistema: Sistema, prioridad: Prioridad, cliente: Cliente,
             fecha: LocalDate, hora: String, estado: Estado, asignado: String, descripcion: String
         ) = Aviso(
             id = nuevoId("av"), titulo = titulo, tipo = tipo.id, sistema = sistema.id, prioridad = prioridad.id,
             cliente = cliente, fecha = fecha.toString(), hora = hora, estado = estado.id, asignadoA = asignado,
-            descripcion = descripcion, creado = ahora, actualizado = ahora
+            descripcion = descripcion, creado = hace(26 * 3600), actualizado = ahora
         )
         val lista = listOf(
             av("Central de alarma en fallo de comunicación", Tipo.AVERIA, Sistema.ALARMA, Prioridad.URGENTE,
                 Cliente("Farmacia Centro", "C/ Mayor 14, Bajo", "911234567", "Ana"), h.minusDays(1), "09:30",
                 Estado.PENDIENTE, Tecnico.YO, "La central pierde conexión con la CRA por la noche. Revisar módulo GPRS y cableado."),
             av("Sustitución de 2 cámaras exteriores", Tipo.INSTALACION, Sistema.CCTV, Prioridad.ALTA,
-                Cliente("Naves Logísticas Sur", "Pol. Ind. El Prado, nave 7", "915556677", "Jefe de planta"), h, "11:00",
-                Estado.PROGRAMADO, marcos.id, "Cambio de dos domos por bullet 4MP. Llevar escalera y latiguillos."),
+                Cliente("Naves Logísticas Sur", "Pol. Ind. El Prado, nave 7", "915556677", "Jefe de planta"), h, "11:30",
+                Estado.PROGRAMADO, marcos.id, "Cambio de dos domos por bullet 4MP. Llevar escalera y latiguillos.").copy(duracion = "1,5"),
             av("Mantenimiento anual del sistema de incendios", Tipo.MANTENIMIENTO, Sistema.INCENDIOS, Prioridad.NORMAL,
-                Cliente("Colegio San Pablo", "Av. de la Paz 3", "913334455", "Conserjería"), h, "16:00",
+                Cliente("Colegio San Pablo", "Av. de la Paz 3", "913334455", "Conserjería"), h, "09:00",
                 Estado.EN_CURSO, Tecnico.YO, "Revisión de detectores y pulsadores. Firmar parte al terminar.").copy(
-                empezado = ahora, horas = 1.5,
-                notas = listOf(Nota(nuevoId("n"), ahora, "Revisada la primera planta, faltan sótano y azotea."))
+                empezado = hace(41 * 60 + 27), duracion = "2", horas = 0.5,
+                notas = listOf(Nota(nuevoId("n"), hace(6 * 60), "Revisada la primera planta, faltan sótano y azotea."))
+            ),
+            av("Revisión de CRA", Tipo.REVISION, Sistema.ALARMA, Prioridad.NORMAL,
+                Cliente("Joyería Duarte", "Plaza del Sol 1", "912223344", "Sr. Duarte"), h, "08:00",
+                Estado.RESUELTO, Tecnico.YO, "Prueba de comunicación con la central receptora.").copy(
+                empezado = hace(101 * 60), cerrado = hace(59 * 60), horas = 0.5
             ),
             av("Lector de acceso no lee tarjetas", Tipo.AVERIA, Sistema.ACCESOS, Prioridad.ALTA,
                 Cliente("Gimnasio Atlas", "C/ Deportes 22", "917778899", "Recepción"), h.plusDays(1), "08:00",
@@ -235,7 +241,7 @@ class Repositorio(
             av("Ampliación de 4 detectores volumétricos", Tipo.INSTALACION, Sistema.ALARMA, Prioridad.NORMAL,
                 Cliente("Joyería Duarte", "Plaza del Sol 1", "912223344", "Sr. Duarte"), h.minusDays(6), "10:00",
                 Estado.RESUELTO, marcos.id, "Ampliación realizada y probada con la CRA.").copy(
-                cerrado = ahora, horas = 3.5,
+                cerrado = hace(3 * 24 * 3600), horas = 3.5,
                 notas = listOf(Nota(nuevoId("n"), ahora, "Trabajo terminado y firmado por el cliente."))
             )
         )

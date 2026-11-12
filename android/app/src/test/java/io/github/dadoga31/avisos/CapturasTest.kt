@@ -52,7 +52,6 @@ import io.github.dadoga31.avisos.ui.AccionesFicha
 import io.github.dadoga31.avisos.ui.AgendaPantalla
 import io.github.dadoga31.avisos.ui.AjustesPantalla
 import io.github.dadoga31.avisos.ui.AvisosTema
-import io.github.dadoga31.avisos.ui.BotonFlotante
 import io.github.dadoga31.avisos.ui.EquipoPantalla
 import io.github.dadoga31.avisos.ui.FichaPantalla
 import io.github.dadoga31.avisos.ui.FormularioPantalla
@@ -82,7 +81,7 @@ import java.time.ZoneId
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w412dp-h915dp-xhdpi", application = android.app.Application::class)
 class CapturasTest {
-    private val ahora = LocalDateTime.of(2026, 11, 12, 9, 41)
+    private val ahora = LocalDateTime.of(2026, 11, 12, 9, 41, 27)
     private lateinit var avisos: List<Aviso>
     private lateinit var tecnicos: List<Tecnico>
     private val dir = File(System.getProperty("roborazzi.output.dir") ?: "build/capturas").apply { mkdirs() }
@@ -105,7 +104,10 @@ class CapturasTest {
             captureRoboImage(File(dir, "$nombre-${tema.id}.png").path) {
                 AvisosTema(tema) {
                     /* Quietas: el pulso de «en curso» es infinito y no dejaría terminar la captura. */
-                    androidx.compose.runtime.CompositionLocalProvider(io.github.dadoga31.avisos.ui.LocalMovimiento provides false) {
+                    androidx.compose.runtime.CompositionLocalProvider(
+                        io.github.dadoga31.avisos.ui.LocalMovimiento provides false,
+                        io.github.dadoga31.avisos.ui.LocalRelojVivo provides false
+                    ) {
                         Movil(contenido)
                     }
                 }
@@ -135,21 +137,21 @@ class CapturasTest {
     }
 
     @Composable
-    private fun Marco(s: Seccion, boton: BotonFlotante?, contenido: @Composable () -> Unit) =
-        MarcoSeccion(s, {}, Reglas.resumen(avisos, ahora.toLocalDate()).vencidos, boton, SnackbarHostState(), contenido = contenido)
+    private fun Marco(s: Seccion, contenido: @Composable () -> Unit) =
+        MarcoSeccion(s, {}, {}, SnackbarHostState(), contenido = contenido)
 
     private val enCurso get() = avisos.first { it.estado == "en_curso" }
 
     @Test
     fun agenda() = foto("1-agenda") {
-        Marco(Seccion.AGENDA, BotonFlotante(Icons.Rounded.Add, "Nuevo aviso") {}) {
-            AgendaPantalla(avisos, tecnicos, Ajustes(), ahora, AccionesAgenda())
+        Marco(Seccion.AGENDA) {
+            AgendaPantalla(avisos, tecnicos, Ajustes(), ahora, AccionesAgenda(), correo = true)
         }
     }
 
     @Test
     fun agendaBuscando() = foto("2-agenda-buscando") {
-        Marco(Seccion.AGENDA, BotonFlotante(Icons.Rounded.Add, "Nuevo aviso") {}) {
+        Marco(Seccion.AGENDA) {
             AgendaPantalla(avisos, tecnicos, Ajustes(), ahora, AccionesAgenda(), Reglas.Filtro(texto = "alarma"))
         }
     }
@@ -186,30 +188,36 @@ class CapturasTest {
             Aviso(id = "nuevo", titulo = "Central de alarma no comunica", fecha = ahora.toLocalDate().toString(), hora = "17:00",
                 asignadoA = Tecnico.YO, prioridad = "urgente", cliente = conocido.cliente),
             esNuevo = true, tecnicos = tecnicos, clientes = Reglas.clientesConocidos(avisos), hoy = ahora.toLocalDate(),
-            alGuardar = {}, alCerrar = {}
+            alGuardar = {}, alCerrar = {}, ref = "AV-0009"
         )
     }
 
     @Test
     fun hechos() = foto("6-hechos") {
-        Marco(Seccion.HECHOS, null) { HechosPantalla(avisos, tecnicos, ahora) {} }
+        Marco(Seccion.HECHOS) { HechosPantalla(avisos, tecnicos, ahora) {} }
     }
 
     @Test
     fun equipo() = foto("7-equipo") {
-        Marco(Seccion.EQUIPO, BotonFlotante(Icons.Rounded.PersonAdd, "Añadir técnico") {}) {
+        Marco(Seccion.EQUIPO) {
             EquipoPantalla(avisos, tecnicos, ahora, {}, {}, { _, _, _ -> }, {}, false, {})
         }
     }
 
     @Test
     fun ajustes() = foto("8-ajustes") {
-        Marco(Seccion.AJUSTES, null) { AjustesPantalla(Ajustes(), avisos, null, AccionesAjustes()) }
+        Marco(Seccion.AJUSTES) {
+            val instante = ahora.atZone(ZoneId.systemDefault()).toInstant()
+            AjustesPantalla(
+                Ajustes(), avisos, EstadoBuzon(true, "avisos@empresa.es", imap = true, activo = true, ultima = instante.minusSeconds(180).toString()),
+                AccionesAjustes(), instante
+            )
+        }
     }
 
     @Test
     fun agendaVacia() = foto("9-agenda-vacia") {
-        Marco(Seccion.AGENDA, BotonFlotante(Icons.Rounded.Add, "Nuevo aviso") {}) {
+        Marco(Seccion.AGENDA) {
             AgendaPantalla(emptyList(), tecnicos, Ajustes(), ahora, AccionesAgenda())
         }
     }

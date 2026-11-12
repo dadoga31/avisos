@@ -165,4 +165,85 @@ class ReglasTest {
         )
         assertEquals("Ahora · Naves Logísticas Sur", Reglas.textoRecordatorio(a, java.time.Instant.parse("2026-11-12T11:05:00Z"), z).first)
     }
+
+    // ---------- línea de tiempo y panel de Hechos (3.5.0) ----------
+
+    private fun utc(h: Int, m: Int, dia: LocalDate = hoy) = dia.atTime(h, m).toInstant(ZoneOffset.UTC).toString()
+
+    @Test
+    fun `la linea del dia pone cada aviso en su hora y deja fuera lo cancelado`() {
+        val lista = listOf(
+            av("once", "2026-11-12", "11:30").copy(duracion = "1,5"),
+            av("curso", "2026-11-12", "09:00", estado = Estado.EN_CURSO).copy(duracion = "2"),
+            av("hecho", "2026-11-12", "08:00", estado = Estado.RESUELTO, cerrado = utc(8, 42)).copy(horas = 0.5),
+            av("cancelado", "2026-11-12", "10:00", estado = Estado.CANCELADO),
+            av("sinhora", "2026-11-12"),
+            av("manana", "2026-11-13", "09:00")
+        )
+        val l = Reglas.linea(lista, hoy, LocalTime.of(9, 41), ZoneOffset.UTC)
+        assertEquals(listOf("hecho", "curso", "once"), l.map { it.aviso.id })
+        assertEquals(11 * 60 + 30, l[2].inicio)
+        assertEquals(13 * 60, l[2].fin)
+        assertTrue(l[0].hecho)
+        assertEquals(listOf("sinhora"), Reglas.sinHora(lista, hoy, ZoneOffset.UTC).map { it.id })
+        assertEquals(listOf("manana"), Reglas.proximos(lista, hoy).map { it.id })
+    }
+
+    @Test
+    fun `lo que esta en curso llega hasta ahora y sin hora va desde que se empezo`() {
+        val largo = av("largo", "2026-11-12", "08:00", estado = Estado.EN_CURSO)
+        assertEquals(12 * 60 + 10, Reglas.linea(listOf(largo), hoy, LocalTime.of(12, 10), ZoneOffset.UTC).single().fin)
+        val sinHora = av("sh", "2026-11-12", estado = Estado.EN_CURSO).copy(empezado = utc(10, 5))
+        val b = Reglas.linea(listOf(sinHora), hoy, null, ZoneOffset.UTC).single()
+        assertEquals(10 * 60 + 5, b.inicio)
+        assertTrue(Reglas.sinHora(listOf(sinHora), hoy, ZoneOffset.UTC).isEmpty())
+    }
+
+    @Test
+    fun `lo cerrado hoy de otro dia sale en la linea de hoy acabando a su hora`() {
+        val viejo = av("v", "2026-11-06", "10:00", estado = Estado.RESUELTO, cerrado = utc(12, 0)).copy(horas = 2.0)
+        val b = Reglas.linea(listOf(viejo), hoy, null, ZoneOffset.UTC).single()
+        assertEquals(10 * 60, b.inicio)
+        assertEquals(12 * 60, b.fin)
+    }
+
+    @Test
+    fun `los que se pisan van en columnas`() {
+        fun b(id: String, ini: Int, fin: Int) = Reglas.Bloque(av(id), ini, fin, false)
+        val c = Reglas.carriles(listOf(b("a", 540, 600), b("b", 570, 630), b("c", 700, 760)))
+        assertEquals(listOf(0 to 2, 1 to 2, 0 to 1), c.map { it.columna to it.columnas })
+    }
+
+    @Test
+    fun `sin fecha va en su bandeja, lo urgente primero`() {
+        val lista = listOf(av("n"), av("u", prioridad = Prioridad.URGENTE), av("f", "2026-11-12"), av("c", estado = Estado.RESUELTO))
+        assertEquals(listOf("u", "n"), Reglas.sinFecha(lista).map { it.id })
+    }
+
+    @Test
+    fun `panel de hechos suma horas por dia y compara con la semana anterior`() {
+        val lista = listOf(
+            av("hoy", estado = Estado.RESUELTO, cerrado = utc(10, 0)).copy(horas = 4.0),
+            av("lunes", estado = Estado.RESUELTO, cerrado = utc(10, 0, hoy.minusDays(3))).copy(horas = 3.5),
+            av("antes", estado = Estado.RESUELTO, cerrado = utc(10, 0, hoy.minusDays(9))).copy(horas = 5.0),
+            av("cancel", estado = Estado.CANCELADO, cerrado = utc(9, 0)),
+            av("abierto", "2026-11-12")
+        )
+        val p = Reglas.panel(lista, Reglas.Periodo.SEMANA, hoy, ZoneOffset.UTC)
+        assertEquals(7.5, p.horas, 0.0)
+        assertEquals(5.0, p.horasAntes, 0.0)
+        assertEquals(2, p.resueltos)
+        assertEquals(1, p.cancelados)
+        assertEquals(listOf("V", "S", "D", "L", "M", "X", "J"), p.barras.map { it.etiqueta })
+        assertEquals(4.0, p.barras.last().horas, 0.0)
+        assertTrue(p.barras.last().actual)
+        assertEquals(3.5, p.barras[3].horas, 0.0)
+        assertEquals(12, Reglas.panel(lista, Reglas.Periodo.ANO, hoy, ZoneOffset.UTC).barras.size)
+    }
+
+    @Test
+    fun `duracion prevista con coma y por defecto una hora`() {
+        assertEquals(90, Reglas.duracionMin(av("a").copy(duracion = "1,5")))
+        assertEquals(60, Reglas.duracionMin(av("a")))
+    }
 }

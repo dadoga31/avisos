@@ -4,6 +4,10 @@ Referencia para reescribir la app en Kotlin + Jetpack Compose + Material 3.
 Esto **no** es código de la app: son maquetas en HTML que imitan Material 3,
 y el icono. Las capturas están en `capturas/`.
 
+> Desde la 3.5.0 la interfaz es la del concepto «tech minimal» (línea de
+> tiempo en la Agenda, ficha como hoja de misión, dock de iconos). Lo vigente
+> está en `capturas-app/` y en el `CLAUDE.md`.
+>
 > Desde la 3.4.0 la paleta es la del usuario (Off-White #F9F9F9, Matte Black
 > #28282B, Red Orange #FF4200) con estilo minimalista y «tech». Las capturas de
 > la app de verdad están en `capturas-app/` y mandan sobre las maquetas de

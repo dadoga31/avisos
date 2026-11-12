@@ -67,7 +67,6 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
     val contexto = LocalContext.current
     val entrada by nav.currentBackStackEntryAsState()
     val seccion = Seccion.de(entrada?.destination?.route)
-    var nuevoTecnico by remember { mutableStateOf(false) }
     val hoy = ahora.toLocalDate()
 
     fun irASeccion(s: Seccion) = nav.navigate(s.ruta) {
@@ -99,15 +98,17 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
         }
     }
 
+    /* Cómo va el buzón, para el punto de la Agenda: se mira al minuto. */
+    val correo by produceState<Boolean?>(null, ahora) {
+        value = withContext(Dispatchers.IO) {
+            runCatching { leerEstado(contexto) }.getOrNull()?.takeIf { it.configurada }?.let { it.error.isEmpty() }
+        }
+    }
+
     MarcoSeccion(
         actual = seccion ?: Seccion.AGENDA,
         alIr = ::irASeccion,
-        avisoAgenda = Reglas.resumen(avisos, hoy).vencidos,
-        boton = when (seccion) {
-            Seccion.AGENDA -> BotonFlotante(Icons.Rounded.Add, "Nuevo aviso") { nav.navigate("nuevo") }
-            Seccion.EQUIPO -> BotonFlotante(Icons.Rounded.PersonAdd, "Añadir técnico") { nuevoTecnico = true }
-            else -> null
-        },
+        alNuevo = { nav.navigate("nuevo") },
         snackbar = snackbar,
         mostrarMenu = seccion != null
     ) {
@@ -131,8 +132,10 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                         llamar = { llamar(contexto, it) },
                         irA = { mapa(contexto, it) },
                         ejemplo = { vm.datosDeEjemplo() },
-                        ocultarPista = { vm.cambiarAjustes { it.copy(pistaGestos = false) } }
-                    )
+                        ocultarPista = { vm.cambiarAjustes { it.copy(pistaGestos = false) } },
+                        correo = { nav.navigate("correo") }
+                    ),
+                    correo = correo
                 )
             }
             destino("hechos") { HechosPantalla(avisos, tecnicos, ahora) { nav.navigate("aviso/$it") } }
@@ -142,12 +145,11 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                     alAbrir = { nav.navigate("aviso/$it") },
                     alLlamar = { llamar(contexto, it) },
                     alGuardar = { n, t, id -> vm.guardarTecnico(n, t, id) },
-                    alBorrar = { vm.borrarTecnico(it) },
-                    nuevoAbierto = nuevoTecnico, alCerrarNuevo = { nuevoTecnico = false }
+                    alBorrar = { vm.borrarTecnico(it) }
                 )
             }
             destino("ajustes") {
-                val correo by produceState<String?>(null) { value = withContext(Dispatchers.IO) { estadoCorreo(contexto) } }
+                val buzon by produceState<EstadoBuzon?>(null) { value = withContext(Dispatchers.IO) { runCatching { leerEstado(contexto) }.getOrNull() } }
                 val guardar = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
                     uri?.let { vm.exportar(it) }
                 }
@@ -155,7 +157,7 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                     uri?.let { vm.importar(it) }
                 }
                 AjustesPantalla(
-                    ajustes, avisos, correo,
+                    ajustes, avisos, buzon,
                     AccionesAjustes(
                         cambiar = { vm.cambiarAjustes(it) },
                         abrirCorreo = { nav.navigate("correo") },
@@ -224,6 +226,7 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                 val inicial = remember { vm.nuevo() }
                 FormularioPantalla(
                     inicial, esNuevo = true, tecnicos = tecnicos, clientes = Reglas.clientesConocidos(avisos), hoy = hoy,
+                    ref = remember { Reglas.siguienteRef(ajustes.prefijoRef, ajustes.contadorRef, avisos).first },
                     alGuardar = { a ->
                         vm.guardar(a) { g ->
                             nav.popBackStack()
@@ -269,13 +272,6 @@ private fun NavGraphBuilder.destino(
     val inicio = remember { System.currentTimeMillis() }
     CompositionLocalProvider(LocalAnimado provides this, LocalInicioPantalla provides inicio) { contenido(e) }
 }
-
-/** Una línea para Ajustes: la cuenta y cómo va. */
-private fun estadoCorreo(contexto: Context): String? = runCatching {
-    val e = leerEstado(contexto)
-    if (!e.configurada) return null
-    e.usuario + " · " + e.error.ifEmpty { if (e.activo) "escuchando" else "conectando" }
-}.getOrNull()
 
 /** Abre un adjunto con la app que el usuario tenga para ese tipo (visor de PDF, galería…). */
 fun abrirAdjunto(contexto: Context, adj: io.github.dadoga31.avisos.datos.Adjunto) {

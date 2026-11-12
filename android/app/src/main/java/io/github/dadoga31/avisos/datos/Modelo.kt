@@ -125,7 +125,8 @@ data class Tecnico(
         get() {
             val p = nombre.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
             if (p.isEmpty()) return "?"
-            return (p.first().take(1) + if (p.size > 1) p.last().take(1) else "").uppercase()
+            /* Dos letras siempre: «Laura Pinto» → LP, «Yo» → YO. */
+            return (if (p.size > 1) p.first().take(1) + p.last().take(1) else p.first().take(2)).uppercase()
         }
 
     companion object {

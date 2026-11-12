@@ -127,6 +127,9 @@ val Tipografia = Typography(
 /** Etiqueta técnica en mayúsculas («SIGUIENTE · 11:00», cabeceras de sección). */
 val EstiloEtiqueta = TextStyle(fontFamily = Mono, fontSize = 11.sp, lineHeight = 14.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.2.sp)
 
+/** Etiqueta pequeña de las rejillas y datos (10,5 sp). */
+val EstiloDato = TextStyle(fontFamily = Mono, fontSize = 10.5.sp, lineHeight = 14.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.4.sp)
+
 /** Cifras y referencias en las filas. */
 val EstiloMono = TextStyle(fontFamily = Mono, fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium)
 
@@ -164,7 +167,15 @@ data class Superficies(
     val sobreHeroeSuave: Color,
     /** Naranja para texto pequeño (el puro no llega al contraste mínimo). */
     val acentoTexto: Color,
-    val oscuro: Boolean
+    val oscuro: Boolean,
+    /** Puntos de la rejilla del fondo. */
+    val rejilla: Color = Color.Transparent,
+    /** Velo naranja de lo que está en curso. */
+    val tinte: Color = Color.Transparent,
+    /** Lo que va bien (correo escuchando, hecho). */
+    val ok: Color = Color(0xFF1F9D55),
+    /** Tercer nivel de texto: horas de la rejilla, iconos apagados. */
+    val tenue: Color = Color(0xFFA3A3AA)
 )
 
 @Immutable
@@ -196,13 +207,15 @@ private val EstadosOscuro = mapOf(
 private val SuperficiesClaro = Superficies(
     pagina = OffWhite, item = Color.White, flotante = Color.White.copy(alpha = 0.78f), borde = Color(0xFFE6E6E9),
     heroe = MatteBlack, sobreHeroe = OffWhite, sobreHeroeSuave = Color(0xFFA6A6AD),
-    acentoTexto = Color(0xFFD63800), oscuro = false
+    acentoTexto = Color(0xFFD63800), oscuro = false,
+    rejilla = MatteBlack.copy(alpha = 0.10f), tinte = RedOrange.copy(alpha = 0.06f), ok = Color(0xFF1F9D55), tenue = Color(0xFFA3A3AA)
 )
 
 private val SuperficiesOscuro = Superficies(
     pagina = MatteBlack, item = Color(0xFF313135), flotante = Color(0xFF1E1E21).copy(alpha = 0.72f), borde = Color(0xFF3D3D42),
     heroe = Color(0xFF1C1C1F), sobreHeroe = OffWhite, sobreHeroeSuave = Color(0xFFA6A6AD),
-    acentoTexto = Color(0xFFFF7A45), oscuro = true
+    acentoTexto = Color(0xFFFF7A45), oscuro = true,
+    rejilla = OffWhite.copy(alpha = 0.07f), tinte = RedOrange.copy(alpha = 0.10f), ok = Color(0xFF3DDC84), tenue = Color(0xFF6E6E75)
 )
 
 val LocalColores = staticCompositionLocalOf { ColoresAvisos(EstadosClaro, SuperficiesClaro) }

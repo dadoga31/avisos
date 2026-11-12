@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -257,24 +258,37 @@ fun Avatar(tecnico: Tecnico?, tam: Int = 28) {
 /** URGENTE en naranja relleno; ALTA con línea. El resto no lleva marca. */
 @Composable
 fun EtiquetaPrioridad(p: Prioridad) {
-    val forma = RoundedCornerShape(6.dp)
+    val forma = RoundedCornerShape(5.dp)
     when (p) {
         Prioridad.URGENTE -> Text(
-            "URGENTE", Modifier.clip(forma).background(MaterialTheme.colorScheme.primary).padding(horizontal = 6.dp, vertical = 1.dp),
-            style = EstiloEtiqueta.copy(fontSize = 10.sp, letterSpacing = 0.8.sp), color = MaterialTheme.colorScheme.onPrimary
+            "URGENTE", Modifier.clip(forma).background(RedOrange).padding(horizontal = 6.dp, vertical = 2.dp),
+            style = EstiloDato.copy(fontSize = 9.5.sp, lineHeight = 12.sp, fontWeight = FontWeight.SemiBold), color = Color(0xFF141416)
         )
         Prioridad.ALTA -> Text(
-            "ALTA", Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, forma).padding(horizontal = 6.dp, vertical = 1.dp),
-            style = EstiloEtiqueta.copy(fontSize = 10.sp, letterSpacing = 0.8.sp), color = MaterialTheme.colorScheme.tertiary
+            "ALTA", Modifier.border(1.dp, LocalColores.current.de(Estado.EN_ESPERA).color, forma).padding(horizontal = 6.dp, vertical = 2.dp),
+            style = EstiloDato.copy(fontSize = 9.5.sp, lineHeight = 12.sp, fontWeight = FontWeight.SemiBold), color = LocalColores.current.de(Estado.EN_ESPERA).texto
         )
         else -> Unit
     }
 }
 
+/** Color de la barra lateral de un aviso: naranja lo que está en marcha o vencido. */
+@Composable
+fun colorBarra(a: Aviso, vencido: Boolean): Color {
+    val c = LocalColores.current
+    return when {
+        a.estadoE == Estado.EN_CURSO || vencido -> RedOrange
+        a.estadoE == Estado.PROGRAMADO -> MaterialTheme.colorScheme.onSurface
+        a.estadoE == Estado.EN_ESPERA -> c.de(Estado.EN_ESPERA).color
+        a.estadoE == Estado.RESUELTO -> c.superficies.ok
+        else -> c.superficies.tenue
+    }
+}
+
 /**
- * Fila de aviso en tres líneas: título y hora; cliente, tipo y sistema;
- * estado, referencia y prioridad. A la derecha, la hora y el técnico.
- * El título es el que viaja hasta la ficha al abrirla.
+ * Fila de aviso: barra de color a la izquierda; estado, prioridad y título;
+ * cliente y referencia en mono. A la derecha, cuándo y el técnico. El título
+ * es el que viaja hasta la ficha al abrirla.
  */
 @Composable
 fun FilaAviso(
@@ -288,49 +302,46 @@ fun FilaAviso(
     alPulsar: () -> Unit
 ) {
     val e = aviso.estadoE
-    val c = LocalColores.current.de(e)
+    val c = LocalColores.current
     val i = remember { MutableInteractionSource() }
     val cerrado = !aviso.abierto
     Row(
         modifier
             .fillMaxWidth()
+            .height(androidx.compose.foundation.layout.IntrinsicSize.Min)
             .presionable(i)
             .tarjeta(forma)
             .clickable(i, LocalIndication.current, onClick = alPulsar)
-            .padding(start = 14.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        CirculoEstado(e)
-        Column(Modifier.weight(1f)) {
+        Box(Modifier.width(4.dp).fillMaxHeight().background(colorBarra(aviso, alerta)))
+        Column(Modifier.weight(1f).padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = 8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (e == Estado.EN_CURSO) PuntoVivo(RedOrange, vivo = true, tam = 6.dp)
+                Text(
+                    (textoEstado ?: if (alerta) "Vencido" else e.nombre).uppercase(), style = EstiloDato,
+                    color = if (alerta) c.superficies.acentoTexto else c.de(e).texto, maxLines = 1
+                )
+                EtiquetaPrioridad(aviso.prioridadE)
+            }
             Text(
-                aviso.titulo.ifBlank { "(sin título)" }, Modifier.compartido("titulo-${aviso.id}"),
+                aviso.titulo.ifBlank { "(sin título)" }, Modifier.padding(top = 5.dp).compartido("titulo-${aviso.id}"),
                 style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis,
                 textDecoration = if (e == Estado.CANCELADO) TextDecoration.LineThrough else null,
                 color = if (cerrado) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
             )
-            val linea2 = listOf(aviso.cliente.nombre, aviso.tipoE.nombre, aviso.sistemaE.nombre).filter { it.isNotBlank() }
             Text(
-                linea2.joinToString(" · "), Modifier.padding(top = 2.dp), style = MaterialTheme.typography.bodyMedium,
+                listOf(aviso.cliente.nombre, aviso.ref).filter { it.isNotBlank() }.joinToString(" · ").uppercase(),
+                Modifier.padding(top = 4.dp), style = EstiloDato.copy(fontSize = 10.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis
             )
-            Row(
-                Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text((textoEstado ?: e.nombre).uppercase(), color = c.texto, style = EstiloEtiqueta)
-                if (aviso.ref.isNotEmpty()) {
-                    Text(aviso.ref, color = MaterialTheme.colorScheme.onSurfaceVariant, style = EstiloEtiqueta)
-                }
-                EtiquetaPrioridad(aviso.prioridadE)
-            }
         }
-        Column(horizontalAlignment = Alignment.End) {
+        Column(Modifier.padding(top = 12.dp, bottom = 12.dp, end = 14.dp), horizontalAlignment = Alignment.End) {
             Text(
-                cuando, style = EstiloMono.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
-                color = if (alerta) LocalColores.current.superficies.acentoTexto else MaterialTheme.colorScheme.onSurface
+                cuando, style = EstiloMono.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
+                color = if (alerta) c.superficies.acentoTexto else MaterialTheme.colorScheme.onSurface
             )
-            Spacer(Modifier.height(16.dp))
-            Avatar(tecnico)
+            Spacer(Modifier.weight(1f))
+            Avatar(tecnico, 26)
         }
     }
 }

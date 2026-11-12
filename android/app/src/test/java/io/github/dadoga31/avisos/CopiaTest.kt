@@ -82,7 +82,7 @@ class CopiaTest {
         val (destino, dbDestino) = movil("destino")
         destino.asegurarYo()
         val r = destino.importar(CopiaSeguridad.leer(json))
-        assertEquals(6, r.avisos)
+        assertEquals(7, r.avisos)
         val antes = dbOrigen.dao().todosAhora().sortedBy { it.id }
         val despues = dbDestino.dao().todosAhora().sortedBy { it.id }
         /* Igual salvo la ruta del fichero, que ahora está en otra carpeta. */
