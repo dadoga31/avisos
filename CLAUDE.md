@@ -4,7 +4,19 @@ Lo que una sesión nueva necesita saber antes de tocar nada. El funcionamiento
 para el usuario está en el `README.md`; esto es cómo se trabaja en el código.
 
 Habla en español. La app la usa un instalador de sistemas de seguridad en su
-iPhone, instalada desde Safari en la pantalla de inicio.
+móvil **Android**, instalada con la APK de este repo.
+
+## Rumbo: app nativa de Android (decidido en noviembre de 2026)
+
+- El iPhone se ha dejado. No hay que mantener la PWA de Safari ni nada de iOS.
+- La app tiene que ser **nativa**: Kotlin + Jetpack Compose + Material 3, no
+  una web dentro de un WebView. Se reescribe la interfaz y los datos; el
+  servicio de correo, el widget y las notificaciones (Java en `android/`) se
+  aprovechan.
+- Los avisos de la APK web actual no se migran: el usuario acepta perderlos.
+- Mientras dure la reescritura, lo que se cuenta abajo sobre la web y el diseño
+  de iPhone describe el código que hay, no el que se quiere. No añadas nada
+  nuevo de iOS (Liquid Glass, Atajos, barra de estado de Safari, etc.).
 
 ## Rama y despliegue
 
