@@ -1,0 +1,16 @@
+{
+  "name": "avisos-diseno",
+  "private": true,
+  "description": "Maquetas e icono de la app nativa de Android (Material 3). No es código de la app.",
+  "scripts": {
+    "tokens": "esbuild tokens2.mjs --bundle --platform=node --format=esm --outfile=tokens2.bundle.mjs --log-level=warning && node tokens2.bundle.mjs > tokens2.css",
+    "maquetas": "node maquetas.js png",
+    "icono": "node icono.js icono"
+  },
+  "dependencies": {
+    "@fontsource/roboto": "^5.3.0",
+    "@material/material-color-utilities": "^0.4.0",
+    "esbuild": "^0.28.2",
+    "material-symbols": "^0.49.0"
+  }
+}

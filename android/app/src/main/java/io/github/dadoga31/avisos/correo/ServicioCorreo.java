@@ -229,6 +229,7 @@ public class ServicioCorreo extends Service {
                 .setContentTitle(getString(R.string.app_name))
                 .setContentText(texto)
                 .setSmallIcon(R.drawable.ic_notificacion)
+                .setColor(getColor(R.color.acento))
                 .setOngoing(true)
                 .setShowWhen(false)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -259,6 +260,7 @@ public class ServicioCorreo extends Service {
                 .setContentTitle(getString(R.string.app_name))
                 .setContentText(texto)
                 .setSmallIcon(R.drawable.ic_notificacion)
+                .setColor(getColor(R.color.acento))
                 .setAutoCancel(true)
                 .setContentIntent(abrirApp("#/agenda"))
                 .build();
