@@ -18,7 +18,7 @@ class AvisosApp : Application() {
     override fun onCreate() {
         super.onCreate()
         ajustes = AlmacenAjustes(this)
-        repositorio = Repositorio(BaseDatos.de(this).dao(), ajustes, alCambiar = { publicarResumen(this, it) })
+        repositorio = Repositorio(BaseDatos.de(this).dao(), ajustes, carpeta = filesDir, alCambiar = { publicarResumen(this, it) })
     }
 
     companion object {

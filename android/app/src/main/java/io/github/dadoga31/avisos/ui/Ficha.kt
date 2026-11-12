@@ -26,7 +26,11 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Chat
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AddCircle
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Apartment
+import androidx.compose.material.icons.rounded.AttachFile
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.PictureAsPdf
 import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.Check
@@ -97,7 +101,8 @@ class AccionesFicha(
     val borrar: () -> Unit = {},
     val llamar: (String) -> Unit = {},
     val whatsapp: (String) -> Unit = {},
-    val irA: (String) -> Unit = {}
+    val irA: (String) -> Unit = {},
+    val abrirAdjunto: (io.github.dadoga31.avisos.datos.Adjunto) -> Unit = {}
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -245,6 +250,25 @@ fun FichaPantalla(
                 Grupo(listOf { f -> FilaSimple(f, Icons.AutoMirrored.Rounded.Notes, aviso.descripcion) })
             }
 
+            if (aviso.adjuntos.isNotEmpty()) {
+                CabeceraSeccion("Adjuntos", extra = "${aviso.adjuntos.size}")
+                Grupo(
+                    aviso.adjuntos.map<io.github.dadoga31.avisos.datos.Adjunto, @Composable (androidx.compose.ui.graphics.Shape) -> Unit> { adj ->
+                        { f ->
+                            FilaSimple(
+                                f,
+                                when {
+                                    adj.esImagen -> Icons.Rounded.Image
+                                    adj.esPdf -> Icons.Rounded.PictureAsPdf
+                                    else -> Icons.Rounded.AttachFile
+                                },
+                                adj.nombre, tamano(adj.tam), alPulsar = { acciones.abrirAdjunto(adj) }
+                            ) { Icon(Icons.AutoMirrored.Rounded.OpenInNew, "Abrir", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        }
+                    }
+                )
+            }
+
             CabeceraSeccion("Notas")
             Grupo(
                 aviso.notas.map<io.github.dadoga31.avisos.datos.Nota, @Composable (androidx.compose.ui.graphics.Shape) -> Unit> { n ->
@@ -318,6 +342,12 @@ private fun Etiqueta(texto: String, icono: androidx.compose.ui.graphics.vector.I
         onClick = {}, label = { Text(texto) },
         leadingIcon = { Icon(icono, null, Modifier.size(AssistChipDefaults.IconSize)) }
     )
+}
+
+private fun tamano(b: Long): String = when {
+    b >= 1_048_576 -> String.format(java.util.Locale("es", "ES"), "%.1f MB", b / 1_048_576.0)
+    b >= 1024 -> "${b / 1024} KB"
+    else -> "$b bytes"
 }
 
 private fun momento(ts: String, hoy: LocalDate): String = runCatching {

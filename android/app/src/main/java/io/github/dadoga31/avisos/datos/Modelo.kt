@@ -1,5 +1,6 @@
 package io.github.dadoga31.avisos.datos
 
+import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -65,6 +66,12 @@ data class Cliente(
 
 data class Nota(val id: String, val ts: String, val texto: String)
 
+/** Fichero guardado con el aviso (de momento, los adjuntos del correo). [ruta] es relativa a filesDir. */
+data class Adjunto(val id: String, val nombre: String, val mime: String, val tam: Long, val ruta: String) {
+    val esImagen get() = mime.startsWith("image/")
+    val esPdf get() = mime == "application/pdf" || nombre.endsWith(".pdf", ignoreCase = true)
+}
+
 @Entity(tableName = "avisos")
 data class Aviso(
     @PrimaryKey val id: String,
@@ -89,6 +96,7 @@ data class Aviso(
     val asignadoA: String = "",
     val descripcion: String = "",
     val notas: List<Nota> = emptyList(),
+    @ColumnInfo(defaultValue = "[]") val adjuntos: List<Adjunto> = emptyList(),
     /** Horas trabajadas en total. */
     val horas: Double = 0.0,
     val creado: String = "",

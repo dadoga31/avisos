@@ -22,7 +22,9 @@ data class Ajustes(
     /** Minutos de antelación del recordatorio; 0 = sin recordatorio. */
     val recordatorio: Int = 20,
     /** Enseñar la pista de deslizar en la Agenda hasta que se use. */
-    val pistaGestos: Boolean = true
+    val pistaGestos: Boolean = true,
+    /** Remitentes cuyos correos no crean avisos: dirección exacta o «@dominio». */
+    val correoIgnorados: List<String> = emptyList()
 )
 
 /** Ajustes en SharedPreferences, con un flujo para que la interfaz se entere. */
@@ -38,7 +40,8 @@ class AlmacenAjustes(contexto: Context) {
         prefijoRef = prefs.getString("prefijoRef", "AV") ?: "AV",
         contadorRef = prefs.getInt("contadorRef", 0),
         recordatorio = prefs.getInt("recordatorio", 20),
-        pistaGestos = prefs.getBoolean("pistaGestos", true)
+        pistaGestos = prefs.getBoolean("pistaGestos", true),
+        correoIgnorados = prefs.getString("correoIgnorados", "")!!.split('\n').filter { it.isNotBlank() }
     )
 
     @Synchronized
@@ -51,6 +54,7 @@ class AlmacenAjustes(contexto: Context) {
             .putInt("contadorRef", n.contadorRef)
             .putInt("recordatorio", n.recordatorio)
             .putBoolean("pistaGestos", n.pistaGestos)
+            .putString("correoIgnorados", n.correoIgnorados.joinToString("\n"))
             .apply()
         estado.value = n
     }

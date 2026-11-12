@@ -39,7 +39,14 @@ import io.github.dadoga31.avisos.datos.Reglas
 import io.github.dadoga31.avisos.datos.Repositorio
 import io.github.dadoga31.avisos.datos.Tecnico
 import io.github.dadoga31.avisos.datos.Tema
+import io.github.dadoga31.avisos.correo.ConversorCorreo
+import io.github.dadoga31.avisos.correo.MensajeCorreo
+import io.github.dadoga31.avisos.datos.Adjunto
 import io.github.dadoga31.avisos.ui.AccionesAgenda
+import io.github.dadoga31.avisos.ui.AccionesCorreo
+import io.github.dadoga31.avisos.ui.CorreoPantalla
+import io.github.dadoga31.avisos.ui.EstadoBuzon
+import io.github.dadoga31.avisos.ui.FormCuenta
 import io.github.dadoga31.avisos.ui.AccionesAjustes
 import io.github.dadoga31.avisos.ui.AccionesFicha
 import io.github.dadoga31.avisos.ui.AgendaPantalla
@@ -200,5 +207,33 @@ class CapturasTest {
         Marco(Seccion.AGENDA, BotonFlotante(Icons.Rounded.Add, "Nuevo aviso") {}) {
             AgendaPantalla(emptyList(), tecnicos, Ajustes(), ahora, AccionesAgenda())
         }
+    }
+
+    @Test
+    fun correo() = foto("10-correo") {
+        val instante = ahora.atZone(ZoneId.systemDefault()).toInstant()
+        CorreoPantalla(
+            EstadoBuzon(true, "avisos@empresa.es", imap = true, activo = true, ultima = instante.minusSeconds(180).toString()),
+            FormCuenta("avisos@empresa.es", "", "imap.empresa.es"), listOf("@boletines.es", "no-responder@banco.es"),
+            AccionesCorreo(), instante
+        )
+    }
+
+    @Test
+    fun fichaDeCorreo() = foto("11-ficha-correo") {
+        val m = MensajeCorreo(
+            uid = "9", messageId = "<9@naves>", de = "pedro@naves.es", deNombre = "Naves Logísticas Sur",
+            asunto = "URGENTE: alarma sin cobertura en nave 3", fecha = "2026-11-12T07:50:00Z",
+            texto = "Buenos días,\nLa central no comunica con la CRA desde anoche y la nave está sin cobertura.\n" +
+                "Llamad a Pedro al 600 11 22 33.\n\nGracias"
+        )
+        val a = ConversorCorreo.aAviso(m, "c1", ahora.toLocalDate()).copy(
+            ref = "AV-0008",
+            adjuntos = listOf(
+                Adjunto("f1", "parte-incidencia.pdf", "application/pdf", 182_000, "x"),
+                Adjunto("f2", "foto-central.jpg", "image/jpeg", 1_450_000, "y")
+            )
+        )
+        FichaPantalla(a, tecnicos, ahora, AccionesFicha())
     }
 }

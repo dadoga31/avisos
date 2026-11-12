@@ -8,7 +8,11 @@ import io.github.dadoga31.avisos.datos.Ajustes
 import io.github.dadoga31.avisos.datos.Aviso
 import io.github.dadoga31.avisos.datos.Estado
 import io.github.dadoga31.avisos.datos.Tecnico
+import io.github.dadoga31.avisos.correo.AlmacenCorreo
+import io.github.dadoga31.avisos.correo.ProcesadorCorreo
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -43,11 +47,24 @@ class AvisosVM(app: Application) : AndroidViewModel(app) {
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, LocalDateTime.now())
 
+    /** Avisos de abajo que no vienen de un gesto («2 avisos nuevos desde el correo»). */
+    val mensajes = MutableSharedFlow<String>(extraBufferCapacity = 4)
+
     init {
         viewModelScope.launch {
             repo.asegurarYo()
             repo.avisarCambio()
         }
+        procesarCorreo()
+    }
+
+    /** Convierte los correos que esperan (al abrir la app y al volver a ella). */
+    fun procesarCorreo() = viewModelScope.launch(Dispatchers.IO) {
+        val r = runCatching {
+            ProcesadorCorreo.procesar(avisosApp, repo, AlmacenCorreo(avisosApp), almacen.actual.correoIgnorados)
+        }.getOrNull() ?: return@launch
+        val n = r.creados.size
+        if (n > 0) mensajes.tryEmit(if (n == 1) "1 aviso nuevo desde el correo" else "$n avisos nuevos desde el correo")
     }
 
     fun nuevo(): Aviso = repo.nuevo()

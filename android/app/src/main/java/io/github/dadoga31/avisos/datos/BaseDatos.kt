@@ -1,6 +1,7 @@
 package io.github.dadoga31.avisos.datos
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Delete
@@ -20,6 +21,25 @@ class Conversores {
         val a = JSONArray()
         notas.forEach { a.put(JSONObject().put("id", it.id).put("ts", it.ts).put("texto", it.texto)) }
         return a.toString()
+    }
+
+    @TypeConverter
+    fun adjuntosATexto(adjuntos: List<Adjunto>): String {
+        val a = JSONArray()
+        adjuntos.forEach {
+            a.put(JSONObject().put("id", it.id).put("nombre", it.nombre).put("mime", it.mime).put("tam", it.tam).put("ruta", it.ruta))
+        }
+        return a.toString()
+    }
+
+    @TypeConverter
+    fun textoAAdjuntos(texto: String?): List<Adjunto> {
+        if (texto.isNullOrBlank()) return emptyList()
+        val a = JSONArray(texto)
+        return (0 until a.length()).map {
+            val o = a.getJSONObject(it)
+            Adjunto(o.optString("id"), o.optString("nombre"), o.optString("mime"), o.optLong("tam"), o.optString("ruta"))
+        }
     }
 
     @TypeConverter
@@ -44,8 +64,8 @@ interface AvisosDao {
     @Query("SELECT * FROM avisos WHERE id = :id")
     suspend fun porId(id: String): Aviso?
 
-    @Query("SELECT COUNT(*) FROM avisos WHERE correoId = :correoId AND correoId != ''")
-    suspend fun cuantosConCorreo(correoId: String): Int
+    @Query("SELECT COUNT(*) FROM avisos WHERE correoId != '' AND correoId IN (:claves)")
+    suspend fun cuantosConCorreo(claves: List<String>): Int
 
     @Upsert
     suspend fun guardar(aviso: Aviso)
@@ -75,7 +95,11 @@ interface AvisosDao {
     suspend fun desasignar(id: String)
 }
 
-@Database(entities = [Aviso::class, Tecnico::class], version = 1, exportSchema = true)
+/* Versión 2 (3.1.0): adjuntos. Las migraciones conservan los avisos de quien ya tiene la app. */
+@Database(
+    entities = [Aviso::class, Tecnico::class], version = 2, exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2)]
+)
 @TypeConverters(Conversores::class)
 abstract class BaseDatos : RoomDatabase() {
     abstract fun dao(): AvisosDao

@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -29,12 +30,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import io.github.dadoga31.avisos.correo.AlmacenCorreo
-import io.github.dadoga31.avisos.correo.Cuenta
 import io.github.dadoga31.avisos.datos.Aviso
 import io.github.dadoga31.avisos.datos.Estado
 import io.github.dadoga31.avisos.datos.Reglas
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Rutas: agenda, hechos, equipo, ajustes (con menú) y aviso/{id}, nuevo, editar/{id}. */
 @Composable
@@ -63,10 +64,13 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
         when (rutaPedida) {
             null -> return@LaunchedEffect
             "nuevo" -> nav.navigate("nuevo")
-            else -> Seccion.de(rutaPedida)?.let { irASeccion(it) }
+            else -> if (rutaPedida.startsWith("aviso/")) nav.navigate(rutaPedida)
+            else Seccion.de(rutaPedida)?.let { irASeccion(it) }
         }
         alConsumirRuta()
     }
+
+    LaunchedEffect(Unit) { vm.mensajes.collect { snackbar.showSnackbar(it) } }
 
     /* Cambiar de estado siempre se puede deshacer. */
     fun cambiar(a: Aviso, e: Estado) {
@@ -121,11 +125,12 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                 )
             }
             composable("ajustes") {
-                val correo = remember { estadoCorreo(contexto) }
+                val correo by produceState<String?>(null) { value = withContext(Dispatchers.IO) { estadoCorreo(contexto) } }
                 AjustesPantalla(
                     ajustes, avisos, correo,
                     AccionesAjustes(
                         cambiar = { vm.cambiarAjustes(it) },
+                        abrirCorreo = { nav.navigate("correo") },
                         ejemplo = { vm.datosDeEjemplo(); irASeccion(Seccion.AGENDA) },
                         borrarTodo = { vm.borrarTodos() }
                     )
@@ -156,11 +161,13 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                             borrar = { nav.popBackStack(); vm.borrar(a.id) },
                             llamar = { llamar(contexto, it) },
                             whatsapp = { whatsapp(contexto, it) },
-                            irA = { mapa(contexto, it) }
+                            irA = { mapa(contexto, it) },
+                            abrirAdjunto = { abrirAdjunto(contexto, it) }
                         )
                     )
                 }
             }
+            composable("correo") { CorreoRuta(vm, ajustes.correoIgnorados) { nav.popBackStack() } }
             composable("nuevo") {
                 val inicial = remember { vm.nuevo() }
                 FormularioPantalla(
@@ -189,17 +196,24 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
     }
 }
 
-/** Lo que se sabe del buzón, mientras el paso correo → aviso llega a la app nativa. */
+/** Una línea para Ajustes: la cuenta y cómo va. */
 private fun estadoCorreo(contexto: Context): String? = runCatching {
-    val cuenta = Cuenta.cargar(contexto) ?: return null
-    if (!cuenta.valida()) return null
-    val n = AlmacenCorreo(contexto).cuantosPendientes()
-    cuenta.usuario + " · " + when (n) {
-        0 -> "sin correos pendientes"
-        1 -> "1 correo guardado para convertir"
-        else -> "$n correos guardados para convertir"
-    }
+    val e = leerEstado(contexto)
+    if (!e.configurada) return null
+    e.usuario + " · " + e.error.ifEmpty { if (e.activo) "escuchando" else "conectando" }
 }.getOrNull()
+
+/** Abre un adjunto con la app que el usuario tenga para ese tipo (visor de PDF, galería…). */
+fun abrirAdjunto(contexto: Context, adj: io.github.dadoga31.avisos.datos.Adjunto) {
+    val f = java.io.File(contexto.filesDir, adj.ruta)
+    if (!f.exists()) {
+        Toast.makeText(contexto, "El archivo ya no está en el móvil", Toast.LENGTH_SHORT).show()
+        return
+    }
+    val uri = androidx.core.content.FileProvider.getUriForFile(contexto, contexto.packageName + ".archivos", f)
+    val i = Intent(Intent.ACTION_VIEW).setDataAndType(uri, adj.mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    abrir(contexto, Intent.createChooser(i, adj.nombre).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION), "No hay ninguna app para abrir este archivo")
+}
 
 private fun abrir(contexto: Context, intent: Intent, error: String) {
     try {

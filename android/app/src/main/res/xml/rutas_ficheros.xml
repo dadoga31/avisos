@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <cache-path name="compartidos" path="compartidos/" />
+    <!-- Adjuntos de los avisos, para abrirlos con otra app (visor de PDF, galería). -->
+    <files-path name="adjuntos" path="adjuntos/" />
 </paths>

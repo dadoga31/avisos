@@ -3,6 +3,7 @@ package io.github.dadoga31.avisos.datos
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.io.File
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -16,6 +17,8 @@ class Repositorio(
     private val dao: AvisosDao,
     private val ajustes: AlmacenAjustes,
     private val reloj: Clock = Clock.systemDefaultZone(),
+    /** filesDir de la app: ahí van los adjuntos, en adjuntos/<id del aviso>/. */
+    private val carpeta: File? = null,
     /** Se llama tras cada cambio (para el widget). */
     private val alCambiar: suspend (List<Aviso>) -> Unit = {}
 ) {
@@ -69,13 +72,18 @@ class Repositorio(
 
     suspend fun borrar(id: String) {
         dao.porId(id)?.let { dao.borrar(it) }
+        carpeta?.let { File(it, "adjuntos/$id").deleteRecursively() }
         avisarCambio()
     }
 
     suspend fun borrarTodos() {
         dao.borrarTodos()
+        carpeta?.let { File(it, "adjuntos").deleteRecursively() }
         avisarCambio()
     }
+
+    /** ¿Ya hay un aviso hecho con este correo? */
+    suspend fun yaConvertido(claves: List<String>) = claves.isNotEmpty() && dao.cuantosConCorreo(claves) > 0
 
     suspend fun duplicar(id: String): Aviso? {
         val src = dao.porId(id) ?: return null
@@ -83,7 +91,7 @@ class Repositorio(
             src.copy(
                 id = nuevoId("av"), ref = "", estado = Estado.PENDIENTE.id, notas = emptyList(), horas = 0.0,
                 cerrado = "", empezado = "", creado = "", fecha = hoy().toString(), titulo = src.titulo + " (copia)",
-                correoId = "", origen = "manual"
+                correoId = "", origen = "manual", adjuntos = emptyList()
             )
         )
     }

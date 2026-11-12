@@ -276,6 +276,7 @@ fun EquipoPantalla(
 
 class AccionesAjustes(
     val cambiar: ((Ajustes) -> Ajustes) -> Unit = {},
+    val abrirCorreo: () -> Unit = {},
     val ejemplo: () -> Unit = {},
     val borrarTodo: () -> Unit = {}
 )
@@ -340,8 +341,9 @@ fun AjustesPantalla(ajustes: Ajustes, avisos: List<Aviso>, estadoCorreo: String?
             listOf { f ->
                 FilaSimple(
                     f, Icons.Rounded.Mail, "Correo → aviso",
-                    estadoCorreo ?: "Llega en la próxima versión de la app nativa"
-                )
+                    estadoCorreo ?: "Sin configurar: toca para conectar el buzón",
+                    alPulsar = acciones.abrirCorreo
+                ) { Icon(Icons.Rounded.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         )
 

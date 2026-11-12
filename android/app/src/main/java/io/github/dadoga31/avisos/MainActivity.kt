@@ -54,6 +54,11 @@ class MainActivity : ComponentActivity() {
         arrancarCorreoSiHayCuenta()
     }
 
+    override fun onResume() {
+        super.onResume()
+        vm.procesarCorreo()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         rutaPedida.value = rutaDe(intent)

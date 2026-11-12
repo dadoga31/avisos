@@ -118,6 +118,8 @@ public class ServicioCorreo extends Service {
     private void bucle(Cuenta cuenta) {
         ClienteCorreo cliente = new ClienteCorreo(this, almacen);
         long espera = ESPERA_MIN;
+        /* Lo que quedó guardado de antes (por ejemplo, de la versión web). */
+        ProcesadorCorreo.procesarDesdeServicio(this);
 
         while (activo.get()) {
             try {
@@ -174,7 +176,11 @@ public class ServicioCorreo extends Service {
         if (o != null) {
             try { o.nuevoCorreo(cuantos); } catch (Exception ignorada) { }
         }
-        avisarAlUsuario(cuantos);
+        /* La app nativa convierte aquí mismo los correos en avisos y saca
+           una notificación por cada uno. Si algo falla, queda el aviso de
+           siempre y los correos se reintentan en la próxima pasada. */
+        int creados = ProcesadorCorreo.procesarDesdeServicio(this);
+        if (creados < 0) avisarAlUsuario(cuantos);
     }
 
     private void detener() {

@@ -54,6 +54,11 @@
             </intent-filter>
         </receiver>
 
+        <!-- Botones de las notificaciones de aviso nuevo («Me lo quedo»). -->
+        <receiver
+            android:name=".ReceptorAcciones"
+            android:exported="false" />
+
         <receiver
             android:name=".WidgetAvisos"
             android:exported="true">

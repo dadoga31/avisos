@@ -47,10 +47,19 @@ móvil **Android**, instalada con la APK de este repo.
 - Al publicar una APK nueva sube `versionCode` y `versionName` en
   `app/build.gradle`. Se firma con `keystore/depuracion.keystore`, la de
   siempre: con otra firma Android no deja actualizar la app instalada.
-- Fase 2, pendiente: correo → aviso (portar `assets/js/correo.js`;
-  `ServicioCorreo` ya guarda los correos en `AlmacenCorreo` mientras tanto),
-  configurar la cuenta desde Ajustes, notificaciones con acciones y
-  recordatorios, fotos, copia de seguridad (y leer la de la app web), widget.
+- Correo → aviso (3.1.0): `ServicioCorreo` (Java) descarga y guarda en
+  `AlmacenCorreo`; `ProcesadorCorreo` los convierte en el momento, uno a uno
+  y con cerrojo (no volver a dejar dos pasadas a la vez: así entraban
+  duplicados), y `Notificaciones` saca una por aviso con «Me lo quedo»,
+  «Llamar» y «Ver». `ConversorCorreo` es `assets/js/correo.js` traducido:
+  `ConversorCorreoTest` comprueba que da lo mismo que la web; si cambias una
+  regla, cámbiala en los dos o borra la web. Los adjuntos se copian a
+  `filesDir/adjuntos/<aviso>/` y se abren con FileProvider.
+- La base de datos va por la versión 2. Cada cambio de esquema necesita su
+  migración (aquí `AutoMigration`) y su prueba: quien actualiza no puede
+  perder sus avisos.
+- Pendiente: recordatorios antes de la cita, fotos desde la cámara, copia de
+  seguridad (y leer la de la app web), widget rediseñado.
 
 ## Rama y despliegue
 
