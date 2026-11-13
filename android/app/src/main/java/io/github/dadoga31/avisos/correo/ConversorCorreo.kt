@@ -20,7 +20,13 @@ data class MensajeCorreo(
     val fecha: String = "",
     val texto: String = "",
     val html: String = "",
-    val adjuntos: List<AdjuntoCorreo> = emptyList()
+    val adjuntos: List<AdjuntoCorreo> = emptyList(),
+    /** Message-ID al que contesta (In-Reply-To). */
+    val enRespuestaA: String = "",
+    /** Message-ID de los anteriores del hilo (References). */
+    val referencias: List<String> = emptyList(),
+    /** Thread-Index de Outlook (sus primeros 22 bytes son la conversación). */
+    val hiloOutlook: String = ""
 ) {
     /** Clave con la que se reconoce: el Message-ID si lo hay y, si no, el UID. */
     val clave: String get() = if (messageId.isNotBlank()) "m:$messageId" else if (uid.isNotBlank()) "u:$uid" else ""

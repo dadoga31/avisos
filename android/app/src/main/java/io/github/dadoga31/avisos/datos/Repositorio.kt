@@ -130,6 +130,25 @@ class Repositorio(
     /** ¿Ya hay un aviso hecho con este correo? */
     suspend fun yaConvertido(claves: List<String>) = claves.isNotEmpty() && dao.cuantosConCorreo(claves) > 0
 
+    suspend fun todos(): List<Aviso> = dao.todosAhora()
+
+    /**
+     * Una respuesta del mismo hilo: se apunta en el registro del aviso, con
+     * sus adjuntos, y sus claves quedan en el hilo para reconocer las
+     * siguientes. El estado no se toca (un «gracias» no reabre un aviso hecho).
+     */
+    suspend fun anadirRespuesta(id: String, nota: String, momento: String, claves: List<String>, adjuntos: List<Adjunto>): Aviso? {
+        val a = dao.porId(id) ?: return null
+        val n = Nota(nuevoId("n"), momento.ifBlank { ahora() }, nota)
+        return guardar(a.copy(notas = listOf(n) + a.notas, adjuntos = a.adjuntos + adjuntos, hilo = (a.hilo + claves).distinct().takeLast(60)))
+    }
+
+    /** Lo que se manda desde el aviso entra en su hilo: si contestan a eso, también se reconoce. */
+    suspend fun anadirAlHilo(id: String, claves: List<String>) {
+        val a = dao.porId(id) ?: return
+        guardar(a.copy(hilo = (a.hilo + claves).distinct().takeLast(60)))
+    }
+
     suspend fun duplicar(id: String): Aviso? {
         val src = dao.porId(id) ?: return null
         return guardar(

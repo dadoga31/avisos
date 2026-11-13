@@ -17,6 +17,10 @@ public class Mensaje {
     public String fecha = "";        // ISO 8601
     public String texto = "";
     public String html = "";
+    /* Del hilo: a qué contesta, la cadena de anteriores y la conversación de Outlook. */
+    public String enRespuestaA = "";
+    public String referencias = "";
+    public String hiloOutlook = "";
     public final List<Adjunto> adjuntos = new ArrayList<>();
 
     public static class Adjunto {
@@ -48,6 +52,9 @@ public class Mensaje {
             o.put("fecha", fecha);
             o.put("texto", texto);
             o.put("html", html);
+            o.put("enRespuestaA", enRespuestaA);
+            o.put("referencias", referencias);
+            o.put("hiloOutlook", hiloOutlook);
             JSONArray lista = new JSONArray();
             for (Adjunto a : adjuntos) lista.put(a.aJSON());
             o.put("adjuntos", lista);

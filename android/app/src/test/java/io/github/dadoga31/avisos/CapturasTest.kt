@@ -303,6 +303,23 @@ class CapturasTest {
         )
     }
 
+    /** Mantener pulsado el +. */
+    @Test
+    fun menuMas() = foto("19-menu-mas") {
+        MarcoSeccion(Seccion.AGENDA, {}, {}, SnackbarHostState(), menuMasInicial = true) {
+            AgendaPantalla(avisos, tecnicos, Ajustes(pistaGestos = false), ahora, AccionesAgenda(), correo = true)
+        }
+    }
+
+    @Test
+    fun correoNuevo() = foto("20-correo-nuevo") {
+        RedactarPantalla(
+            null, false, ahora.toLocalDate(), null, envioListo = true, copiaInicial = false, fichero = { File(it.ruta) },
+            enviando = false, error = null, alEnviar = { _, _ -> }, alCerrar = {}, alConfigurar = {},
+            extras = listOf(io.github.dadoga31.avisos.correo.AdjuntoEnvio(File("presupuesto.pdf"), "presupuesto-videoportero.pdf", "application/pdf"))
+        )
+    }
+
     /** Ajustes → Correo entero: buzón, envío (SMTP) y firma. */
     @Test
     @Config(qualifiers = "w412dp-h2600dp-xhdpi")

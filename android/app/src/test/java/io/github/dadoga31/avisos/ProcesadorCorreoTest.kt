@@ -143,4 +143,54 @@ class ProcesadorCorreoTest {
         assertEquals(listOf("Alarma sin cobertura"), r.creados.map { it.titulo })
         assertEquals(0, almacen.cuantosPendientes())
     }
+
+    @Test
+    fun `la respuesta del mismo hilo actualiza el aviso en vez de crear otro`() {
+        almacen.anadirPendientes(listOf(mensaje("1", "pedro@naves.es", "Central sin comunicación", messageId = "<1@naves.es>")))
+        assertEquals(1, procesar().creados.size)
+
+        /* Responde otra persona (yo voy en copia), y llega dos veces por una relectura. */
+        val respuesta = mensaje("2", "laura@instaladora.es", "RE: Central sin comunicación", messageId = "<2@instaladora.es>").apply {
+            enRespuestaA = "<1@naves.es>"; referencias = "<1@naves.es>"; deNombre = "Laura"
+            texto = "Paso yo mañana a las 9.\n\nDe: Pedro <pedro@naves.es>\nEnviado: jueves\n\nLa central no comunica."
+        }
+        almacen.anadirPendientes(listOf(respuesta))
+        val r = procesar()
+        assertEquals(0, r.creados.size)
+        assertEquals(1, r.actualizados.size)
+        almacen.anadirPendientes(listOf(respuesta))
+        assertEquals(0, procesar().actualizados.size)
+
+        val todos = runBlocking { db.dao().todosAhora() }
+        assertEquals(1, todos.size)
+        val a = todos.single()
+        assertEquals("✉ Respuesta de Laura (laura@instaladora.es):\nPaso yo mañana a las 9.", a.notas.first().texto)
+        assertTrue(a.hilo.contains("m:<2@instaladora.es>"))
+
+        /* Y la respuesta a esa respuesta, aunque solo cite a Laura. */
+        almacen.anadirPendientes(listOf(mensaje("3", "pedro@naves.es", "RE: RE: Central", messageId = "<3@naves.es>").apply { enRespuestaA = "<2@instaladora.es>" }))
+        assertEquals(1, procesar().actualizados.size)
+        assertEquals(1, runBlocking { db.dao().todosAhora() }.size)
+    }
+
+    @Test
+    fun `la migracion de la 3_7_0 conserva los avisos y empieza sin hilo`() {
+        val nombre = "migracion3.db"
+        migraciones.createDatabase(nombre, 2).apply {
+            execSQL(
+                "INSERT INTO avisos (id, ref, titulo, tipo, sistema, prioridad, estado, origen, correoId, " +
+                    "cliente_nombre, cliente_direccion, cliente_telefono, cliente_contacto, fecha, hora, duracion, " +
+                    "asignadoA, descripcion, notas, adjuntos, horas, creado, actualizado, empezado, cerrado) VALUES " +
+                    "('av1','AV-0001','De correo','averia','alarma','normal','pendiente','correo','m:<1@x>', 'Naves','','','pedro@x', " +
+                    "'2026-11-12','','','','','[]','[]',0,'','','','')"
+            )
+            close()
+        }
+        migraciones.runMigrationsAndValidate(nombre, 3, true).close()
+        val db3 = androidx.room.Room.databaseBuilder(ctx, BaseDatos::class.java, nombre).allowMainThreadQueries().build()
+        val a = runBlocking { db3.dao().porId("av1") }!!
+        assertEquals("De correo", a.titulo)
+        assertTrue(a.hilo.isEmpty())
+        db3.close()
+    }
 }

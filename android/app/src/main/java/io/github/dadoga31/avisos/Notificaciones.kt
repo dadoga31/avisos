@@ -54,6 +54,35 @@ object Notificaciones {
         return PendingIntent.getActivity(ctx, codigo, i, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 
+    /** Una respuesta del mismo hilo ha llegado a un aviso: sustituye a su notificación anterior. */
+    fun respuestas(ctx: Context, avisos: List<Aviso>) {
+        if (avisos.isEmpty() || !permitido(ctx)) return
+        crearCanal(ctx)
+        val nm = NotificationManagerCompat.from(ctx)
+        try {
+            avisos.take(8).forEach { a ->
+                val nota = a.notas.firstOrNull()?.texto.orEmpty()
+                val quien = nota.substringAfter("Respuesta de ", "").substringBefore(":").substringBefore(" (").ifBlank { "Nueva respuesta" }
+                val texto = nota.substringAfter(":\n", nota).lines().firstOrNull { it.isNotBlank() }.orEmpty()
+                nm.notify(
+                    idDe(a.id),
+                    NotificationCompat.Builder(ctx, CANAL)
+                        .setSmallIcon(R.drawable.ic_notificacion)
+                        .setColor(ctx.getColor(R.color.acento))
+                        .setContentTitle("${a.ref} · respuesta de $quien")
+                        .setContentText(texto.ifBlank { a.titulo })
+                        .setStyle(NotificationCompat.BigTextStyle().bigText(nota.substringAfter(":\n", nota)))
+                        .setSubText(a.titulo)
+                        .setGroup(GRUPO).setAutoCancel(true)
+                        .setContentIntent(abrir(ctx, "#/aviso/${a.id}", idDe(a.id)))
+                        .build()
+                )
+            }
+        } catch (_: SecurityException) {
+            // Sin permiso: la respuesta ya está en el registro del aviso.
+        }
+    }
+
     fun avisosNuevos(ctx: Context, avisos: List<Aviso>) {
         if (avisos.isEmpty() || !permitido(ctx)) return
         crearCanal(ctx)

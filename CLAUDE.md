@@ -45,7 +45,7 @@ móvil **Android**, instalada con la APK de este repo.
   Así se prueban y se capturan sin base de datos.
 - Pruebas: `cd android && ./gradlew testDebugUnitTest`. `ReglasTest` (JVM),
   `RepositorioTest` (Robolectric + Room en memoria), `ActualizadorTest`,
-  `BorrarTest`, `FirmaTest`, `EnviadorCorreoTest`, `GestosTest` (Compose: deslizar para cerrar, en curso,
+  `BorrarTest`, `FirmaTest`, `EnviadorCorreoTest`, `HilosTest`, `GestosTest` (Compose: deslizar para cerrar, en curso,
   deslizar y cancelar en la línea, la semana y el dock) y
   `CapturasTest` (Roborazzi, con `-Proborazzi.test.record=true`): deja en
   `diseno/capturas-app/` cada pantalla en claro y oscuro a tamaño Pixel 7.
@@ -75,6 +75,20 @@ móvil **Android**, instalada con la APK de este repo.
   aviso no vino por correo), con respuestas rápidas (`Plantillas`) y una nota
   en el registro al enviar. `EnviadorCorreoTest` mira el mensaje tal como
   saldría.
+- Hilos (3.8.0, `correo/Hilos.kt`): una respuesta a un correo que ya es
+  aviso (la mande quien la mande; el usuario suele ir en copia) no crea otro
+  aviso: se añade al que hay como nota «✉ Respuesta de …» con sus adjuntos y
+  una notificación. Se reconoce por In-Reply-To y References (Message-ID de
+  los anteriores), por la conversación de Outlook (primeros 22 bytes del
+  Thread-Index) y, solo si no hay nada de eso, por el mismo asunto con «Re:»
+  del mismo dominio en 30 días. El aviso guarda las claves de su hilo en la
+  columna `hilo` (BD versión 3), incluido el Message-ID de lo que se manda
+  desde él. El estado no cambia: un «gracias» no reabre un aviso hecho.
+- Menú del + (3.8.0): mantenerlo pulsado desenfoca la pantalla, saca una onda
+  y dos opciones (Nuevo correo, Nuevo aviso); el + gira a ×. «Nuevo correo» es
+  `Redactar` sin aviso: a cualquier dirección (sugiere las de los clientes),
+  con adjuntos del móvil y la firma. Con IMAP no lleva copia oculta: ya se
+  guarda en «Enviados» y se ve en Outlook.
 - Firma (3.7.0, `correo/Firma.kt`): el usuario quiere la de Outlook tal cual.
   Se pega (si se copia de un correo abierto en el móvil, el portapapeles trae
   el HTML) o se abre el `.htm` de la carpeta de firmas de Outlook (respeta
@@ -99,7 +113,7 @@ móvil **Android**, instalada con la APK de este repo.
   al volver de ese ajuste sigue solo. Android siempre pide el toque en
   «Instalar»; eso no se puede quitar. Si cambias la release o su nombre, cambia
   también las URL de `Actualizador`: las versiones instaladas las tienen fijas.
-- La base de datos va por la versión 2. Cada cambio de esquema necesita su
+- La base de datos va por la versión 3. Cada cambio de esquema necesita su
   migración (aquí `AutoMigration`) y su prueba: quien actualiza no puede
   perder sus avisos.
 - Recordatorios (3.2.0): `Recordatorios.reprogramar` pone una alarma exacta

@@ -9,6 +9,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.unit.dp
@@ -171,5 +173,20 @@ class GestosTest {
         regla.onNodeWithContentDescription("Nuevo aviso").performClick()
         assertEquals(listOf(Seccion.HECHOS, Seccion.AJUSTES), idas)
         assertEquals(1, nuevos)
+    }
+
+    @Test
+    fun `mantener pulsado el mas abre nuevo aviso y nuevo correo`() {
+        var avisos = 0
+        var correos = 0
+        pantalla { MarcoSeccion(Seccion.AGENDA, {}, { avisos++ }, SnackbarHostState(), alNuevoCorreo = { correos++ }) {} }
+        regla.onNodeWithContentDescription("Nuevo aviso").performTouchInput { longClick() }
+        regla.waitForIdle()
+        regla.onNodeWithText("Nuevo correo").assertIsDisplayed().performClick()
+        regla.waitForIdle()
+        assertEquals(1, correos)
+        assertEquals(0, avisos)
+        /* Al elegir, el menú se cierra. */
+        assertEquals(0, regla.onAllNodesWithText("Nuevo correo").fetchSemanticsNodes().size)
     }
 }

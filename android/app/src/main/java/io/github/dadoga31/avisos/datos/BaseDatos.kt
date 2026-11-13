@@ -43,6 +43,16 @@ class Conversores {
     }
 
     @TypeConverter
+    fun listaATexto(lista: List<String>): String = JSONArray(lista).toString()
+
+    @TypeConverter
+    fun textoALista(texto: String?): List<String> {
+        if (texto.isNullOrBlank()) return emptyList()
+        val a = JSONArray(texto)
+        return (0 until a.length()).map { a.optString(it) }
+    }
+
+    @TypeConverter
     fun textoANotas(texto: String?): List<Nota> {
         if (texto.isNullOrBlank()) return emptyList()
         val a = JSONArray(texto)
@@ -95,10 +105,11 @@ interface AvisosDao {
     suspend fun desasignar(id: String)
 }
 
-/* Versión 2 (3.1.0): adjuntos. Las migraciones conservan los avisos de quien ya tiene la app. */
+/* Versión 2 (3.1.0): adjuntos. Versión 3 (3.8.0): hilo del correo. Las
+   migraciones conservan los avisos de quien ya tiene la app. */
 @Database(
-    entities = [Aviso::class, Tecnico::class], version = 2, exportSchema = true,
-    autoMigrations = [AutoMigration(from = 1, to = 2)]
+    entities = [Aviso::class, Tecnico::class], version = 3, exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)]
 )
 @TypeConverters(Conversores::class)
 abstract class BaseDatos : RoomDatabase() {

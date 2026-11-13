@@ -301,6 +301,18 @@ public class ClienteCorreo {
             Log.w(TAG, "Sin identificador de mensaje", e);
         }
 
+        /* El hilo: para que una respuesta actualice su aviso en vez de crear otro. */
+        try {
+            String[] r = original.getHeader("In-Reply-To");
+            if (r != null && r.length > 0) m.enRespuestaA = r[0].trim();
+            String[] refs = original.getHeader("References");
+            if (refs != null && refs.length > 0) m.referencias = String.join(" ", refs).replaceAll("\\s+", " ").trim();
+            String[] t = original.getHeader("Thread-Index");
+            if (t != null && t.length > 0) m.hiloOutlook = t[0].trim();
+        } catch (Exception e) {
+            Log.w(TAG, "Cabeceras del hilo ilegibles", e);
+        }
+
         try {
             Address[] de = original.getFrom();
             if (de != null && de.length > 0 && de[0] instanceof InternetAddress) {

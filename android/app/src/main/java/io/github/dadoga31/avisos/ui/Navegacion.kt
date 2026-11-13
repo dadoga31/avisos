@@ -118,12 +118,78 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
         }
     }
 
+    /** Responder, reenviar o escribir un correo nuevo ([a] null). */
+    @Composable
+    fun Escribir(a: Aviso?, reenvio: Boolean) {
+        var cuenta by remember { mutableStateOf<io.github.dadoga31.avisos.correo.Cuenta?>(null) }
+        var leida by remember { mutableStateOf(false) }
+        var firma by remember { mutableStateOf<String?>(null) }
+        var enviando by remember { mutableStateOf(false) }
+        var error by remember { mutableStateOf<String?>(null) }
+        var extras by remember { mutableStateOf(listOf<io.github.dadoga31.avisos.correo.AdjuntoEnvio>()) }
+        val adjuntar = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+            scope.launch {
+                val nuevos = withContext(Dispatchers.IO) { uris.mapNotNull { copiarParaEnviar(contexto, it) } }
+                extras = extras + nuevos
+            }
+        }
+        /* Se vuelve a leer al volver de Ajustes → Correo. */
+        androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+            val trabajo = scope.launch {
+                val (c, f) = withContext(Dispatchers.IO) {
+                    runCatching { io.github.dadoga31.avisos.correo.Cuenta.cargar(contexto) }.getOrNull() to
+                        io.github.dadoga31.avisos.correo.Firma.leer(contexto)
+                }
+                cuenta = c; firma = f; leida = true
+            }
+            onPauseOrDispose { trabajo.cancel() }
+        }
+        if (!leida) return
+        val contactos = remember(avisos) {
+            avisos.filter { it.cliente.contacto.contains('@') }.sortedByDescending { it.creado }
+                .map { it.cliente.nombre to it.cliente.contacto }.distinctBy { it.second.lowercase() }
+        }
+        RedactarPantalla(
+            a, reenvio, hoy, firma, cuenta?.envioValido() == true,
+            /* Con IMAP lo enviado ya queda en «Enviados»: la copia oculta sobraría. */
+            copiaInicial = cuenta?.let { it.copiaParaMi && !it.esImap() } ?: false,
+            fichero = { java.io.File(contexto.filesDir, it.ruta) },
+            enviando = enviando, error = error,
+            alEnviar = { envio, nota ->
+                enviando = true; error = null
+                vm.enviarCorreo(a?.id, envio, nota) { fallo ->
+                    enviando = false
+                    if (fallo == null) {
+                        extras.forEach { it.fichero.delete() }
+                        nav.popBackStack()
+                        scope.launch {
+                            snackbar.showSnackbar(
+                                when {
+                                    a == null -> "Correo enviado a ${envio.para.joinToString()}"
+                                    reenvio -> "Reenviado a ${envio.para.joinToString()}"
+                                    else -> "Respuesta enviada"
+                                }
+                            )
+                        }
+                    } else error = fallo
+                }
+            },
+            alCerrar = { extras.forEach { it.fichero.delete() }; nav.popBackStack() },
+            alConfigurar = { nav.navigate("correo") },
+            extras = extras,
+            alAdjuntar = { adjuntar.launch(arrayOf("*/*")) },
+            alQuitarExtra = { x -> x.fichero.delete(); extras = extras - x },
+            contactos = contactos
+        )
+    }
+
     MarcoSeccion(
         actual = seccion ?: Seccion.AGENDA,
         alIr = ::irASeccion,
         alNuevo = { nav.navigate("nuevo") },
         snackbar = snackbar,
-        mostrarMenu = seccion != null
+        mostrarMenu = seccion != null,
+        alNuevoCorreo = { nav.navigate("escribir") }
     ) {
       SharedTransitionLayout {
        CompositionLocalProvider(LocalCompartido provides this) {
@@ -253,44 +319,10 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
             }
             destino("redactar/{id}/{modo}", entrar = entrarLado, salir = salirLado) { e ->
                 val id = e.arguments?.getString("id")
-                val reenvio = e.arguments?.getString("modo") == "reenviar"
                 val a = avisos.firstOrNull { it.id == id }
-                var cuenta by remember { mutableStateOf<io.github.dadoga31.avisos.correo.Cuenta?>(null) }
-                var leida by remember { mutableStateOf(false) }
-                var firma by remember { mutableStateOf<String?>(null) }
-                var enviando by remember { mutableStateOf(false) }
-                var error by remember { mutableStateOf<String?>(null) }
-                /* Se vuelve a leer al volver de Ajustes → Correo. */
-                androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
-                    val trabajo = scope.launch {
-                        val (c, f) = withContext(Dispatchers.IO) {
-                            runCatching { io.github.dadoga31.avisos.correo.Cuenta.cargar(contexto) }.getOrNull() to
-                                io.github.dadoga31.avisos.correo.Firma.leer(contexto)
-                        }
-                        cuenta = c; firma = f; leida = true
-                    }
-                    onPauseOrDispose { trabajo.cancel() }
-                }
-                if (a != null && leida) {
-                    RedactarPantalla(
-                        a, reenvio, hoy, firma, cuenta?.envioValido() == true, cuenta?.copiaParaMi ?: false,
-                        fichero = { java.io.File(contexto.filesDir, it.ruta) },
-                        enviando = enviando, error = error,
-                        alEnviar = { envio, nota ->
-                            enviando = true; error = null
-                            vm.enviarCorreo(a.id, envio, nota) { fallo ->
-                                enviando = false
-                                if (fallo == null) {
-                                    nav.popBackStack()
-                                    scope.launch { snackbar.showSnackbar(if (reenvio) "Reenviado a ${envio.para.joinToString()}" else "Respuesta enviada") }
-                                } else error = fallo
-                            }
-                        },
-                        alCerrar = { nav.popBackStack() },
-                        alConfigurar = { nav.navigate("correo") }
-                    )
-                }
+                if (a != null) Escribir(a, e.arguments?.getString("modo") == "reenviar")
             }
+            destino("escribir", entrar = entrarLado, salir = salirLado) { Escribir(null, false) }
             destino("correo", entrar = entrarLado, salir = salirLado) { CorreoRuta(vm, ajustes.correoIgnorados) { nav.popBackStack() } }
             destino("nuevo", entrar = entrarLado, salir = salirLado) {
                 val inicial = remember { vm.nuevo() }

@@ -148,7 +148,7 @@ fun envioDe(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun RedactarPantalla(
-    a: Aviso,
+    a: Aviso?,
     reenvio: Boolean,
     hoy: LocalDate,
     firma: String?,
@@ -159,16 +159,21 @@ fun RedactarPantalla(
     error: String?,
     alEnviar: (Envio, String) -> Unit,
     alCerrar: () -> Unit,
-    alConfigurar: () -> Unit
+    alConfigurar: () -> Unit,
+    extras: List<AdjuntoEnvio> = emptyList(),
+    alAdjuntar: () -> Unit = {},
+    alQuitarExtra: (AdjuntoEnvio) -> Unit = {},
+    contactos: List<Pair<String, String>> = emptyList()
 ) {
     val s = LocalColores.current.superficies
-    val correo = Plantillas.deCorreo(a)
-    var para by remember { mutableStateOf(if (reenvio) "" else a.cliente.contacto) }
+    val correo = a != null && Plantillas.deCorreo(a)
+    var para by remember { mutableStateOf(if (a == null || reenvio) "" else a.cliente.contacto) }
     var cc by remember { mutableStateOf("") }
     var verCc by remember { mutableStateOf(false) }
     var asunto by remember {
         mutableStateOf(
             when {
+                a == null -> ""
                 !reenvio -> EnviadorCorreo.conPrefijo("Re:", a.titulo)
                 correo -> EnviadorCorreo.conPrefijo("RV:", a.titulo)
                 else -> "Aviso ${a.ref}: ${a.titulo}"
@@ -178,15 +183,23 @@ fun RedactarPantalla(
     var texto by remember { mutableStateOf("") }
     var conFirma by remember { mutableStateOf(true) }
     var copia by remember(copiaInicial) { mutableStateOf(copiaInicial) }
-    var elegidos by remember { mutableStateOf(if (reenvio) a.adjuntos.map { it.id }.toSet() else emptySet()) }
-    val plantillas = if (reenvio) Plantillas.reenvios(a, hoy) else Plantillas.respuestas(a, hoy)
+    var elegidos by remember { mutableStateOf(if (a != null && reenvio) a.adjuntos.map { it.id }.toSet() else emptySet()) }
+    val plantillas = when {
+        a == null -> emptyList()
+        reenvio -> Plantillas.reenvios(a, hoy)
+        else -> Plantillas.respuestas(a, hoy)
+    }
     val listo = EnviadorCorreo.direcciones(para).isNotEmpty() && texto.isNotBlank() && envioListo == true && !enviando
 
     Column(Modifier.fillMaxSize().fondoPagina().statusBarsPadding().navigationBarsPadding().imePadding()) {
         Box(Modifier.fillMaxWidth().height(60.dp).padding(horizontal = 12.dp)) {
             BotonRedondo(Icons.Rounded.Close, "Cerrar sin enviar", alCerrar, Modifier.align(Alignment.CenterStart))
             Dato(
-                (if (reenvio) "Reenviar" else "Responder") + if (a.ref.isNotBlank()) " · ${a.ref}" else "",
+                when {
+                    a == null -> "Nuevo correo"
+                    reenvio -> "Reenviar" + if (a.ref.isNotBlank()) " · ${a.ref}" else ""
+                    else -> "Responder" + if (a.ref.isNotBlank()) " · ${a.ref}" else ""
+                },
                 Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.onSurface, tam = 12f, peso = FontWeight.SemiBold
             )
         }
@@ -204,9 +217,26 @@ fun RedactarPantalla(
             }
             Campo("Para") {
                 CampoTexto(
-                    para, { para = it }, if (reenvio) "correo@ejemplo.es" else "Destinatario", MaterialTheme.typography.bodyLarge,
+                    para, { para = it }, if (a == null || reenvio) "correo@ejemplo.es" else "Destinatario", MaterialTheme.typography.bodyLarge,
                     teclado = KeyboardOptions(keyboardType = KeyboardType.Email)
                 )
+                /* Sugerencias de los clientes que ya han escrito, según lo que se teclea. */
+                val trozo = para.substringAfterLast(',').substringAfterLast(';').trim()
+                val q = Reglas.normalizar(trozo)
+                val sugeridos = if (q.length < 2) emptyList() else contactos.filter { (n, c) ->
+                    (Reglas.normalizar(n).contains(q) || c.lowercase().contains(q)) && !para.contains(c, ignoreCase = true)
+                }.take(4)
+                if (sugeridos.isNotEmpty()) Row(
+                    Modifier.padding(top = 10.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    sugeridos.forEach { (n, c) ->
+                        Pastilla(if (n.isNotBlank() && n != c) "$n · $c" else c, false) {
+                            /* Lo escrito antes del trozo que se está tecleando. */
+                            val antes = para.substring(0, para.lastIndexOf(trozo).coerceAtLeast(0))
+                            para = (if (antes.isBlank()) "" else antes.trimEnd(',', ';', ' ') + ", ") + c + ", "
+                        }
+                    }
+                }
                 if (!verCc) Pastilla("+ CC", false, Modifier.padding(top = 10.dp)) { verCc = true }
             }
             if (verCc) Campo("CC") {
@@ -215,7 +245,7 @@ fun RedactarPantalla(
             Campo("Asunto") {
                 CampoTexto(asunto, { asunto = it }, "Asunto", MaterialTheme.typography.titleMedium, teclado = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences))
             }
-            Campo(if (reenvio) "Rápidas" else "Respuestas rápidas") {
+            if (plantillas.isNotEmpty()) Campo(if (reenvio) "Rápidas" else "Respuestas rápidas") {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     plantillas.forEach { (nombre, cuerpo) ->
                         Pastilla(nombre, texto.trim() == cuerpo.trim()) { texto = if (texto.isBlank() || plantillas.any { it.second.trim() == texto.trim() }) cuerpo else texto.trimEnd() + "\n\n" + cuerpo }
@@ -228,14 +258,18 @@ fun RedactarPantalla(
                     teclado = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
                 )
             }
-            if (a.adjuntos.isNotEmpty()) Campo("Adjuntos del aviso") {
+            Campo("Adjuntos") {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    a.adjuntos.forEach { adj ->
+                    a?.adjuntos?.forEach { adj ->
                         val sel = adj.id in elegidos
                         Pastilla(adj.nombre.take(24), sel, icono = if (adj.esImagen) Icons.Rounded.Image else Icons.Rounded.AttachFile) {
                             elegidos = if (sel) elegidos - adj.id else elegidos + adj.id
                         }
                     }
+                    extras.forEach { x ->
+                        Pastilla(x.nombre.take(24) + "  ×", true, icono = if (x.mime.startsWith("image/")) Icons.Rounded.Image else Icons.Rounded.AttachFile) { alQuitarExtra(x) }
+                    }
+                    Pastilla("Adjuntar", false, icono = Icons.Rounded.AttachFile, alPulsar = alAdjuntar)
                 }
             }
             Campo("Firma") {
@@ -259,7 +293,7 @@ fun RedactarPantalla(
                     Interruptor(copia, { copia = it }, descripcion = "Copia para mí")
                 }
             }
-            Campo(if (reenvio) "Lo que se reenvía" else "Mensaje original") {
+            if (a != null) Campo(if (reenvio) "Lo que se reenvía" else "Mensaje original") {
                 val envio = envioDe(a, reenvio, hoy, para, cc, asunto, texto, null, emptyList(), false)
                 Column(Modifier.fillMaxWidth().tarjeta(RoundedCornerShape(16.dp)).padding(14.dp)) {
                     Text(envio.cabeceraCita, style = EstiloMono.copy(fontSize = 11.sp, lineHeight = 16.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -283,8 +317,12 @@ fun RedactarPantalla(
                 if (enviando) "Enviando…" else "Enviar", if (enviando) null else Icons.AutoMirrored.Rounded.Send,
                 {
                     if (!listo) return@BotonPildora
-                    val adjuntos = a.adjuntos.filter { it.id in elegidos }.map { AdjuntoEnvio(fichero(it), it.nombre, it.mime) }
-                    val envio = envioDe(a, reenvio, hoy, para, cc, asunto, texto, firma?.takeIf { conFirma }, adjuntos, copia)
+                    val delAviso = a?.adjuntos.orEmpty().filter { it.id in elegidos }.map { AdjuntoEnvio(fichero(it), it.nombre, it.mime) }
+                    val f = firma?.takeIf { conFirma }
+                    val envio = if (a == null) Envio(
+                        para = EnviadorCorreo.direcciones(para), cc = EnviadorCorreo.direcciones(cc), asunto = asunto.trim(),
+                        texto = texto, firma = f, adjuntos = extras, copiaParaMi = copia
+                    ) else envioDe(a, reenvio, hoy, para, cc, asunto, texto, f, delAviso + extras, copia)
                     val nota = (if (reenvio) "Reenviado a " else "Respuesta enviada a ") + envio.para.joinToString(", ") + ":\n" + texto.trim()
                     alEnviar(envio, nota)
                 },
@@ -302,3 +340,18 @@ private fun Campo(titulo: String, contenido: @Composable ColumnScope.() -> Unit)
         contenido()
     }
 }
+
+
+/** Un archivo del móvil (documentos o galería) copiado a la caché para adjuntarlo. */
+internal fun copiarParaEnviar(ctx: android.content.Context, uri: android.net.Uri): AdjuntoEnvio? = runCatching {
+    val cr = ctx.contentResolver
+    var nombre = "adjunto"
+    cr.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+        if (c.moveToFirst()) nombre = c.getString(0) ?: nombre
+    }
+    nombre = nombre.replace(Regex("[\\\\/:*?\"<>|]"), "_")
+    val dir = File(ctx.cacheDir, "envio").apply { mkdirs() }
+    val destino = File(dir, "${System.currentTimeMillis()}-$nombre")
+    cr.openInputStream(uri)!!.use { entrada -> destino.outputStream().use { entrada.copyTo(it) } }
+    AdjuntoEnvio(destino, nombre, cr.getType(uri) ?: "application/octet-stream")
+}.getOrNull()

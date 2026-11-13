@@ -189,11 +189,11 @@ object EnviadorCorreo {
         explicar(e)
     }
 
-    /**
-     * Lo manda. Devuelve un aviso si se envió pero no se pudo guardar copia
-     * en «Enviados» (o null). Si no se puede enviar, lanza la excepción.
-     */
-    fun enviar(c: Cuenta, e: Envio): String? {
+    /** Lo enviado: su Message-ID (entra en el hilo del aviso) y un aviso si no se guardó copia en «Enviados». */
+    data class Enviado(val messageId: String, val aviso: String?)
+
+    /** Lo manda. Si no se puede enviar, lanza la excepción. */
+    fun enviar(c: Cuenta, e: Envio): Enviado {
         val sesion = Session.getInstance(propiedades(c))
         val m = construir(sesion, c, e)
         val t = sesion.getTransport("smtp")
@@ -203,7 +203,7 @@ object EnviadorCorreo {
         } finally {
             runCatching { t.close() }
         }
-        return if (c.esImap()) guardarEnEnviados(c, m) else null
+        return Enviado(m.messageID ?: "", if (c.esImap()) guardarEnEnviados(c, m) else null)
     }
 
     /** Con IMAP: copia en la carpeta de enviados (la marcada \Sent o la que se llame así). */

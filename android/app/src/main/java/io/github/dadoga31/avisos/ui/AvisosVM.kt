@@ -143,6 +143,9 @@ class AvisosVM(app: Application) : AndroidViewModel(app) {
         }.getOrNull() ?: return@launch
         val n = r.creados.size
         if (n > 0) mensajes.tryEmit(if (n == 1) "1 aviso nuevo desde el correo" else "$n avisos nuevos desde el correo")
+        r.actualizados.firstOrNull()?.let {
+            mensajes.tryEmit(if (r.actualizados.size == 1) "Nueva respuesta en ${it.ref}" else "${r.actualizados.size} respuestas añadidas a sus avisos")
+        }
     }
 
     fun nuevo(): Aviso = repo.nuevo()
@@ -174,14 +177,18 @@ class AvisosVM(app: Application) : AndroidViewModel(app) {
      * Manda un correo del aviso (responder o reenviar). Si va bien, lo apunta
      * en el registro del aviso. [luego] recibe el error, o null si se envió.
      */
-    fun enviarCorreo(avisoId: String, envio: io.github.dadoga31.avisos.correo.Envio, nota: String, luego: (String?) -> Unit) =
+    fun enviarCorreo(avisoId: String?, envio: io.github.dadoga31.avisos.correo.Envio, nota: String, luego: (String?) -> Unit) =
         viewModelScope.launch {
             val error = kotlinx.coroutines.withContext(Dispatchers.IO) {
                 val c = runCatching { io.github.dadoga31.avisos.correo.Cuenta.cargar(avisosApp) }.getOrNull()
                 if (c == null || !c.envioValido()) return@withContext "Falta configurar el envío en Ajustes → Correo"
                 try {
-                    io.github.dadoga31.avisos.correo.EnviadorCorreo.enviar(c, envio)?.let { mensajes.tryEmit(it) }
-                    repo.anadirNota(avisoId, nota)
+                    val r = io.github.dadoga31.avisos.correo.EnviadorCorreo.enviar(c, envio)
+                    r.aviso?.let { mensajes.tryEmit(it) }
+                    if (avisoId != null) {
+                        repo.anadirNota(avisoId, nota)
+                        if (r.messageId.isNotBlank()) repo.anadirAlHilo(avisoId, listOf("m:" + r.messageId))
+                    }
                     null
                 } catch (e: Exception) {
                     io.github.dadoga31.avisos.correo.EnviadorCorreo.explicar(e)

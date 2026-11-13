@@ -104,7 +104,12 @@ data class Aviso(
     /** Cuándo se puso en curso por última vez (ISO), o vacío. */
     val empezado: String = "",
     /** Cuándo se cerró (ISO), o vacío si está abierto. */
-    val cerrado: String = ""
+    val cerrado: String = "",
+    /**
+     * Claves de los correos del mismo hilo («m:<Message-ID>», «t:<conversación
+     * de Outlook>»): las respuestas que lleguen se añaden a este aviso.
+     */
+    @ColumnInfo(defaultValue = "[]") val hilo: List<String> = emptyList()
 ) {
     val estadoE get() = Estado.de(estado)
     val prioridadE get() = Prioridad.de(prioridad)
