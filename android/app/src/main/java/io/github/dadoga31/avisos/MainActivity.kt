@@ -57,16 +57,27 @@ class MainActivity : ComponentActivity() {
 
         pedirNotificaciones()
         arrancarCorreoSiHayCuenta()
+        actualizarSiLoPide(intent)
     }
 
     override fun onResume() {
         super.onResume()
         vm.procesarCorreo()
+        vm.alVolver()
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         rutaPedida.value = rutaDe(intent)
+        actualizarSiLoPide(intent)
+    }
+
+    /** La notificación de versión nueva: se descarga ya. */
+    private fun actualizarSiLoPide(intent: Intent?) {
+        if (intent?.getBooleanExtra(Actualizador.EXTRA, false) == true) {
+            intent.removeExtra(Actualizador.EXTRA)
+            vm.buscarActualizacion(forzar = true, descargar = true, avisarSiNo = true)
+        }
     }
 
     /** «#/nuevo» del widget y las notificaciones, o avisos://nuevo de los atajos. */

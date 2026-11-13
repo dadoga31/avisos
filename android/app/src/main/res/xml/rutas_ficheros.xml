@@ -3,6 +3,8 @@
     <cache-path name="compartidos" path="compartidos/" />
     <!-- Donde la cámara deja la foto antes de reducirla y guardarla con el aviso. -->
     <cache-path name="camara" path="camara/" />
+    <!-- La APK nueva, para dársela al instalador del sistema. -->
+    <cache-path name="actualizacion" path="actualizacion/" />
     <!-- Adjuntos de los avisos, para abrirlos con otra app (visor de PDF, galería). -->
     <files-path name="adjuntos" path="adjuntos/" />
 </paths>

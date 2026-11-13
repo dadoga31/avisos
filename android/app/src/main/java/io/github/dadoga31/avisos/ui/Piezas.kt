@@ -408,6 +408,70 @@ fun Cronometro(desde: java.time.Instant?, base: LocalDateTime, estilo: TextStyle
     TextoRodante(listOf(texto.dropLast(3) to color, texto.takeLast(3) to colorSegundos), estilo, modifier)
 }
 
+/**
+ * Franja de versión nueva: oscura, con el punto naranja vivo. Un botón que
+ * descarga, el avance mientras baja y «Instalar» cuando está lista.
+ */
+@Composable
+fun FranjaActualizacion(estado: io.github.dadoga31.avisos.EstadoActualizacion, alPulsar: () -> Unit, modifier: Modifier = Modifier) {
+    val e = estado
+    val v = when (e) {
+        is io.github.dadoga31.avisos.EstadoActualizacion.Disponible -> e.version
+        is io.github.dadoga31.avisos.EstadoActualizacion.Descargando -> e.version
+        is io.github.dadoga31.avisos.EstadoActualizacion.Lista -> e.version
+        is io.github.dadoga31.avisos.EstadoActualizacion.Fallo -> e.version
+        else -> return
+    }
+    val s = LocalColores.current.superficies
+    val naranja = Color(0xFFFF6A33)
+    val forma = RoundedCornerShape(18.dp)
+    val descargando = e as? io.github.dadoga31.avisos.EstadoActualizacion.Descargando
+    Column(modifier.fillMaxWidth().clip(forma).background(s.heroe).border(1.dp, if (s.oscuro) s.borde else Color.Transparent, forma)) {
+        Row(Modifier.padding(start = 16.dp, end = 10.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            PuntoVivo(RedOrange, vivo = true)
+            Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                Dato("Nueva versión ${v.nombre}", color = naranja, peso = FontWeight.SemiBold)
+                Text(
+                    when (e) {
+                        is io.github.dadoga31.avisos.EstadoActualizacion.Descargando -> "Descargando…"
+                        is io.github.dadoga31.avisos.EstadoActualizacion.Lista -> "Lista para instalar"
+                        is io.github.dadoga31.avisos.EstadoActualizacion.Fallo -> e.mensaje
+                        else -> "Se descarga e instala desde aquí"
+                    },
+                    Modifier.padding(top = 3.dp), color = s.sobreHeroeSuave, style = MaterialTheme.typography.bodySmall, maxLines = 1
+                )
+            }
+            if (descargando != null) {
+                Text(
+                    "${(descargando.progreso * 100).toInt()} %", Modifier.padding(horizontal = 10.dp),
+                    style = EstiloMono.copy(fontSize = 14.sp, fontWeight = FontWeight.SemiBold), color = s.sobreHeroe
+                )
+            } else {
+                val i = remember { MutableInteractionSource() }
+                Box(
+                    Modifier.height(40.dp).presionable(i, 0.94f).clip(CircleShape).background(RedOrange)
+                        .clickable(i, LocalIndication.current, role = Role.Button, onClick = alPulsar).padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        when (e) {
+                            is io.github.dadoga31.avisos.EstadoActualizacion.Lista -> "Instalar"
+                            is io.github.dadoga31.avisos.EstadoActualizacion.Fallo -> "Reintentar"
+                            else -> "Actualizar"
+                        },
+                        color = Color(0xFF141416), style = MaterialTheme.typography.titleSmall
+                    )
+                }
+            }
+        }
+        if (descargando != null) {
+            Box(Modifier.fillMaxWidth().height(3.dp).background(s.sobreHeroe.copy(alpha = 0.12f))) {
+                Box(Modifier.fillMaxHeight().fillMaxWidth(descargando.progreso.coerceIn(0f, 1f)).background(RedOrange))
+            }
+        }
+    }
+}
+
 /** Separación vertical. */
 @Composable
 fun Alto(dp: Int) = Spacer(Modifier.height(dp.dp))

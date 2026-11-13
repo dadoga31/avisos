@@ -54,6 +54,16 @@ jobs:
       - name: Renombrar
         run: cp android/app/build/outputs/apk/release/app-release.apk avisos.apk
 
+      # La app lee este fichero para saber si hay versión nueva y avisar.
+      - name: Versión para el aviso de actualizar
+        shell: bash
+        run: |
+          codigo=$(grep -oP "versionCode\s+\K\d+" android/app/build.gradle)
+          nombre=$(grep -oP "versionName\s+'\K[^']+" android/app/build.gradle)
+          test -n "$codigo" && test -n "$nombre"
+          printf '{"versionCode": %s, "versionName": "%s"}\n' "$codigo" "$nombre" > version.json
+          cat version.json
+
       - name: Guardar como artefacto
         uses: actions/upload-artifact@v4
         with:
@@ -67,7 +77,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete apk --yes --cleanup-tag 2>/dev/null || true
-          gh release create apk avisos.apk \
+          gh release create apk avisos.apk version.json \
             --title "Avisos · última APK" \
             --notes "APK generada automáticamente desde ${{ github.sha }}. Descarga avisos.apk e instálala en el móvil." \
             --target "${{ github.sha }}"

@@ -425,11 +425,16 @@ class AccionesAjustes(
     val guardarCopia: () -> Unit = {},
     val recuperarCopia: () -> Unit = {},
     val ejemplo: () -> Unit = {},
-    val borrarTodo: () -> Unit = {}
+    val borrarTodo: () -> Unit = {},
+    val buscarActualizacion: () -> Unit = {},
+    val actualizar: () -> Unit = {}
 )
 
 @Composable
-fun AjustesPantalla(ajustes: Ajustes, avisos: List<Aviso>, correo: EstadoBuzon?, acciones: AccionesAjustes, ahora: Instant = Instant.now()) {
+fun AjustesPantalla(
+    ajustes: Ajustes, avisos: List<Aviso>, correo: EstadoBuzon?, acciones: AccionesAjustes, ahora: Instant = Instant.now(),
+    actualizacion: io.github.dadoga31.avisos.EstadoActualizacion = io.github.dadoga31.avisos.EstadoActualizacion.Nada
+) {
     var prefijo by remember { mutableStateOf(false) }
     var borrar by remember { mutableStateOf(false) }
     var antelacion by remember { mutableStateOf(false) }
@@ -471,7 +476,12 @@ fun AjustesPantalla(ajustes: Ajustes, avisos: List<Aviso>, correo: EstadoBuzon?,
             FilaAjuste("Borrar todos los avisos", "${avisos.size} guardados en este móvil", alPulsar = { borrar = true }, peligro = true)
 
             Seccion("Acerca de")
-            FilaAjuste("Avisos ${BuildConfig.VERSION_NAME}", "App nativa de Android")
+            if (actualizacion is io.github.dadoga31.avisos.EstadoActualizacion.Nada) {
+                FilaAjuste("Avisos ${BuildConfig.VERSION_NAME}", "Toca para buscar actualizaciones", alPulsar = acciones.buscarActualizacion)
+            } else {
+                FilaAjuste("Avisos ${BuildConfig.VERSION_NAME}", "App nativa de Android")
+                FranjaActualizacion(actualizacion, acciones.actualizar, Modifier.padding(top = 4.dp))
+            }
         }
         Spacer(Modifier.height(EspacioMenu))
     }
@@ -583,7 +593,7 @@ private fun TarjetaCorreo(e: EstadoBuzon?, ahora: Instant, modifier: Modifier, a
                     falla -> "error"
                     !e!!.activo -> "conectando"
                     e.imap -> "escuchando"
-                    else -> "cada 5 min"
+                    else -> "cada 2 min"
                 },
                 color = color, peso = FontWeight.SemiBold
             )

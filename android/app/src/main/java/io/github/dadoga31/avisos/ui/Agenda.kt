@@ -111,7 +111,8 @@ class AccionesAgenda(
     val irA: (String) -> Unit = {},
     val ejemplo: () -> Unit = {},
     val ocultarPista: () -> Unit = {},
-    val correo: () -> Unit = {}
+    val correo: () -> Unit = {},
+    val actualizar: () -> Unit = {}
 )
 
 private val ES = Locale("es", "ES")
@@ -139,7 +140,8 @@ fun AgendaPantalla(
     acciones: AccionesAgenda,
     filtroInicial: Reglas.Filtro = Reglas.Filtro(),
     correo: Boolean? = null,
-    diaInicial: LocalDate? = null
+    diaInicial: LocalDate? = null,
+    actualizacion: io.github.dadoga31.avisos.EstadoActualizacion = io.github.dadoga31.avisos.EstadoActualizacion.Nada
 ) {
     val hoy = ahora.toLocalDate()
     var dia by remember { mutableStateOf(diaInicial ?: hoy) }
@@ -195,6 +197,11 @@ fun AgendaPantalla(
             BarraMarca("Avisos", if (dia == hoy) "hoy" else diaCorto(dia, hoy)) {
                 if (correo != null) IndicadorCorreo(correo, acciones.correo)
                 BotonRedondo(Icons.Rounded.Search, "Buscar", { buscando = true })
+            }
+        }
+        if (actualizacion !is io.github.dadoga31.avisos.EstadoActualizacion.Nada) {
+            item(key = "actualizar") {
+                FranjaActualizacion(actualizacion, acciones.actualizar, Modifier.padding(start = 16.dp, end = 16.dp, bottom = 10.dp).entrada(0))
             }
         }
         item(key = "fecha") {

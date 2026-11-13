@@ -196,7 +196,7 @@ fun CorreoPantalla(
                 )
                 Text("Tipo de buzón", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Segmentos(
-                    listOf("IMAP · al instante", "POP3 · cada 5 min"), if (f.imap) 0 else 1
+                    listOf("IMAP · al instante", "POP3 · cada 2 min"), if (f.imap) 0 else 1
                 ) { i -> val imap = i == 0; f = f.copy(imap = imap, puerto = FormCuenta.puertoPorDefecto(imap, f.ssl)) }
                 Text("Seguridad", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Segmentos(listOf("SSL/TLS", "STARTTLS"), if (f.ssl) 0 else 1) { i ->
@@ -301,7 +301,7 @@ private fun TarjetaEstado(e: EstadoBuzon, ahora: Instant, acciones: AccionesCorr
         !e.activo -> "Conectando…" to s.sobreHeroeSuave
         e.caidas > 0 -> "Reconectando…" to s.sobreHeroeSuave
         e.imap -> "Escuchando en tiempo real" to verde
-        else -> "Comprobando cada 5 minutos" to verde
+        else -> "Comprobando cada 2 minutos" to verde
     }
     val hace = runCatching { Duration.between(Instant.parse(e.ultima), ahora).toMinutes() }.getOrNull()
     val forma = RoundedCornerShape(24.dp)

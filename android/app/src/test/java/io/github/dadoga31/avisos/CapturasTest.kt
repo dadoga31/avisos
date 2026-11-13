@@ -216,6 +216,16 @@ class CapturasTest {
     }
 
     @Test
+    fun actualizar() = foto("14-actualizar") {
+        Marco(Seccion.AGENDA) {
+            AgendaPantalla(
+                avisos, tecnicos, Ajustes(pistaGestos = false), ahora, AccionesAgenda(), correo = true,
+                actualizacion = io.github.dadoga31.avisos.EstadoActualizacion.Descargando(Actualizador.Version(13, "3.6.0"), 0.42f)
+            )
+        }
+    }
+
+    @Test
     fun agendaVacia() = foto("9-agenda-vacia") {
         Marco(Seccion.AGENDA) {
             AgendaPantalla(emptyList(), tecnicos, Ajustes(), ahora, AccionesAgenda())

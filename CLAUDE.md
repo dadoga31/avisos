@@ -44,7 +44,7 @@ móvil **Android**, instalada con la APK de este repo.
 - Las pantallas no tienen estado propio de datos: reciben avisos y acciones.
   Así se prueban y se capturan sin base de datos.
 - Pruebas: `cd android && ./gradlew testDebugUnitTest`. `ReglasTest` (JVM),
-  `RepositorioTest` (Robolectric + Room en memoria), `GestosTest` (Compose:
+  `RepositorioTest` (Robolectric + Room en memoria), `ActualizadorTest`, `GestosTest` (Compose:
   deslizar para cerrar, la línea de tiempo, la semana y el dock) y
   `CapturasTest` (Roborazzi, con `-Proborazzi.test.record=true`): deja en
   `diseno/capturas-app/` cada pantalla en claro y oscuro a tamaño Pixel 7.
@@ -61,6 +61,21 @@ móvil **Android**, instalada con la APK de este repo.
   `ConversorCorreoTest` comprueba que da lo mismo que la web; si cambias una
   regla, cámbiala en los dos o borra la web. Los adjuntos se copian a
   `filesDir/adjuntos/<aviso>/` y se abren con FileProvider.
+- POP3 se consulta cada 2 minutos (`ESPERA_POP3`, lo pidió el usuario); con
+  IMAP es al instante (IDLE). No bajar de 1 minuto: hay servidores de empresa
+  que bloquean la cuenta si inicia sesión tan a menudo.
+- Actualizar desde la app (3.6.0): el workflow publica en la release «apk»,
+  junto a `avisos.apk`, un `version.json` con el `versionCode` y el
+  `versionName` de `app/build.gradle`. `Actualizador` lo mira al abrir y al
+  volver a la app (como mucho cada 30 min) y dos veces al día con una alarma
+  inexacta (`ReceptorActualizacion`); si hay una más nueva saca una
+  notificación por versión y una franja en la Agenda y en Ajustes. «Actualizar»
+  baja la APK a `cache/actualizacion/`, comprueba que es de esta app y más
+  nueva, y abre el instalador del sistema (FileProvider). La primera vez
+  Android pide permitir que Avisos instale apps (`REQUEST_INSTALL_PACKAGES`):
+  al volver de ese ajuste sigue solo. Android siempre pide el toque en
+  «Instalar»; eso no se puede quitar. Si cambias la release o su nombre, cambia
+  también las URL de `Actualizador`: las versiones instaladas las tienen fijas.
 - La base de datos va por la versión 2. Cada cambio de esquema necesita su
   migración (aquí `AutoMigration`) y su prueba: quien actualiza no puede
   perder sus avisos.

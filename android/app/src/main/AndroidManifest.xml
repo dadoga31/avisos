@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Internet solo para leer el buzón de correo; la app no envía datos
-         a ningún otro sitio. -->
+    <!-- Internet para leer el buzón de correo y para mirar si hay versión
+         nueva en la release «apk» de GitHub (solo descarga; la app no envía
+         datos a ningún sitio). -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Para abrir el instalador con la APK nueva sin pasar por el navegador. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
@@ -77,6 +80,11 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+
+        <!-- Mira dos veces al día si hay versión nueva de la app. -->
+        <receiver
+            android:name=".ReceptorActualizacion"
+            android:exported="false" />
 
         <!-- Botones de las notificaciones de aviso nuevo («Me lo quedo»). -->
         <receiver

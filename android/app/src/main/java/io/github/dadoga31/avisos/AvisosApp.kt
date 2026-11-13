@@ -22,6 +22,8 @@ class AvisosApp : Application() {
             publicarResumen(this, it)
             Recordatorios.reprogramar(this, it, ajustes.actual.recordatorio)
         })
+        Actualizador.programar(this)
+        Thread { runCatching { Actualizador.limpiar(this) } }.start()
     }
 
     companion object {

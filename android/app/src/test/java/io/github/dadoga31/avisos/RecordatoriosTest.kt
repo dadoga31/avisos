@@ -52,7 +52,10 @@ class RecordatoriosTest {
         )
     }
 
-    private fun alarmas() = shadowOf(am).scheduledAlarms
+    /* Solo las de los recordatorios: la de buscar versión nueva también está programada. */
+    private fun alarmas() = shadowOf(am).scheduledAlarms.filter {
+        shadowOf(it.operation).savedIntent.component?.className != ReceptorActualizacion::class.java.name
+    }
 
     /** Entrega la alarma como lo haría Android y espera a que el receptor termine. */
     private fun disparar(alarma: ShadowAlarmManager.ScheduledAlarm) = disparar(shadowOf(alarma.operation).savedIntent)

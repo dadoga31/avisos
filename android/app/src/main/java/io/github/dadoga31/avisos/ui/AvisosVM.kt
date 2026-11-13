@@ -3,7 +3,9 @@ package io.github.dadoga31.avisos.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.dadoga31.avisos.Actualizador
 import io.github.dadoga31.avisos.AvisosApp
+import io.github.dadoga31.avisos.EstadoActualizacion
 import io.github.dadoga31.avisos.datos.Ajustes
 import io.github.dadoga31.avisos.datos.Aviso
 import io.github.dadoga31.avisos.datos.Estado
@@ -56,6 +58,82 @@ class AvisosVM(app: Application) : AndroidViewModel(app) {
             repo.avisarCambio()
         }
         procesarCorreo()
+        /* La versión nueva se mira en onResume (alVolver): aquí aún no existe su estado. */
+    }
+
+    // ---------------------------------------------------------------- actualizaciones
+
+    /** Si hay versión nueva y cómo va su descarga: la franja de la Agenda y Ajustes. */
+    val actualizacion = MutableStateFlow<EstadoActualizacion>(EstadoActualizacion.Nada)
+    private var ultimaConsulta = 0L
+    private var esperandoPermiso = false
+
+    /**
+     * Mira si hay versión nueva (al abrir y al volver a la app, como mucho
+     * cada 30 min salvo que se pida). [descargar]: si la hay, la baja ya
+     * (al tocar la notificación). [avisarSiNo]: dice «ya tienes la última».
+     */
+    fun buscarActualizacion(forzar: Boolean = false, descargar: Boolean = false, avisarSiNo: Boolean = false) {
+        val estado = actualizacion.value
+        if (estado is EstadoActualizacion.Descargando) return
+        if (estado is EstadoActualizacion.Lista) { if (descargar) actualizar(); return }
+        val ahora = System.currentTimeMillis()
+        if (!forzar && ahora - ultimaConsulta < 30 * 60_000L) return
+        ultimaConsulta = ahora
+        viewModelScope.launch(Dispatchers.IO) {
+            val v = Actualizador.consultar()
+            when {
+                v != null && Actualizador.hayNueva(v) -> {
+                    actualizacion.value = EstadoActualizacion.Disponible(v)
+                    if (descargar) actualizar()
+                }
+                avisarSiNo -> mensajes.tryEmit(if (v == null) "No se pudo mirar si hay versión nueva" else "Tienes la última versión")
+            }
+        }
+    }
+
+    /** El botón de la franja: descarga, y al terminar abre el instalador. */
+    fun actualizar() {
+        when (val e = actualizacion.value) {
+            is EstadoActualizacion.Lista -> instalar(e)
+            is EstadoActualizacion.Disponible -> descargar(e.version)
+            is EstadoActualizacion.Fallo -> descargar(e.version)
+            else -> Unit
+        }
+    }
+
+    private fun descargar(v: Actualizador.Version) {
+        actualizacion.value = EstadoActualizacion.Descargando(v, 0f)
+        viewModelScope.launch(Dispatchers.IO) {
+            val r = runCatching { Actualizador.descargar(avisosApp) { p -> actualizacion.value = EstadoActualizacion.Descargando(v, p) } }
+            actualizacion.value = r.fold(
+                { EstadoActualizacion.Lista(v, it) },
+                { EstadoActualizacion.Fallo(v, if (it is java.io.IOException) "Sin conexión" else it.message ?: "No se pudo descargar") }
+            )
+            (actualizacion.value as? EstadoActualizacion.Lista)?.let { instalar(it) }
+        }
+    }
+
+    private fun instalar(e: EstadoActualizacion.Lista) {
+        if (!Actualizador.puedeInstalar(avisosApp)) {
+            /* La primera vez: Android pide permitir que Avisos instale apps. Al volver se instala. */
+            esperandoPermiso = true
+            mensajes.tryEmit("Permite instalar apps de Avisos y vuelve atrás")
+            runCatching { avisosApp.startActivity(Actualizador.pedirPermiso(avisosApp)) }
+            return
+        }
+        runCatching { Actualizador.instalar(avisosApp, e.apk) }
+            .onFailure { actualizacion.value = EstadoActualizacion.Fallo(e.version, "No se pudo abrir el instalador") }
+    }
+
+    /** Al volver a la app: si venía de dar el permiso, sigue con la instalación. */
+    fun alVolver() {
+        Actualizador.quitarNotificacion(avisosApp)
+        val e = actualizacion.value
+        if (esperandoPermiso && e is EstadoActualizacion.Lista && Actualizador.puedeInstalar(avisosApp)) {
+            esperandoPermiso = false
+            instalar(e)
+        } else buscarActualizacion()
     }
 
     /** Convierte los correos que esperan (al abrir la app y al volver a ella). */

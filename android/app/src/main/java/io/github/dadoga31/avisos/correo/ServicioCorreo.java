@@ -29,7 +29,7 @@ public class ServicioCorreo extends Service {
     private static final String CANAL_ESTADO = "correo_estado";
     private static final String CANAL_AVISOS = "correo_nuevos";
     private static final int ID_NOTIFICACION = 1;
-    private static final long ESPERA_POP3 = 5 * 60 * 1000L;
+    private static final long ESPERA_POP3 = 2 * 60 * 1000L;   // pedido por el usuario; menos de 1 min y algunos servidores bloquean
     private static final long ESPERA_MIN = 15 * 1000L;
     private static final long ESPERA_MAX = 10 * 60 * 1000L;
     private static final int CAIDAS_PARA_AVISAR = 6;

@@ -61,6 +61,7 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
     val ajustes by vm.ajustes.collectAsStateWithLifecycle()
     val ahora by vm.ahora.collectAsStateWithLifecycle()
     val cargado by vm.cargado.collectAsStateWithLifecycle()
+    val actualizacion by vm.actualizacion.collectAsStateWithLifecycle()
     val nav = rememberNavController()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -133,9 +134,11 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                         irA = { mapa(contexto, it) },
                         ejemplo = { vm.datosDeEjemplo() },
                         ocultarPista = { vm.cambiarAjustes { it.copy(pistaGestos = false) } },
-                        correo = { nav.navigate("correo") }
+                        correo = { nav.navigate("correo") },
+                        actualizar = { vm.actualizar() }
                     ),
-                    correo = correo
+                    correo = correo,
+                    actualizacion = actualizacion
                 )
             }
             destino("hechos") { HechosPantalla(avisos, tecnicos, ahora) { nav.navigate("aviso/$it") } }
@@ -164,8 +167,11 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                         guardarCopia = { guardar.launch("avisos-$hoy.json") },
                         recuperarCopia = { recuperar.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) },
                         ejemplo = { vm.datosDeEjemplo(); irASeccion(Seccion.AGENDA) },
-                        borrarTodo = { vm.borrarTodos() }
-                    )
+                        borrarTodo = { vm.borrarTodos() },
+                        buscarActualizacion = { vm.buscarActualizacion(forzar = true, avisarSiNo = true) },
+                        actualizar = { vm.actualizar() }
+                    ),
+                    actualizacion = actualizacion
                 )
             }
             /* La ficha entra con fundido mientras su título viaja desde la fila. */
