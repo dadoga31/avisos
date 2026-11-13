@@ -132,4 +132,15 @@ class ProcesadorCorreoTest {
         assertTrue(a.adjuntos.isEmpty())
         db2.close()
     }
+
+    @Test
+    fun `la copia de lo que manda la app no se convierte en aviso`() {
+        almacen.anadirPendientes(listOf(
+            mensaje("1", "avisos@empresa.es", "Re: Central sin conexión", messageId = "<avisos-123e4567@empresa.es>"),
+            mensaje("2", "pedro@naves.es", "Alarma sin cobertura")
+        ))
+        val r = procesar()
+        assertEquals(listOf("Alarma sin cobertura"), r.creados.map { it.titulo })
+        assertEquals(0, almacen.cuantosPendientes())
+    }
 }

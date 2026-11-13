@@ -472,6 +472,20 @@ fun FranjaActualizacion(estado: io.github.dadoga31.avisos.EstadoActualizacion, a
     }
 }
 
+/** Botón en cápsula con línea fina, sobre fondo claro u oscuro de página. */
+@Composable
+fun BotonLinea(texto: String, icono: ImageVector?, alPulsar: () -> Unit, modifier: Modifier = Modifier) {
+    val i = remember { MutableInteractionSource() }
+    Row(
+        modifier.height(46.dp).presionable(i, 0.96f).tarjeta(CircleShape)
+            .clickable(i, LocalIndication.current, role = Role.Button, onClick = alPulsar).padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center
+    ) {
+        if (icono != null) Icon(icono, null, Modifier.padding(end = 8.dp).size(18.dp))
+        Text(texto, style = MaterialTheme.typography.titleSmall, maxLines = 1)
+    }
+}
+
 /** Separación vertical. */
 @Composable
 fun Alto(dp: Int) = Spacer(Modifier.height(dp.dp))

@@ -170,6 +170,26 @@ class AvisosVM(app: Application) : AndroidViewModel(app) {
 
     fun borrarAdjunto(id: String, adjuntoId: String) = viewModelScope.launch { repo.borrarAdjunto(id, adjuntoId) }
 
+    /**
+     * Manda un correo del aviso (responder o reenviar). Si va bien, lo apunta
+     * en el registro del aviso. [luego] recibe el error, o null si se envió.
+     */
+    fun enviarCorreo(avisoId: String, envio: io.github.dadoga31.avisos.correo.Envio, nota: String, luego: (String?) -> Unit) =
+        viewModelScope.launch {
+            val error = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                val c = runCatching { io.github.dadoga31.avisos.correo.Cuenta.cargar(avisosApp) }.getOrNull()
+                if (c == null || !c.envioValido()) return@withContext "Falta configurar el envío en Ajustes → Correo"
+                try {
+                    io.github.dadoga31.avisos.correo.EnviadorCorreo.enviar(c, envio)?.let { mensajes.tryEmit(it) }
+                    repo.anadirNota(avisoId, nota)
+                    null
+                } catch (e: Exception) {
+                    io.github.dadoga31.avisos.correo.EnviadorCorreo.explicar(e)
+                }
+            }
+            luego(error)
+        }
+
     fun sumarHoras(id: String, delta: Double) = viewModelScope.launch { repo.sumarHoras(id, delta) }
 
     fun guardarTecnico(nombre: String, telefono: String, id: String?) =

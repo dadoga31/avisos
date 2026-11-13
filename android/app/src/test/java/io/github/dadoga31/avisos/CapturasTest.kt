@@ -45,6 +45,7 @@ import io.github.dadoga31.avisos.datos.Adjunto
 import io.github.dadoga31.avisos.ui.AccionesAgenda
 import io.github.dadoga31.avisos.ui.AccionesCorreo
 import io.github.dadoga31.avisos.ui.CorreoPantalla
+import io.github.dadoga31.avisos.ui.RedactarPantalla
 import io.github.dadoga31.avisos.ui.EstadoBuzon
 import io.github.dadoga31.avisos.ui.FormCuenta
 import io.github.dadoga31.avisos.ui.AccionesAjustes
@@ -280,6 +281,39 @@ class CapturasTest {
             )
         )
         FichaPantalla(a, tecnicos, ahora, AccionesFicha())
+    }
+
+    private fun avisoDeCorreo() = ConversorCorreo.aAviso(
+        MensajeCorreo(
+            uid = "9", messageId = "<9@naves>", de = "pedro@naves.es", deNombre = "Naves Logísticas Sur",
+            asunto = "URGENTE: alarma sin cobertura en nave 3", fecha = "2026-11-12T07:50:00Z",
+            texto = "Buenos días,\nLa central no comunica con la CRA desde anoche y la nave está sin cobertura.\n" +
+                "Llamad a Pedro al 600 11 22 33.\n\nGracias"
+        ), "c1", ahora.toLocalDate()
+    ).copy(ref = "AV-0008", creado = "2026-11-12T07:50:00Z", fecha = "2026-11-12", hora = "11:30",
+        adjuntos = listOf(Adjunto("f1", "parte-incidencia.pdf", "application/pdf", 182_000, "x")))
+
+    @Test
+    @Config(qualifiers = "w412dp-h1500dp-xhdpi")
+    fun responder() = foto("17-responder") {
+        val a = avisoDeCorreo()
+        RedactarPantalla(
+            a, false, ahora.toLocalDate(), null, envioListo = true, copiaInicial = true, fichero = { File(it.ruta) },
+            enviando = false, error = null, alEnviar = { _, _ -> }, alCerrar = {}, alConfigurar = {}
+        )
+    }
+
+    /** Ajustes → Correo entero: buzón, envío (SMTP) y firma. */
+    @Test
+    @Config(qualifiers = "w412dp-h2600dp-xhdpi")
+    fun correoEnvio() = foto("18-correo-envio") {
+        val instante = ahora.atZone(ZoneId.systemDefault()).toInstant()
+        CorreoPantalla(
+            EstadoBuzon(true, "avisos@seguridadnorte.es", imap = false, activo = true, ultima = instante.minusSeconds(60).toString()),
+            FormCuenta("avisos@seguridadnorte.es", "", "mail.seguridadnorte.es", imap = false, puerto = "995",
+                nombre = "Dani · Seguridad Norte", smtpServidor = "mail.seguridadnorte.es", copiaParaMi = true),
+            emptyList(), AccionesCorreo(), instante
+        )
     }
 
     /** La ficha entera (más alta que la pantalla) con fotos y un PDF. */

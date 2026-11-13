@@ -42,6 +42,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.Chat
+import androidx.compose.material.icons.automirrored.rounded.Forward
+import androidx.compose.material.icons.automirrored.rounded.Reply
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AttachFile
@@ -139,7 +141,9 @@ class AccionesFicha(
     val abrirAdjunto: (Adjunto) -> Unit = {},
     val borrarAdjunto: (Adjunto) -> Unit = {},
     val camara: () -> Unit = {},
-    val galeria: () -> Unit = {}
+    val galeria: () -> Unit = {},
+    val responder: () -> Unit = {},
+    val reenviar: () -> Unit = {}
 )
 
 private val HHMM = DateTimeFormatter.ofPattern("HH:mm")
@@ -190,6 +194,10 @@ fun FichaPantalla(
                                 text = { Text("Cambiar estado") }, leadingIcon = { Icon(Icons.Rounded.SwapHoriz, null) },
                                 onClick = { menu = false; hojaEstado = true }
                             )
+                            if (!Plantillas.deCorreo(aviso)) DropdownMenuItem(
+                                text = { Text("Enviar por correo") }, leadingIcon = { Icon(Icons.AutoMirrored.Rounded.Forward, null) },
+                                onClick = { menu = false; acciones.reenviar() }
+                            )
                             DropdownMenuItem(
                                 text = { Text("Duplicar") }, leadingIcon = { Icon(Icons.Rounded.ContentCopy, null) },
                                 onClick = { menu = false; acciones.duplicar() }
@@ -229,6 +237,21 @@ fun FichaPantalla(
                     DropdownMenu(menuFoto, { menuFoto = false }) {
                         DropdownMenuItem(text = { Text("Cámara") }, leadingIcon = { Icon(Icons.Rounded.PhotoCamera, null) }, onClick = { menuFoto = false; acciones.camara() })
                         DropdownMenuItem(text = { Text("Galería") }, leadingIcon = { Icon(Icons.Rounded.PhotoLibrary, null) }, onClick = { menuFoto = false; acciones.galeria() })
+                    }
+                }
+            }
+
+            if (Plantillas.deCorreo(aviso)) {
+                CabeceraDato("Correo", extra = Plantillas.fechaCorreo(aviso))
+                Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().tarjeta(RoundedCornerShape(20.dp)).padding(16.dp)) {
+                    Dato("De", tam = 9.5f)
+                    Text(
+                        Plantillas.remitente(aviso), Modifier.padding(top = 4.dp), maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        BotonPildora("Responder", Icons.AutoMirrored.Rounded.Reply, acciones.responder, Modifier.weight(1f), alto = 46.dp)
+                        BotonLinea("Reenviar", Icons.AutoMirrored.Rounded.Forward, acciones.reenviar, Modifier.weight(1f))
                     }
                 }
             }

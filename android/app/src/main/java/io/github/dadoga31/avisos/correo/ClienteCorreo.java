@@ -49,7 +49,8 @@ public class ClienteCorreo {
 
     // ---------- conexión ----------
 
-    private Properties propiedades(Cuenta c) {
+    /** También la usa EnviadorCorreo para guardar lo enviado en «Enviados». */
+    static Properties propiedades(Cuenta c) {
         String proto = c.esImap() ? (c.esSSL() ? "imaps" : "imap") : (c.esSSL() ? "pop3s" : "pop3");
         Properties p = new Properties();
         p.setProperty("mail.store.protocol", proto);

@@ -244,8 +244,50 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                             },
                             galeria = {
                                 galeria.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                            }
+                            },
+                            responder = { nav.navigate("redactar/${a.id}/responder") },
+                            reenviar = { nav.navigate("redactar/${a.id}/reenviar") }
                         )
+                    )
+                }
+            }
+            destino("redactar/{id}/{modo}", entrar = entrarLado, salir = salirLado) { e ->
+                val id = e.arguments?.getString("id")
+                val reenvio = e.arguments?.getString("modo") == "reenviar"
+                val a = avisos.firstOrNull { it.id == id }
+                var cuenta by remember { mutableStateOf<io.github.dadoga31.avisos.correo.Cuenta?>(null) }
+                var leida by remember { mutableStateOf(false) }
+                var firma by remember { mutableStateOf<String?>(null) }
+                var enviando by remember { mutableStateOf(false) }
+                var error by remember { mutableStateOf<String?>(null) }
+                /* Se vuelve a leer al volver de Ajustes → Correo. */
+                androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+                    val trabajo = scope.launch {
+                        val (c, f) = withContext(Dispatchers.IO) {
+                            runCatching { io.github.dadoga31.avisos.correo.Cuenta.cargar(contexto) }.getOrNull() to
+                                io.github.dadoga31.avisos.correo.Firma.leer(contexto)
+                        }
+                        cuenta = c; firma = f; leida = true
+                    }
+                    onPauseOrDispose { trabajo.cancel() }
+                }
+                if (a != null && leida) {
+                    RedactarPantalla(
+                        a, reenvio, hoy, firma, cuenta?.envioValido() == true, cuenta?.copiaParaMi ?: false,
+                        fichero = { java.io.File(contexto.filesDir, it.ruta) },
+                        enviando = enviando, error = error,
+                        alEnviar = { envio, nota ->
+                            enviando = true; error = null
+                            vm.enviarCorreo(a.id, envio, nota) { fallo ->
+                                enviando = false
+                                if (fallo == null) {
+                                    nav.popBackStack()
+                                    scope.launch { snackbar.showSnackbar(if (reenvio) "Reenviado a ${envio.para.joinToString()}" else "Respuesta enviada") }
+                                } else error = fallo
+                            }
+                        },
+                        alCerrar = { nav.popBackStack() },
+                        alConfigurar = { nav.navigate("correo") }
                     )
                 }
             }

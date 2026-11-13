@@ -25,9 +25,27 @@ public class Cuenta {
     public String seguridad = "ssl";     // ssl | starttls
     public int puerto = 993;
 
+    /* Envío (SMTP). Usuario y contraseña vacíos = los mismos del buzón. */
+    public String nombre = "";            // remitente: «Dani · Seguridad Norte»
+    public String smtpServidor = "";
+    public int smtpPuerto = 465;
+    public String smtpSeguridad = "ssl";  // ssl | starttls
+    public String smtpUsuario = "";
+    public String smtpClave = "";
+    public boolean copiaParaMi = true;    // CCO a la propia cuenta (con POP3 no hay «Enviados»)
+
     public boolean valida() {
         return !usuario.isEmpty() && !servidor.isEmpty() && !clave.isEmpty() && puerto > 0;
     }
+
+    public boolean envioValido() {
+        return !smtpServidor.isEmpty() && smtpPuerto > 0 && !usuarioSmtp().isEmpty() && !claveSmtp().isEmpty();
+    }
+
+    public String usuarioSmtp() { return smtpUsuario.isEmpty() ? usuario : smtpUsuario; }
+    /** Sin usuario propio de envío, la contraseña es la del buzón. */
+    public String claveSmtp() { return smtpUsuario.isEmpty() ? clave : smtpClave; }
+    public boolean smtpSSL() { return !"starttls".equalsIgnoreCase(smtpSeguridad); }
 
     public boolean esImap() { return !"pop3".equalsIgnoreCase(protocolo); }
     public boolean esSSL() { return !"starttls".equalsIgnoreCase(seguridad); }
@@ -66,7 +84,16 @@ public class Cuenta {
                 .putString("servidor", c.servidor)
                 .putString("protocolo", c.protocolo)
                 .putString("seguridad", c.seguridad)
-                .putInt("puerto", c.puerto);
+                .putInt("puerto", c.puerto)
+                .putString("nombre", c.nombre)
+                .putString("smtpServidor", c.smtpServidor)
+                .putInt("smtpPuerto", c.smtpPuerto)
+                .putString("smtpSeguridad", c.smtpSeguridad)
+                .putString("smtpUsuario", c.smtpUsuario)
+                .putBoolean("copiaParaMi", c.copiaParaMi);
+        /* Igual que la del buzón: vacía al editar = se queda la que había. */
+        if (!c.smtpClave.isEmpty()) ed.putString("smtpClave", c.smtpClave);
+        if (c.smtpUsuario.isEmpty()) ed.remove("smtpClave");
         /* Si el usuario deja la contraseña en blanco al editar, se conserva
            la que ya había. */
         if (!c.clave.isEmpty()) ed.putString("clave", c.clave);
@@ -86,6 +113,13 @@ public class Cuenta {
         c.protocolo = p.getString("protocolo", "imap");
         c.seguridad = p.getString("seguridad", "ssl");
         c.puerto = p.getInt("puerto", 993);
+        c.nombre = p.getString("nombre", "");
+        c.smtpServidor = p.getString("smtpServidor", "");
+        c.smtpPuerto = p.getInt("smtpPuerto", 465);
+        c.smtpSeguridad = p.getString("smtpSeguridad", "ssl");
+        c.smtpUsuario = p.getString("smtpUsuario", "");
+        c.smtpClave = p.getString("smtpClave", "");
+        c.copiaParaMi = p.getBoolean("copiaParaMi", !c.esImap());
         return c;
     }
 

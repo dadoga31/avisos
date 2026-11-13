@@ -45,7 +45,7 @@ móvil **Android**, instalada con la APK de este repo.
   Así se prueban y se capturan sin base de datos.
 - Pruebas: `cd android && ./gradlew testDebugUnitTest`. `ReglasTest` (JVM),
   `RepositorioTest` (Robolectric + Room en memoria), `ActualizadorTest`,
-  `BorrarTest`, `GestosTest` (Compose: deslizar para cerrar, en curso,
+  `BorrarTest`, `FirmaTest`, `EnviadorCorreoTest`, `GestosTest` (Compose: deslizar para cerrar, en curso,
   deslizar y cancelar en la línea, la semana y el dock) y
   `CapturasTest` (Roborazzi, con `-Proborazzi.test.record=true`): deja en
   `diseno/capturas-app/` cada pantalla en claro y oscuro a tamaño Pixel 7.
@@ -62,6 +62,28 @@ móvil **Android**, instalada con la APK de este repo.
   `ConversorCorreoTest` comprueba que da lo mismo que la web; si cambias una
   regla, cámbiala en los dos o borra la web. Los adjuntos se copian a
   `filesDir/adjuntos/<aviso>/` y se abren con FileProvider.
+- Responder y reenviar (3.7.0): `EnviadorCorreo` manda por el SMTP del
+  hosting (servidor, puerto 465 SSL o 587 STARTTLS, y por defecto el mismo
+  usuario y contraseña del buzón; todo en `Cuenta`, cifrado). Texto y HTML,
+  firma con sus imágenes en línea (cid:), adjuntos del aviso, `In-Reply-To`
+  con el Message-ID del correo original (la respuesta cae en la misma
+  conversación) y «Re:» / «RV:». Con IMAP se guarda copia en «Enviados»; con
+  POP3 no hay «Enviados» y va copia oculta a la propia cuenta. Lo enviado
+  lleva Message-ID `<avisos-…>` y `ProcesadorCorreo` no lo convierte en aviso
+  (si no, la copia oculta volvería como aviso nuevo). Pantalla `Redactar`
+  desde el bloque «Correo» de la ficha (o «Enviar por correo» en «⋯» si el
+  aviso no vino por correo), con respuestas rápidas (`Plantillas`) y una nota
+  en el registro al enviar. `EnviadorCorreoTest` mira el mensaje tal como
+  saldría.
+- Firma (3.7.0, `correo/Firma.kt`): el usuario quiere la de Outlook tal cual.
+  Se pega (si se copia de un correo abierto en el móvil, el portapapeles trae
+  el HTML) o se abre el `.htm` de la carpeta de firmas de Outlook (respeta
+  windows-1252). Se limpia (fragmento, estilos delante, fuera scripts,
+  eventos y marcas de Office). Las imágenes que no se pueden traer (ficheros
+  sueltos o «cid:») se eligen a mano y quedan dentro como data: URI. Vista
+  previa en un WebView sin JavaScript (en las capturas sale en blanco). No
+  hay editor de negritas a propósito: cada programa de correo lo pinta
+  distinto.
 - POP3 se consulta cada 2 minutos (`ESPERA_POP3`, lo pidió el usuario); con
   IMAP es al instante (IDLE). No bajar de 1 minuto: hay servidores de empresa
   que bloquean la cuenta si inicia sesión tan a menudo.

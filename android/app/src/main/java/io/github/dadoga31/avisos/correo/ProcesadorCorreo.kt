@@ -40,7 +40,8 @@ object ProcesadorCorreo {
         var saltados = 0
         for (m in mensajes) {
             try {
-                if (ConversorCorreo.ignorado(m, ignorados) || repo.yaConvertido(m.claves)) {
+                /* Lo que mandó esta app (la copia que vuelve por POP3) no es un aviso. */
+                if (EnviadorCorreo.esPropio(m.messageId) || ConversorCorreo.ignorado(m, ignorados) || repo.yaConvertido(m.claves)) {
                     saltados++
                     tratados += m.uid
                     continue

@@ -333,7 +333,7 @@ private fun Etiquetado(nombre: String, modifier: Modifier = Modifier, contenido:
 
 /** Campo sin caja: el texto en grande y una línea fina que se vuelve naranja al escribir. */
 @Composable
-private fun CampoTexto(
+internal fun CampoTexto(
     valor: String,
     alCambiar: (String) -> Unit,
     ayuda: String,
