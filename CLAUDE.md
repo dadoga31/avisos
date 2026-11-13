@@ -44,8 +44,9 @@ móvil **Android**, instalada con la APK de este repo.
 - Las pantallas no tienen estado propio de datos: reciben avisos y acciones.
   Así se prueban y se capturan sin base de datos.
 - Pruebas: `cd android && ./gradlew testDebugUnitTest`. `ReglasTest` (JVM),
-  `RepositorioTest` (Robolectric + Room en memoria), `ActualizadorTest`, `GestosTest` (Compose:
-  deslizar para cerrar, la línea de tiempo, la semana y el dock) y
+  `RepositorioTest` (Robolectric + Room en memoria), `ActualizadorTest`,
+  `BorrarTest`, `GestosTest` (Compose: deslizar para cerrar, en curso,
+  deslizar y cancelar en la línea, la semana y el dock) y
   `CapturasTest` (Roborazzi, con `-Proborazzi.test.record=true`): deja en
   `diseno/capturas-app/` cada pantalla en claro y oscuro a tamaño Pixel 7.
   Tras un cambio visual, mira esas capturas. Sin «ñ» ni tildes en los nombres
@@ -114,14 +115,27 @@ móvil **Android**, instalada con la APK de este repo.
   oscuras con halo para lo importante. Dock de solo iconos con el + naranja en
   el centro (siempre crea un aviso; añadir técnico está en Equipo) y un punto
   que se desliza bajo la sección.
-  - Agenda = línea de tiempo de un día (`Reglas.linea`, 72 dp por hora): lo
-    que está en curso llega hasta ahora, lo hecho ese día sale apagado, lo
-    cancelado no sale y lo que se pisa va en columnas (`Reglas.carriles`).
-    Debajo, «Sin hora» (`sinHora`), «Sin fecha» (`sinFecha`) y «Próximos»: así
-    todo aviso abierto sigue saliendo en algún sitio. Vencidos en una barra
-    arriba. El siguiente aviso lleva Llamar e Ir en su bloque (criterio 1).
-    Tocar una cifra o la lupa la convierte en búsqueda; Atrás cierra la
-    búsqueda y luego vuelve a hoy.
+  - Agenda (3.6.1, `ui/Linea.kt`): lo que está en curso va arriba en
+    tarjetas oscuras grandes (cronómetro, cliente, dirección, Llamar, Ir, Hecho
+    y «⋯» con En espera y Cancelar), de lado si hay varias. Antes iba dentro de
+    la línea a escala y con varios a la vez salían columnas estrechas donde no
+    se leía nada (queja del usuario): no volver a eso. La línea del día
+    (`Reglas.linea`, sin lo que está en curso) es un raíl: hora a la izquierda,
+    un punto por aviso, cada aviso a todo el ancho, «Libre · 1 h 30» en los
+    huecos de 45 min o más y la hora de ahora en naranja. Lo hecho ese día sale
+    apagado, lo cancelado no sale. Debajo, «Sin hora» (`sinHora`), «Sin fecha»
+    (`sinFecha`) y «Próximos»: así todo aviso abierto sigue saliendo en algún
+    sitio. Vencidos en una barra arriba. El siguiente aviso lleva Llamar e Ir
+    (criterio 1). Tocar una cifra o la lupa la convierte en búsqueda; Atrás
+    cierra la búsqueda y luego vuelve a hoy.
+  - Deslizar (`Deslizable`): a la izquierda descubre Cancelar y Hecho, y
+    deslizar del todo es hecho; a la derecha, en curso (o en espera). Cancelar
+    pone el aviso en cancelado y lo borra cuando se va el aviso de abajo, salvo
+    «Deshacer» (pedido por el usuario: cancelar = borrar). Con TalkBack son
+    acciones de la fila.
+  - Al borrar desde la ficha, la ficha solo vuelve atrás si es la pantalla de
+    delante: si no, mientras salía volvía otra vez, se llevaba la Agenda y la
+    app se quedaba en blanco (fallo de la 3.6.0, lo prueba `BorrarTest`).
   - Ficha = hoja de misión: pasos del estado (tocar abre la hoja), cronómetro
     o cuenta atrás en tarjeta oscura (`Cronometro`, dígitos que ruedan),
     rejilla de datos, acciones redondas, registro (alta, inicio, notas,

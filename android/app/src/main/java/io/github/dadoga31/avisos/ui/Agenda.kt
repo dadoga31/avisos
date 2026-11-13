@@ -112,7 +112,9 @@ class AccionesAgenda(
     val ejemplo: () -> Unit = {},
     val ocultarPista: () -> Unit = {},
     val correo: () -> Unit = {},
-    val actualizar: () -> Unit = {}
+    val actualizar: () -> Unit = {},
+    /** Cancelar y borrar (con «Deshacer» mientras se ve el aviso de abajo). */
+    val cancelar: (Aviso) -> Unit = {}
 )
 
 private val ES = Locale("es", "ES")
@@ -207,6 +209,10 @@ fun AgendaPantalla(
         item(key = "fecha") {
             CabeceraFecha(dia, hoy, ahora, Reglas.progresoDia(avisos, dia), Modifier.entrada(0)) { dia = hoy }
         }
+        val enCurso = if (dia == hoy) Reglas.enCurso(avisos) else emptyList()
+        if (enCurso.isNotEmpty()) {
+            item(key = "encurso") { SeccionEnCurso(enCurso, porId, ahora, acciones, Modifier.padding(top = 16.dp).entrada(1)) }
+        }
 
         if (avisos.isEmpty()) {
             item(key = "vacio") { Vacio(acciones, Modifier.entrada(1)) }
@@ -240,13 +246,17 @@ fun AgendaPantalla(
             item(key = "pista") { Pista(acciones.ocultarPista, Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp).entrada(3)) }
         }
 
+        /* Lo que está en curso ya va arriba, en grande: la línea es el plan del día. */
         val bloques = Reglas.linea(avisos, dia, if (dia == hoy) ahora.toLocalTime() else null)
-        val siguiente = if (dia == hoy) Reglas.siguiente(avisos, hoy, ahora.toLocalTime())?.aviso?.id else null
+            .filter { dia != hoy || it.aviso.estadoE != Estado.EN_CURSO }
+        /* El siguiente de la línea, sin contar lo que ya está en curso. */
+        val siguiente = if (dia == hoy) Reglas.siguiente(avisos.filter { it.estadoE != Estado.EN_CURSO }, hoy, ahora.toLocalTime())?.aviso?.id else null
+        item(key = "cab-linea") { CabeceraDato(if (dia == hoy) "Hoy" else "Plan del día", Modifier.entrada(4), extra = if (bloques.isEmpty()) "" else "${bloques.size}") }
         item(key = "linea-$dia") {
             if (bloques.isEmpty()) {
-                SinCitas(dia == hoy, acciones.nuevo, Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp).entrada(4))
+                SinCitas(dia == hoy, acciones.nuevo, Modifier.padding(horizontal = 16.dp).entrada(4))
             } else {
-                LineaTiempo(bloques, dia == hoy, ahora, porId, siguiente, hoy, acciones, Modifier.padding(top = 16.dp).entrada(4))
+                LineaTiempo(bloques, dia == hoy, ahora, porId, siguiente, hoy, acciones, Modifier.entrada(4))
             }
         }
 
@@ -470,321 +480,19 @@ private fun SinCitas(esHoy: Boolean, alNuevo: () -> Unit, modifier: Modifier) {
     }
 }
 
-// ---------------------------------------------------------------- línea de tiempo
-
-/**
- * Las horas en una rejilla discontinua y cada aviso en su sitio, con su
- * duración. Los que se pisan van en columnas. Hoy, una línea naranja marca
- * la hora; pasa por detrás de las tarjetas y su hora va en el margen.
- */
-@Composable
-private fun LineaTiempo(
-    bloques: List<Reglas.Bloque>,
-    esHoy: Boolean,
-    ahora: LocalDateTime,
-    tecnicos: Map<String, Tecnico>,
-    siguiente: String?,
-    hoy: LocalDate,
-    acciones: AccionesAgenda,
-    modifier: Modifier
-) {
-    val s = LocalColores.current.superficies
-    val minimo = { b: Reglas.Bloque -> if (b.hecho) 45 else 60 }
-    val carriles = remember(bloques) { Reglas.carriles(bloques, minimo) }
-    val ahoraMin = ahora.hour * 60 + ahora.minute
-    val desde = minOf(bloques.minOf { it.inicio }, if (esHoy) ahoraMin else Int.MAX_VALUE) / 60
-    val hasta = minOf(24, (maxOf(bloques.maxOf { maxOf(it.fin, it.inicio + minimo(it)) }, if (esHoy) ahoraMin else 0) + 59) / 60 + 1)
-    val alto = HORA * (hasta - desde) + 8.dp
-    fun y(min: Int): Dp = HORA * ((min - desde * 60) / 60f)
-
-    BoxWithConstraints(modifier.fillMaxWidth().height(alto)) {
-        val ancho = maxWidth - MARGEN - 16.dp
-        /* Rejilla de horas. */
-        for (h in desde..hasta) {
-            Row(Modifier.offset(y = y(h * 60) - 7.dp).fillMaxWidth().padding(end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "%02d:00".format(h), Modifier.width(48.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End,
-                    style = EstiloMono.copy(fontSize = 10.5.sp, lineHeight = 14.sp), color = s.tenue
-                )
-                Box(
-                    Modifier.padding(start = 10.dp).weight(1f).height(1.dp).drawBehind {
-                        drawLine(s.borde, Offset.Zero, Offset(size.width, 0f), 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx())))
-                    }
-                )
-            }
-        }
-        /* La hora de ahora, por detrás de las tarjetas. */
-        if (esHoy && ahoraMin in desde * 60..hasta * 60) {
-            Box(
-                Modifier.offset(x = MARGEN - 10.dp, y = y(ahoraMin) - 1.dp).fillMaxWidth().height(2.dp).drawBehind {
-                    drawRect(RedOrange.copy(alpha = 0.25f), Offset(0f, -3.dp.toPx()), Size(size.width, size.height + 6.dp.toPx()))
-                    drawRect(RedOrange)
-                }
-            )
-        }
-        carriles.forEach { c ->
-            val b = c.bloque
-            val top = y(b.inicio) + 4.dp
-            val h = HORA * (maxOf(b.fin - b.inicio, minimo(b)) / 60f) - 6.dp
-            val col = (ancho - 6.dp * (c.columnas - 1)) / c.columnas
-            BloqueLinea(
-                b, tecnicos[b.aviso.asignadoA], h, b.aviso.id == siguiente, Reglas.vencido(b.aviso, hoy), ahora, acciones,
-                Modifier.offset(x = MARGEN + (col + 6.dp) * c.columna, y = top).width(col).height(h)
-            )
-        }
-        if (esHoy && ahoraMin in desde * 60..hasta * 60) {
-            Text(
-                ahora.format(DateTimeFormatter.ofPattern("HH:mm")),
-                Modifier.offset(x = 6.dp, y = y(ahoraMin) - 9.dp).clip(RoundedCornerShape(6.dp)).background(RedOrange).padding(horizontal = 6.dp, vertical = 2.dp),
-                style = EstiloMono.copy(fontSize = 10.5.sp, lineHeight = 14.sp, fontWeight = FontWeight.SemiBold), color = Color(0xFF141416)
-            )
-        }
-    }
-}
-
-private fun hora(min: Int) = "%02d:%02d".format(min / 60, min % 60)
-
-/** Un aviso en la línea de tiempo. Se desliza como las filas: ← hecho, → en curso. */
-@Composable
-private fun BloqueLinea(
-    b: Reglas.Bloque,
-    tecnico: Tecnico?,
-    alto: Dp,
-    siguiente: Boolean,
-    vencido: Boolean,
-    ahora: LocalDateTime,
-    acciones: AccionesAgenda,
-    modifier: Modifier
-) {
-    val a = b.aviso
-    val s = LocalColores.current.superficies
-    val forma = RoundedCornerShape(if (alto < 64.dp) 16.dp else 20.dp)
-    val compacto = alto < 100.dp
-    val enCurso = a.estadoE == Estado.EN_CURSO
-    val i = remember { MutableInteractionSource() }
-    FilaDeslizable(
-        a, forma, modifier,
-        alHecho = { acciones.cambiarEstado(a, Estado.RESUELTO) },
-        alDerecha = { acciones.cambiarEstado(a, if (enCurso) Estado.EN_ESPERA else Estado.EN_CURSO) }
-    ) {
-        val barra = colorBarra(a, vencido)
-        Box(
-            Modifier
-                .fillMaxSize()
-                .presionable(i, 0.98f)
-                .clip(forma)
-                .background(
-                    if (enCurso) Brush.verticalGradient(listOf(lerpColor(s.item, RedOrange, if (s.oscuro) 0.16f else 0.08f), s.item))
-                    else SolidColor(s.itemOpaco())
-                )
-                .border(if (enCurso) 1.5.dp else 1.dp, if (enCurso) RedOrange else s.borde, forma)
-                .clickable(i, LocalIndication.current, onClick = { acciones.abrir(a.id) })
-                .alpha(if (b.hecho) 0.75f else 1f)
-        ) {
-            if (!b.hecho) Box(Modifier.width(4.dp).fillMaxHeight().background(barra))
-            when {
-                b.hecho -> ContenidoHecho(a, Modifier.padding(horizontal = 14.dp).align(Alignment.CenterStart))
-                compacto -> ContenidoCompacto(b, tecnico, siguiente, vencido, ahora, acciones, Modifier.padding(start = 16.dp, end = 10.dp).align(Alignment.CenterStart))
-                else -> ContenidoAmplio(b, tecnico, siguiente, vencido, ahora, acciones, Modifier.padding(start = 18.dp, end = 14.dp, top = 12.dp, bottom = 12.dp))
-            }
-        }
-    }
-}
-
-/** Fondo opaco de las tarjetas que se deslizan (que no se transparente lo de detrás). */
-private fun Superficies.itemOpaco() = item
-
-private fun lerpColor(a: Color, b: Color, t: Float) = androidx.compose.ui.graphics.lerp(a, b, t)
-
-@Composable
-private fun ContenidoHecho(a: Aviso, modifier: Modifier) {
-    val s = LocalColores.current.superficies
-    val cierre = runCatching { Instant.parse(a.cerrado).atZone(ZoneId.systemDefault()).toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) }.getOrDefault("")
-    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Icon(Icons.Rounded.CheckCircle, "Hecho", Modifier.size(20.dp), tint = s.ok)
-        Column(Modifier.weight(1f)) {
-            Text(
-                a.titulo, Modifier.compartido("titulo-${a.id}"), maxLines = 1, overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium)
-            )
-            Dato(listOf(a.cliente.nombre, if (cierre.isNotEmpty()) "Hecho $cierre" else "Hecho").filter { it.isNotBlank() }.joinToString(" · "), tam = 9.5f)
-        }
-    }
-}
-
-@Composable
-private fun Encabezado(b: Reglas.Bloque, vencido: Boolean, ahora: LocalDateTime) {
-    val a = b.aviso
-    val s = LocalColores.current.superficies
-    if (a.estadoE == Estado.EN_CURSO) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PuntoVivo(RedOrange, vivo = true)
-            Dato("En curso" + if (a.hora.isNotEmpty()) " · ${a.hora}" else "", color = s.acentoTexto, peso = FontWeight.SemiBold)
-        }
-    } else {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Dato(
-                when {
-                    vencido -> "Vencido · " + hora(b.inicio)
-                    a.estadoE == Estado.EN_ESPERA -> "En espera · " + hora(b.inicio)
-                    else -> hora(b.inicio) + " — " + hora(b.fin)
-                },
-                color = if (vencido) s.acentoTexto else MaterialTheme.colorScheme.onSurface, peso = FontWeight.SemiBold
-            )
-            EtiquetaPrioridad(a.prioridadE)
-        }
-    }
-}
-
-@Composable
-private fun CronometroBloque(a: Aviso, ahora: LocalDateTime, tam: Int) {
-    val s = LocalColores.current.superficies
-    val desde = runCatching { Instant.parse(a.empezado) }.getOrNull()
-    Cronometro(desde, ahora, EstiloMono.copy(fontSize = tam.sp, lineHeight = (tam + 4).sp, fontWeight = FontWeight.SemiBold), MaterialTheme.colorScheme.onSurface, s.acentoTexto)
-}
-
-@Composable
-private fun Final(a: Aviso, tecnico: Tecnico?, siguiente: Boolean, acciones: AccionesAgenda) {
-    if (siguiente && (a.cliente.direccion.isNotBlank() || a.cliente.telefono.isNotBlank())) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (a.cliente.telefono.isNotBlank()) BotonRedondo(Icons.Rounded.Call, "Llamar", { acciones.llamar(a.cliente.telefono) }, tam = 34.dp, tamIcono = 17.dp)
-            if (a.cliente.direccion.isNotBlank()) BotonRedondo(Icons.Rounded.NearMe, "Ir", { acciones.irA(a.cliente.direccion) }, tam = 34.dp, tamIcono = 17.dp, relleno = RedOrange, tinta = Color(0xFF141416))
-        }
-    } else Avatar(tecnico, 28)
-}
-
-@Composable
-private fun ContenidoCompacto(
-    b: Reglas.Bloque, tecnico: Tecnico?, siguiente: Boolean, vencido: Boolean, ahora: LocalDateTime, acciones: AccionesAgenda, modifier: Modifier
-) {
-    val a = b.aviso
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.weight(1f)) { Encabezado(b, vencido, ahora) }
-                if (a.estadoE == Estado.EN_CURSO) CronometroBloque(a, ahora, 13)
-            }
-            Text(
-                a.titulo, Modifier.padding(top = 4.dp).compartido("titulo-${a.id}"), maxLines = 1, overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.titleMedium
-            )
-        }
-        Final(a, tecnico, siguiente, acciones)
-    }
-}
-
-@Composable
-private fun ContenidoAmplio(
-    b: Reglas.Bloque, tecnico: Tecnico?, siguiente: Boolean, vencido: Boolean, ahora: LocalDateTime, acciones: AccionesAgenda, modifier: Modifier
-) {
-    val a = b.aviso
-    val enCurso = a.estadoE == Estado.EN_CURSO
-    Column(modifier.fillMaxSize()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f)) { Encabezado(b, vencido, ahora) }
-            if (enCurso) CronometroBloque(a, ahora, 17) else if (!siguiente) Avatar(tecnico, 28)
-        }
-        Text(
-            a.titulo, Modifier.padding(top = 8.dp).compartido("titulo-${a.id}"), maxLines = 2, overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.titleMedium.copy(fontSize = if (enCurso) 18.sp else 17.sp, lineHeight = 23.sp, letterSpacing = (-0.2).sp)
-        )
-        Spacer(Modifier.weight(1f))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Dato(
-                listOf(a.cliente.nombre, if (enCurso) a.ref else a.sistemaE.nombre).filter { it.isNotBlank() }.joinToString(" · "),
-                Modifier.weight(1f), tam = 10f
-            )
-            if (enCurso || siguiente) Final(a, tecnico, siguiente, acciones)
-        }
-    }
-}
-
 // ---------------------------------------------------------------- filas
 
 @Composable
 private fun FilaAgenda(a: Aviso, t: Tecnico?, hoy: LocalDate, acciones: AccionesAgenda, modifier: Modifier) {
     val forma = RoundedCornerShape(18.dp)
-    FilaDeslizable(
+    Deslizable(
         a, forma, modifier.padding(horizontal = 16.dp).padding(bottom = 6.dp),
         alHecho = { acciones.cambiarEstado(a, Estado.RESUELTO) },
-        alDerecha = { acciones.cambiarEstado(a, if (a.estadoE == Estado.EN_CURSO) Estado.EN_ESPERA else Estado.EN_CURSO) }
+        alDerecha = { acciones.cambiarEstado(a, if (a.estadoE == Estado.EN_CURSO) Estado.EN_ESPERA else Estado.EN_CURSO) },
+        alCancelar = { acciones.cancelar(a) }
     ) {
         FilaAviso(a, t, Reglas.cuando(a, hoy), forma, alerta = Reglas.vencido(a, hoy), alPulsar = { acciones.abrir(a.id) })
     }
-}
-
-/**
- * Deslizar a la izquierda = hecho; a la derecha = en curso (o en espera si ya
- * lo está). El icono de detrás crece con el gesto y, al pasar el punto en que
- * se aplica, el móvil da un toque. La fila vuelve a su sitio: el cambio lo
- * pinta la lista.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun FilaDeslizable(
-    aviso: Aviso,
-    forma: Shape,
-    modifier: Modifier = Modifier,
-    alHecho: () -> Unit,
-    alDerecha: () -> Unit,
-    contenido: @Composable () -> Unit
-) {
-    val hecho by rememberUpdatedState(alHecho)
-    val derecha by rememberUpdatedState(alDerecha)
-    val estado = rememberSwipeToDismissBoxState(
-        confirmValueChange = { v ->
-            when (v) {
-                SwipeToDismissBoxValue.EndToStart -> hecho()
-                SwipeToDismissBoxValue.StartToEnd -> derecha()
-                SwipeToDismissBoxValue.Settled -> Unit
-            }
-            v == SwipeToDismissBoxValue.Settled
-        },
-        positionalThreshold = { it * 0.3f }
-    )
-    val vibrar = LocalHapticFeedback.current
-    LaunchedEffect(estado.targetValue) {
-        if (estado.targetValue != SwipeToDismissBoxValue.Settled) vibrar.performHapticFeedback(HapticFeedbackType.LongPress)
-    }
-    val colores = LocalColores.current
-    SwipeToDismissBox(
-        estado,
-        modifier = modifier.clip(forma),
-        enableDismissFromStartToEnd = aviso.abierto,
-        enableDismissFromEndToStart = aviso.abierto,
-        backgroundContent = {
-            val dir = estado.dismissDirection
-            val enCurso = aviso.estadoE == Estado.EN_CURSO
-            val (e, icono, texto) = when (dir) {
-                SwipeToDismissBoxValue.EndToStart -> Triple(Estado.RESUELTO, Icons.Rounded.CheckCircle, "HECHO")
-                SwipeToDismissBoxValue.StartToEnd ->
-                    if (enCurso) Triple(Estado.EN_ESPERA, Icons.Rounded.PauseCircle, "EN ESPERA")
-                    else Triple(Estado.EN_CURSO, Icons.Rounded.Construction, "EN CURSO")
-                else -> Triple(Estado.PENDIENTE, Icons.Rounded.Check, "")
-            }
-            val listo = estado.targetValue != SwipeToDismissBoxValue.Settled
-            val fondo by animateColorAsState(
-                if (texto.isEmpty()) Color.Transparent else colores.de(e).color.copy(alpha = if (listo) 1f else 0.55f),
-                Muelles.suave(), label = "fondo"
-            )
-            val escala by animateFloatAsState(if (listo) 1.15f else 0.85f, Muelles.soltar(), label = "escala")
-            val tinta = Color(0xFF141416)
-            Box(
-                Modifier.fillMaxSize().background(fondo).padding(horizontal = 20.dp),
-                contentAlignment = if (dir == SwipeToDismissBoxValue.EndToStart) Alignment.CenterEnd else Alignment.CenterStart
-            ) {
-                if (texto.isNotEmpty()) {
-                    Row(
-                        Modifier.graphicsLayer { scaleX = escala; scaleY = escala },
-                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(icono, null, tint = tinta)
-                        Text(texto, color = tinta, style = EstiloEtiqueta)
-                    }
-                }
-            }
-        }
-    ) { contenido() }
 }
 
 @Composable

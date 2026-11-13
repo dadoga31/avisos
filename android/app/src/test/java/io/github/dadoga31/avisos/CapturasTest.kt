@@ -225,6 +225,28 @@ class CapturasTest {
         }
     }
 
+    /** La Agenda entera (más alta que la pantalla): en curso, la línea del día y las bandejas. */
+    @Test
+    @Config(qualifiers = "w412dp-h1900dp-xhdpi")
+    fun agendaCompleta() = foto("16-agenda-completa") {
+        Marco(Seccion.AGENDA) { AgendaPantalla(avisos, tecnicos, Ajustes(pistaGestos = false), ahora, AccionesAgenda(), correo = true) }
+    }
+
+    /** Como en el móvil del usuario: varios en curso a la vez, llegados del correo y sin hora. */
+    @Test
+    fun variosEnCurso() = foto("15-en-curso-varios") {
+        val empezado = ahora.minusMinutes(12).atZone(ZoneId.systemDefault()).toInstant().toString()
+        val extra = listOf(
+            Aviso(id = "c1", ref = "AV-0010", titulo = "Sirena exterior no suena", estado = "en_curso", origen = "correo", empezado = empezado,
+                fecha = ahora.toLocalDate().toString(), cliente = io.github.dadoga31.avisos.datos.Cliente("Talleres Ruiz", "C/ Industria 4", "912345678")),
+            Aviso(id = "c2", ref = "AV-0011", titulo = "Cámara del parking sin imagen", estado = "en_curso", origen = "correo", empezado = empezado,
+                fecha = ahora.toLocalDate().toString(), cliente = io.github.dadoga31.avisos.datos.Cliente("Hotel Mirador"))
+        )
+        Marco(Seccion.AGENDA) {
+            AgendaPantalla(avisos + extra, tecnicos, Ajustes(pistaGestos = false), ahora, AccionesAgenda(), correo = true)
+        }
+    }
+
     @Test
     fun agendaVacia() = foto("9-agenda-vacia") {
         Marco(Seccion.AGENDA) {

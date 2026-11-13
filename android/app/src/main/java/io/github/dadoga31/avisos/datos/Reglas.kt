@@ -202,6 +202,10 @@ object Reglas {
         return avisos.filter { it.abierto && it.fecha == dia.toString() && it.id !in enLinea }.sortedWith(porFecha)
     }
 
+    /** Lo que está en curso ahora, lo que se empezó antes primero. */
+    fun enCurso(avisos: List<Aviso>): List<Aviso> =
+        avisos.filter { it.estadoE == Estado.EN_CURSO }.sortedBy { it.empezado.ifEmpty { "9999" } }
+
     /** Abiertos sin fecha: la bandeja que no es de ningún día. */
     fun sinFecha(avisos: List<Aviso>): List<Aviso> =
         avisos.filter { it.abierto && it.fecha.isEmpty() }.sortedWith(compareBy<Aviso> { -it.prioridadE.peso }.thenByDescending { it.creado })
@@ -209,33 +213,6 @@ object Reglas {
     /** Los siguientes después de [dia], para no perderlos de vista. */
     fun proximos(avisos: List<Aviso>, dia: LocalDate, cuantos: Int = 4): List<Aviso> =
         avisos.filter { it.abierto && it.fecha.isNotEmpty() && it.fecha > dia.toString() }.sortedWith(porFecha).take(cuantos)
-
-    /** Columna de cada bloque cuando se pisan, y cuántas columnas tiene su grupo. */
-    data class Carril(val bloque: Bloque, val columna: Int, val columnas: Int)
-
-    /** [minimo]: lo que ocupa como poco un bloque en pantalla, en minutos. */
-    fun carriles(bloques: List<Bloque>, minimo: (Bloque) -> Int = { 60 }): List<Carril> {
-        val fin = { b: Bloque -> maxOf(b.fin, b.inicio + minimo(b)) }
-        val res = mutableListOf<Carril>()
-        var grupo = mutableListOf<Pair<Bloque, Int>>()
-        var finGrupo = -1
-        val finesColumna = mutableListOf<Int>()
-        fun cerrar() {
-            val n = (grupo.maxOfOrNull { it.second } ?: -1) + 1
-            grupo.forEach { (b, c) -> res += Carril(b, c, n) }
-            grupo = mutableListOf(); finesColumna.clear()
-        }
-        for (b in bloques.sortedBy { it.inicio }) {
-            if (grupo.isNotEmpty() && b.inicio >= finGrupo) cerrar()
-            val libre = finesColumna.indexOfFirst { it <= b.inicio }
-            val col = if (libre >= 0) libre else finesColumna.size
-            if (libre >= 0) finesColumna[libre] = fin(b) else finesColumna += fin(b)
-            grupo += b to col
-            finGrupo = maxOf(finGrupo, fin(b))
-        }
-        if (grupo.isNotEmpty()) cerrar()
-        return res
-    }
 
     /** Hechos frente a lo que había para [dia]. Para hoy es lo mismo que [progresoHoy]. */
     fun progresoDia(avisos: List<Aviso>, dia: LocalDate, zona: ZoneId = ZoneId.systemDefault()): Progreso {

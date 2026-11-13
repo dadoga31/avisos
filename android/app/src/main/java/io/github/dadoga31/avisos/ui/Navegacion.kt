@@ -106,6 +106,18 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
         }
     }
 
+    /* Cancelar desde la Agenda: se cancela ya (desaparece de la lista) y se
+       borra cuando se va el aviso de abajo, salvo que se toque «Deshacer». */
+    fun cancelarYBorrar(a: Aviso) {
+        vm.cambiarEstado(a.id, Estado.CANCELADO) { antes ->
+            scope.launch {
+                snackbar.currentSnackbarData?.dismiss()
+                val r = snackbar.showSnackbar("${antes.ref} cancelado y borrado", "Deshacer", duration = SnackbarDuration.Short)
+                if (r == SnackbarResult.ActionPerformed) vm.restaurar(antes) else vm.borrar(antes.id)
+            }
+        }
+    }
+
     MarcoSeccion(
         actual = seccion ?: Seccion.AGENDA,
         alIr = ::irASeccion,
@@ -135,7 +147,8 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                         ejemplo = { vm.datosDeEjemplo() },
                         ocultarPista = { vm.cambiarAjustes { it.copy(pistaGestos = false) } },
                         correo = { nav.navigate("correo") },
-                        actualizar = { vm.actualizar() }
+                        actualizar = { vm.actualizar() },
+                        cancelar = ::cancelarYBorrar
                     ),
                     correo = correo,
                     actualizacion = actualizacion
@@ -181,10 +194,19 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                 salir = { fadeOut(tween(220)) + slideOutVertically(Muelles.suave()) { it / 14 } }
             ) { e ->
                 val id = e.arguments?.getString("id")
-                val a = avisos.firstOrNull { it.id == id }
-                if (a == null) {
-                    if (cargado) LaunchedEffect(Unit) { nav.popBackStack() }
-                } else {
+                val actual = avisos.firstOrNull { it.id == id }
+                /* Mientras la ficha sale (al borrar), se sigue pintando con el último
+                   aviso que tuvo, en vez de quedarse en blanco. */
+                val ultimo = remember { arrayOfNulls<Aviso>(1) }
+                if (actual != null) ultimo[0] = actual
+                val a = actual ?: ultimo[0]
+                /* Si el aviso ya no existe, se vuelve atrás solo si la ficha es la
+                   pantalla de delante: si ya está saliendo, volver otra vez se
+                   llevaba la Agenda y la app se quedaba en blanco (fallo de la 3.6.0). */
+                if (actual == null && cargado) LaunchedEffect(Unit) {
+                    if (nav.currentBackStackEntry?.id == e.id) nav.popBackStack()
+                }
+                if (a != null) {
                     var temporal by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<Uri?>(null) }
                     val camara = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
                         val u = temporal
@@ -205,7 +227,7 @@ fun AppAvisos(vm: AvisosVM, rutaPedida: String?, alConsumirRuta: () -> Unit) {
                             fecha = { f, h -> vm.guardar(a.copy(fecha = f, hora = h)) },
                             asignar = { vm.guardar(a.copy(asignadoA = it)) },
                             duplicar = { vm.duplicar(a.id) { c -> nav.navigate("editar/${c.id}") } },
-                            borrar = { nav.popBackStack(); vm.borrar(a.id) },
+                            borrar = { vm.borrar(a.id); nav.popBackStack() },
                             llamar = { llamar(contexto, it) },
                             whatsapp = { whatsapp(contexto, it) },
                             irA = { mapa(contexto, it) },

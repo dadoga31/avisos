@@ -208,10 +208,13 @@ class ReglasTest {
     }
 
     @Test
-    fun `los que se pisan van en columnas`() {
-        fun b(id: String, ini: Int, fin: Int) = Reglas.Bloque(av(id), ini, fin, false)
-        val c = Reglas.carriles(listOf(b("a", 540, 600), b("b", 570, 630), b("c", 700, 760)))
-        assertEquals(listOf(0 to 2, 1 to 2, 0 to 1), c.map { it.columna to it.columnas })
+    fun `en curso va aparte, lo empezado antes primero`() {
+        val lista = listOf(
+            av("b", estado = Estado.EN_CURSO).copy(empezado = utc(9, 30)),
+            av("a", estado = Estado.EN_CURSO).copy(empezado = utc(8, 0)),
+            av("p", "2026-11-12", "10:00")
+        )
+        assertEquals(listOf("a", "b"), Reglas.enCurso(lista).map { it.id })
     }
 
     @Test

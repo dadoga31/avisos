@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.unit.dp
 import io.github.dadoga31.avisos.datos.Ajustes
 import io.github.dadoga31.avisos.datos.Aviso
 import io.github.dadoga31.avisos.datos.Cliente
@@ -85,21 +86,71 @@ class GestosTest {
         assertEquals(listOf(Estado.EN_CURSO), estados)
     }
 
+    private val luego = Aviso(
+        id = "a3", ref = "AV-0005", titulo = "Sustitucion de camaras", fecha = "2026-11-12", hora = "11:30", duracion = "1,5",
+        estado = Estado.PROGRAMADO.id, asignadoA = Tecnico.YO, cliente = Cliente("Naves Logisticas Sur")
+    )
+
     @Test
-    fun `en la linea de tiempo, tocar abre y deslizar a la izquierda da por hecho`() {
+    fun `lo que esta en curso sale arriba en grande con su boton de hecho`() {
         val abiertos = mutableListOf<String>()
         val cambios = mutableListOf<Pair<String, Estado>>()
         pantalla {
             AgendaPantalla(
-                listOf(enCurso, manana), listOf(yo), Ajustes(pistaGestos = false), ahora,
+                listOf(enCurso, manana, luego), listOf(yo), Ajustes(pistaGestos = false), ahora,
                 AccionesAgenda(abrir = { abiertos += it }, cambiarEstado = { a, e -> cambios += a.id to e })
             )
         }
         regla.onNodeWithText("Mantenimiento anual").assertIsDisplayed().performClick()
         assertEquals(listOf("a1"), abiertos)
-        regla.onNodeWithText("Mantenimiento anual").performTouchInput { swipeLeft() }
-        regla.waitForIdle()
+        regla.onNodeWithText("Hecho").performClick()
         assertEquals(listOf("a1" to Estado.RESUELTO), cambios)
+    }
+
+    @Test
+    fun `en la linea, deslizar del todo a la izquierda da por hecho`() {
+        val cambios = mutableListOf<Pair<String, Estado>>()
+        pantalla {
+            AgendaPantalla(
+                listOf(enCurso, luego), listOf(yo), Ajustes(pistaGestos = false), ahora,
+                AccionesAgenda(cambiarEstado = { a, e -> cambios += a.id to e })
+            )
+        }
+        regla.onNodeWithText("Sustitucion de camaras").performTouchInput { swipeLeft(startX = right - 5f, endX = left - 400f) }
+        regla.waitForIdle()
+        assertEquals(listOf("a3" to Estado.RESUELTO), cambios)
+    }
+
+    @Test
+    fun `deslizar a medias descubre cancelar y cancelar lo manda borrar`() {
+        val cancelados = mutableListOf<String>()
+        val cambios = mutableListOf<Pair<String, Estado>>()
+        pantalla {
+            AgendaPantalla(
+                listOf(enCurso, luego), listOf(yo), Ajustes(pistaGestos = false), ahora,
+                AccionesAgenda(cancelar = { cancelados += it.id }, cambiarEstado = { a, e -> cambios += a.id to e })
+            )
+        }
+        regla.onNodeWithText("Sustitucion de camaras").performTouchInput { swipeLeft(startX = right - 5f, endX = right - 5f - 160.dp.toPx()) }
+        regla.waitForIdle()
+        regla.onNodeWithContentDescription("Cancelar aviso").assertIsDisplayed().performClick()
+        regla.waitForIdle()
+        assertEquals(listOf("a3"), cancelados)
+        assertEquals(emptyList<Pair<String, Estado>>(), cambios)
+    }
+
+    @Test
+    fun `deslizar a la derecha lo pone en curso`() {
+        val cambios = mutableListOf<Pair<String, Estado>>()
+        pantalla {
+            AgendaPantalla(
+                listOf(luego), listOf(yo), Ajustes(pistaGestos = false), ahora,
+                AccionesAgenda(cambiarEstado = { a, e -> cambios += a.id to e })
+            )
+        }
+        regla.onNodeWithText("Sustitucion de camaras").performTouchInput { swipeRight(startX = left + 5f, endX = right) }
+        regla.waitForIdle()
+        assertEquals(listOf("a3" to Estado.EN_CURSO), cambios)
     }
 
     @Test
